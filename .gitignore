@@ -1,0 +1,11 @@
+# --- Build Artifacts ---
+build/
+.DS_Store
+Pods/
+# (Flutter/React Native의 경우, 해당 언어의 기본 .gitignore 내용을 추가합니다)
+
+# --- Firebase/Secret Keys ---
+# 실제 API 키와 설정 파일은 절대 Git에 올리면 안 됩니다.
+GoogleService-Info.plist
+*.env
+*.secret
