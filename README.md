@@ -46,14 +46,14 @@ graph TD
     end
 
     subgraph sg3 ["03. 백엔드/인텔리전스"]
-        G --> H[Firebase Cloud Functions; 분석 로직 배포];
-        H -- 분석 결과/점수 --> I[Firebase Firestore; DB];
+        G --> H[Firebase Cloud Functions, 분석 로직 배포];
+        H -- 분석 결과/점수 --> I[Firebase Firestore, DB];
         I -- 데이터 구독 --> J[03_Development/src/services];
     end
 
     subgraph sg4 ["04. 앱 빌드 및 배포"]
         E --> K[App Source Code];
-        K & J -- 통합 --> L{iOS 빌드; Xcode};
+        K & J -- 통합 --> L{iOS 빌드, Xcode};
         K & J -- 통합 --> M{Android 빌드};
         F --> L;
         F --> M;
@@ -77,7 +77,7 @@ graph TD
     end
 
     subgraph sg_fe_services ["02. 데이터 처리 및 DB 연동 (Front-end Services)"]
-        C --> D[services; Firebase SDK 호출];
+        C --> D[services, Firebase SDK 호출];
         D --> E[models; 데이터 구조 정의];
         D --> F[Firebase Firestore; DB 저장];
     end
