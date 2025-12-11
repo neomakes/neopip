@@ -1,11 +1,60 @@
-# --- Build Artifacts ---
+# ----------------------------------------------------------------------
+# 1. 빌드 부산물 및 캐시 (Build Artifacts & Cache)
+# ----------------------------------------------------------------------
 build/
-.DS_Store
-Pods/
-# (Flutter/React Native의 경우, 해당 언어의 기본 .gitignore 내용을 추가합니다)
+DerivedData/
+# Xcode가 생성하는 임시 빌드 결과물 폴더
 
-# --- Firebase/Secret Keys ---
-# 실제 API 키와 설정 파일은 절대 Git에 올리면 안 됩니다.
+.DS_Store
+# macOS 전용 파일 (Finder 설정 등)
+
+# ----------------------------------------------------------------------
+# 2. Xcode 프로젝트 및 사용자 설정 (Xcode Project & User Settings)
+# ----------------------------------------------------------------------
+
+# Xcode 작업 공간, 사용자 설정, 자동 생성된 파일
+*.xcodeproj/project.xcworkspace
+*.xcodeproj/xcuserdata
+*.xcworkspace/xcuserdata
+*.xcuserdatad
+# Xcode 사용자 설정, 레이아웃 등 개인 설정 파일 제외
+
+# Core ML 컴파일 결과물
+*.mlmodelc 
+# Core ML 모델 파일 (.mlmodel)을 Xcode가 빌드할 때 생성하는 컴파일된 모델 파일
+
+# ----------------------------------------------------------------------
+# 3. 종속성 관리 (Dependency Management)
+# ----------------------------------------------------------------------
+
+Pods/
+# CocoaPods 라이브러리 (사용하신다면)
+
+.swiftpm/
+# Swift Package Manager (SPM) 관련 파일
+
+# ----------------------------------------------------------------------
+# 4. 보안 및 환경 변수 (Security & Environment Variables)
+# ----------------------------------------------------------------------
+
+# 실제 API 키와 설정 파일 (기존 항목 유지)
+# GoogleService-Info.plist (Firebase 설정)
 GoogleService-Info.plist
 *.env
 *.secret
+
+# ----------------------------------------------------------------------
+# 5. ML/Python 환경 파일 (ML/Python Environment)
+# ----------------------------------------------------------------------
+
+# Python 가상 환경 폴더 (ml_scripts 폴더에서 작업 시)
+.venv/
+venv/
+__pycache__/
+
+# Jupyter Notebook Checkpoints (ml_scripts 폴더에서 Jupyter 사용 시)
+.ipynb_checkpoints
+
+# 기타 학습/데이터 파일 (용량이 큰 경우 제외)
+# (만약 ml_scripts 폴더 내에 데이터셋 파일이 있다면)
+/data/
