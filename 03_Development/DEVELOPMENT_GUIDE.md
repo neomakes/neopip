@@ -1,85 +1,63 @@
-# 💻 DEVELOPMENT GUIDE: PIP 프로젝트 개발 매뉴얼
+# 🧠 ML DEVELOPMENT GUIDE: PIP 인텔리전스 엔진 개발
 
-이 문서는 `03_Development` 폴더의 코드를 기반으로, 앱 개발 및 백엔드 로직 배포를 위한 환경 설정과 워크플로우를 안내합니다.
+이 문서는 `03_Development` 디렉토리에서 PIP의 핵심 인텔리전스 엔진(AI/ML 모델)을 개발, 실험, 관리하는 방법을 안내합니다. 이 공간은 iOS 앱 코드와는 독립적으로 운영됩니다.
 
-## 1. ⚙️ 개발 환경 설정 및 초기화
+## 1. 🎯 목표 및 역할
 
-### 1.1. 크로스 플랫폼 환경 (예: Flutter / React Native) 설정
+*   **목표:** 사용자의 데이터를 기반으로 **PIP Score**를 계산하고, **딥 인사이트**를 제공하는 머신러닝 모델을 개발합니다.
+*   **역할:** 데이터 전처리, 모델 학습, 성능 평가, 모델 경량화 및 최종 모델 파일(*.tflite, *.coreml) 생성을 담당합니다.
 
-(고객님의 최종 기술 스택에 따라 업데이트 필요)
+---
 
-### 1.2. Firebase 프로젝트 초기화
+## 2. 🛠️ 기술 스택 및 환경 설정
 
-1.  **Firebase CLI 설치:** 터미널에서 Firebase Command Line Interface를 설치합니다.
-    ```bash
-    npm install -g firebase-tools
-    ```
-2.  **프로젝트 연결:** VS Code 터미널에서 Firebase에 로그인하고, PIP 프로젝트 ID를 연결합니다.
-    ```bash
-    firebase login
-    firebase use --add  # PIP 프로젝트 ID 연결
-    ```
-3.  **환경 파일 설정 (보안 필수):**
-    * **iOS/Android 설정 파일** (`GoogleService-Info.plist` 등)은 **절대 Git에 커밋하지 않습니다.**
-    * `.gitignore` 파일에 해당 파일을 명시했는지 재확인하세요.
+| 영역 | 주요 도구 및 언어 | 역할 |
+| :--- | :--- | :--- |
+| **핵심 언어** | **Python 3.9+** | 데이터 분석 및 모델 개발의 표준 언어. |
+| **개발 환경** | **Jupyter Notebook / VS Code** | 데이터 탐색 및 모델링 실험을 위한 대화형 환경. |
+| **ML 라이브러리** | **TensorFlow, Keras / PyTorch** | 신경망 모델 구축 및 학습. |
+| **데이터 처리** | **Pandas, NumPy, Scikit-learn** | 데이터 정제, 변환, 특성 공학 및 고전적 ML 모델 실험. |
+| **데이터 소스** | **Firebase Firestore (연동)** | 앱에서 수집된 원본 데이터를 가져오기 위한 소스. |
 
-## 2. 🔗 백엔드 (Firebase Cloud Functions) 연동
+### 환경 초기화
 
-### 2.1. Cloud Functions 로컬 환경 설정
-
-1.  `03_Development/src/functions/` 폴더로 이동합니다.
-2.  **Node.js/TypeScript 환경 초기화:**
-    ```bash
-    npm install
-    # 또는 yarn install (Dependencies 설정)
-    ```
-3.  **로컬 테스트:** 분석 로직 개발 시, 배포 전 로컬에서 함수를 테스트합니다.
-    ```bash
-    firebase emulators:start --only functions,firestore
-    ```
-
-### 2.2. 백엔드 로직 배포 (PIP Score 엔진)
-
-`functions` 폴더의 분석 로직이 완성되면, 다음 명령어로 Firebase 서버에 배포합니다.
+Python 가상 환경 사용을 강력히 권장합니다.
 
 ```bash
-cd 03_Development/src/functions
-firebase deploy --only functions
-````
+# 가상 환경 생성
+python -m venv venv
 
-> **주의:** 이 로직은 `03_Development/src/models`의 데이터 구조와 일치해야 합니다.
+# 가상 환경 활성화
+source venv/bin/activate
 
-## 3\. 💾 데이터 모델 (Data Models) 관리
+# 필수 라이브러리 설치
+pip install -r requirements.txt
+```
+> `requirements.txt` 파일에는 위의 라이브러리들이 명시되어야 합니다.
 
-### 3.1. 스키마 정의 (`03/src/models`)
+---
 
-  * `03_Development/src/models` 폴더에 Firestore 컬렉션 및 문서 구조를 Dart/JS 코드로 명확하게 정의합니다.
-  * **PIP Score, JournalEntry, UserProfile** 등 핵심 데이터 모델을 먼저 정의합니다.
+## 3. 📂 디렉토리 구조
 
-### 3.2. 프론트엔드 연동 (`03/src/services`)
+`03_Development` 내부는 다음과 같이 구성됩니다.
 
-  * `03_Development/src/services` 내의 파일들은 **모든 DB CRUD** (Create, Read, Update, Delete) 작업을 담당합니다.
-  * `functions`와 DB 간의 상호작용은 이 `services` 계층을 통해 이루어져야 합니다.
+| 경로 | 역할 및 책임 |
+| :--- | :--- |
+| `notebooks/` | 데이터 탐색, 전처리, 모델링 등 초기 아이디어를 실험하는 Jupyter Notebook 파일. |
+| `scripts/` | 데이터 전처리, 모델 학습 및 평가를 위한 Python 스크립트 파일. |
+| `models/` | 학습이 완료된 모델 파일(`*.h5`, `*.tflite`, `*.coreml`)을 저장. |
+| `datasets/` | 학습에 사용될 CSV 파일 등 정제된 데이터셋. |
+| `utils/` | 데이터 로딩, 전처리 등 여러 스크립트에서 공통으로 사용되는 함수 모음. |
 
-## 4\. 🚀 CI/CD 및 버전 관리
+---
 
-### 4.1. 브랜치 전략
+## 4. 🔄 개발 워크플로우
 
-  * `main`: 프로덕션 및 App Store/Play Store에 배포되는 안정적인 코드.
-  * `develop`: 기능 개발이 통합되는 메인 개발 브랜치.
-  * `feature/<기능명>`: 개별 기능을 개발할 때 사용하는 브랜치.
-
-### 4.2. GitHub Actions 설정 (`.github/workflows`)
-
-CI/CD 자동화를 위해 `.github/workflows` 폴더에 YAML 파일을 설정합니다.
-
-1.  **테스트 자동화:** `develop` 브랜치에 푸시될 때마다 모든 유닛 테스트를 자동으로 실행합니다.
-2.  **코드 분석:** 코딩 컨벤션 및 정적 분석을 수행하여 코드 품질을 유지합니다.
-
-## 5\. 🎨 디자인 시스템 통합 (`03/src/theme`)
-
-`02_Design_Assets/BRANDING_GUIDE.md`를 참고하여 컬러, 폰트, 간격 정의를 코드로 변환합니다.
-
-  * 예시 (Dart/Swift): `Color.amberFlame` 등의 변수를 정의하여 UI 코드에서 직접 Hex Code를 사용하지 않도록 합니다.
-
-<!-- end list -->
+1.  **데이터 추출:** `Firebase`에서 필요한 데이터를 `notebooks`를 사용해 가져와 `datasets`에 저장합니다.
+2.  **탐색 및 실험:** `notebooks`에서 데이터를 탐색하고 다양한 모델링 기법을 실험합니다.
+3.  **학습 스크립트 작성:** 확정된 모델링 아이디어를 `scripts/train.py`와 같은 스크립트로 구현합니다.
+4.  **모델 학습 및 평가:** 학습 스크립트를 실행하여 모델을 학습하고 성능을 평가합니다.
+5.  **모델 변환 및 저장:**
+    *   평가가 완료된 모델을 앱(Core ML)이나 백엔드(TensorFlow Lite)에서 사용할 수 있는 형식으로 변환합니다.
+    *   최종 모델을 `models/` 디렉토리에 저장하고, 버전을 명확히 기재합니다.
+6.  **모델 배포:** 생성된 모델은 `Firebase ML`에 업로드하거나, `Cloud Functions`에서 사용하거나, 앱 번들에 직접 포함하여 사용합니다. 이 결정은 `01_Planning/ADR`에 기록합니다.
