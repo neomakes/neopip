@@ -69,6 +69,9 @@ graph TD
 
     style B fill:#e6f3ff,stroke:#333,stroke-width:2px
     style O fill:#e6f3ff,stroke:#333,stroke-width:2px
+    style E fill:#ffffff,color:#000000,stroke:#333,stroke-width:2px
+    style F fill:#ffffff,color:#000000,stroke:#333,stroke-width:2px
+    style G fill:#ffffff,color:#000000,stroke:#333,stroke-width:2px
 ```
 
 > **핵심:** 기획 단계에서 AI와 함께 아이디어를 구체화하고, 모든 과정을 `README.md`를 중심으로 문서화하며, 개발/분석/운영 전반에 AI를 활용하여 효율을 극대화하는 선순환 구조입니다.
