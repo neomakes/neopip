@@ -6,137 +6,93 @@
 
 ---
 
-## 1. 🏛️ 우리 앱의 건축 설계: MVVM 아키텍처
+## 1. 🍽️ 우리 앱의 주방: MVVM 아키텍처 이해하기
 
-우리는 **MVVM (Model-View-ViewModel)** 이라는 설계 방식을 따를 것입니다. 처음에는 복잡해 보일 수 있지만, 역할 분담을 통해 오히려 작업을 훨씬 쉽게 만들어주는 매우 효율적인 방법입니다.
+우리 앱은 **MVVM (Model-View-ViewModel)** 이라는 방식으로 만들어집니다. 어려운 단어처럼 보이지만, '레스토랑 주방'을 생각하면 아주 간단합니다. 코드를 역할에 따라 나누어, 주방을 체계적으로 운영하는 것과 같습니다.
 
-*   **🎨 View (화면)**: 사용자가 눈으로 보고 터치하는 모든 것입니다. Figma로 디자인한 바로 그 화면이죠. SwiftUI 코드로 작성되며, 화면을 그리고 사용자 입력을 받는 역할만 합니다.
-    *   *(예: `HomeView.swift`는 스와이프 카드 UI를 보여주는 역할)*
-*   **🧠 ViewModel (두뇌)**: `View`의 두뇌 역할을 합니다. "사용자가 카드를 오른쪽으로 스와이프했네? 그럼 '긍정'으로 기록하고, 다음 카드를 보여줘야지!" 와 같은 모든 판단과 로직을 처리합니다. `View`에 필요한 데이터를 가공해서 전달합니다.
-    *   *(예: `HomeViewModel.swift`는 오늘의 기록 목록을 가지고 있고, 스와이프 액션을 처리함)*
-*   **📦 Model (데이터 상자)**: 순수한 데이터 덩어리입니다. 앱에서 사용하는 데이터의 모양을 정의합니다. 예를 들어, '감정 기록'은 날짜, 텍스트, 감정 점수 등을 담고 있는 '상자'와 같습니다.
-    *   *(예: `JournalEntry.swift`는 날짜, 내용, 사용자가 선택한 감정 등을 담는 구조체)*
-*   **🚚 Service (배송 트럭)**: `ViewModel`의 요청에 따라 데이터를 가져오거나 저장하는 '배송 트럭'입니다. Firebase(우리 앱의 창고)와 통신하여 데이터를 안전하게 배달하는 역할을 전담합니다.
-    *   *(예: `FirebaseService.swift`는 새로운 감정 기록을 Firestore에 저장하는 코드를 담고 있음)*
+*   **🎨 View (메뉴판 & 서빙)**: 손님(사용자)이 보고 주문하는 메뉴판입니다. 예쁘게 디자인된 실제 앱 화면이죠. 손님의 주문(터치, 스와이프)을 받아서 주방(ViewModel)에 전달하는 역할만 합니다.
+    *   *(예: `HomeView.swift`는 오늘의 질문 카드를 보여주는 메뉴판)*
+*   **🧠 ViewModel (총괄 셰프)**: 주방의 총괄 셰프입니다. 메뉴판(`View`)에서 "스테이크 주문이요!" 하는 요청을 받으면, 창고(`Model`)에서 재료를 가져와 요리법에 맞게 조리하고, 완성된 요리를 서빙(`View`)에 내보냅니다. 모든 실질적인 두뇌 활동은 여기서 일어납니다.
+    *   *(예: `HomeViewModel.swift`는 "카드를 오른쪽으로 넘겼네? '긍정'으로 기록하고 다음 질문을 준비해!" 같은 모든 판단을 담당)*
+*   **📦 Model (식자재 창고)**: 요리에 필요한 순수한 '식자재'입니다. 사용자 데이터의 모양과 종류를 정의합니다. 예를 들어 '감정 기록'이라는 식자재 상자에는 '날짜', '내용', '감정 점수'가 들어있습니다.
+    *   *(예: `JournalEntry.swift`는 감정 기록이라는 식자재의 규격)*
 
-**왜 이렇게 나눌까요?** 디자이너가 화면(`View`)을 수정하는 동안, 개발자는 데이터 처리 로직(`ViewModel`)을 동시에 작업할 수 있습니다. 각자 역할이 명확해서 코드가 섞이지 않고, 테스트와 유지보수가 훨씬 쉬워집니다.
+```mermaid
+graph TD
+    subgraph " "
+        A[📱 View (메뉴판)]
+    end
+
+    subgraph " "
+        B[💡 ViewModel (셰프)]
+    end
+
+    subgraph " "
+        C[📓 Model (식자재)]
+    end
+
+    A -- "주문 요청 (버튼 클릭 등)" --> B
+    B -- "요리 결과 전달" --> A
+    B -- "식자재 요청/가공" --> C
+
+    style A fill:#D6EAF8,stroke:#333,stroke-width:2px
+    style B fill:#D1F2EB,stroke:#333,stroke-width:2px
+    style C fill:#FDEDEC,stroke:#333,stroke-width:2px
+```
+
+**왜 이렇게 나눌까요?** 메뉴판 디자이너는 메뉴판만 바꾸고, 셰프는 레시피 개발에만 집중할 수 있습니다. 각자 역할이 명확해서 일이 꼬이지 않고, 어떤 요리(기능)에 문제가 생겼을 때 원인을 찾기 훨씬 쉬워집니다.
 
 ---
 
 ## 2. 🧰 기술 도구함 (Tech Stack)
 
-우리 프로젝트 주방에서 사용할 핵심 도구들입니다.
+우리 주방에서 사용할 핵심 도구들입니다. 파이썬 세계의 `pip`, `pandas`, `jupyter notebook`처럼, Swift 세계에도 훌륭한 도구들이 있습니다.
 
 | 영역 | 주요 도구 | 역할 (쉽게 말해) |
 | :--- | :--- | :--- |
-| **UI 프레임워크** | **SwiftUI** | Figma 디자인을 실제 코드로 구현하는 '디자인 도구' |
-| **상태 관리** | **Combine** | 데이터가 바뀌면 화면도 자동으로 바뀌게 하는 '실시간 연결선' |
-| **데이터베이스**| **Firebase Firestore**| 모든 사용자 데이터를 안전하게 보관하는 '클라우드 창고' |
-| **서버 로직** | **Firebase Cloud Functions**| 복잡한 데이터 분석 등, 앱이 하기 힘든 일을 처리하는 '외부 전문가'|
-| **의존성 관리** | **Swift Package Manager**| Firebase 같은 외부 도구를 쉽게 설치/관리하는 '설치 매니저' (`pip`와 비슷!) |
-| **테스트** | **XCTest** | 우리 앱이 계획대로 잘 작동하는지 확인하는 '품질 검사원' |
+| **UI 프레임워크** | **SwiftUI** | Figma 디자인을 실제 코드로 구현하는 '앱 디자인 도구'입니다. |
+| **백엔드/데이터베이스**| **Firebase**| 모든 사용자 데이터를 보관하고 관리하는 '클라우드 창고/서버'입니다. |
+| **의존성 관리** | **Swift Package Manager**| `pip`처럼 Firebase 같은 외부 도구를 쉽게 설치/관리하는 '설치 매니저'입니다. |
+| **테스트** | **XCTest** | 우리 앱이 계획대로 잘 작동하는지 확인하는 '품질 검사원'입니다. |
 
 ---
 
-## 3. 🗺️ 기능 개발 지도 (Feature Development Map)
+## 3. 🗺️ Xcode 프로젝트 지도: 어디에 무엇이 있을까?
 
-Figma 디자인과 기획안을 바탕으로, 각 탭을 어떻게 개발할지 구체적으로 그려봅시다.
+Xcode 프로젝트(`PIP_Project.xcodeproj`)를 열면 여러 폴더와 파일이 보입니다. 아래 지도를 따라가면 길을 잃지 않을 수 있습니다.
 
-### 3.1. 🏠 Home (Journaling)
+**추천 폴더 구조 (`PIP_Project/PIP_Project/` 내부):**
+```
+├── Application/         // 앱의 시작점 (PIP_ProjectApp.swift)
+├── Views/               // 🎨 메뉴판 (SwiftUI 화면 코드)
+│   ├── Home/
+│   ├── Insight/
+│   ├── Goals/
+│   └── Status/
+├── ViewModels/          // 🧠 셰프 (화면의 로직/두뇌)
+├── Models/              // 📦 식자재 (데이터의 모양 정의)
+├── Components/          // 💎 재사용 가능한 부품 (Gems, Orbs, 커스텀 버튼 등)
+├── Resources/           // 🖼️ 기타 자원
+│   └── Assets.xcassets  // 이미지, 색상, 앱 아이콘 보관소
+└── Info.plist           // 📜 앱의 주민등록증 (이름, 버전, 권한 등)
+```
 
-*   **사용자 목표:** "오늘 내게 무슨 일이 있었고, 나는 무엇을 느꼈는가?"
-*   **핵심 기능:** 데이터 수집, 시각화
-*   **개발 전략:**
-    1.  **스와이프 UI:** 틴더(Tinder)처럼 좌/우로 스와이프하여 감정을 기록하는 UI를 구현합니다. SwiftUI의 `DragGesture`를 활용하여 사용자 제스처에 따라 카드가 움직이고, 특정 지점을 넘어가면 다음 카드를 보여주는 로직을 `HomeViewModel`에서 처리합니다.
-    2.  **게이미피케이션:** 기록을 완료할 때마다 그날의 데이터를 나타내는 **보석(Jewel)**이 생성되는 시각적 피드백을 제공합니다. 이 보석은 `View`에 애니메이션 효과와 함께 나타나 사용자에게 성취감을 줍니다.
-    3.  **데이터 저장:** 스와이프가 완료되면 `HomeViewModel`은 `FirebaseService`를 통해 해당 기록(`JournalEntry` 모델)을 Firestore에 저장합니다.
-
-### 3.2. 💎 Insight
-
-*   **사용자 목표:** "나는 무엇을 개선해야 할까?"
-*   **핵심 기능:** 일/주/월 단위 인사이트 리포트 제공
-*   **개발 전략:**
-    1.  **오브(Orb) 시각화:** 사용자의 데이터를 분석하여 얻은 복합적인 인사이트를 **오브(Orb)** 형태로 시각화합니다. Orb는 색상, 크기, 내부 패턴 등을 파라미터로 받아 동적으로 생성되는 재사용 가능한 SwiftUI `View`로 만듭니다.
-    2.  **대시보드:** `InsightViewModel`은 Firestore에서 사용자의 기록을 집계하고 분석하여 점수 예측, 추세 등을 계산합니다. 이 데이터는 대시보드 UI에 시각적으로 표현됩니다.
-    3.  **스토리 형식 리포트:** 개별 리포트를 클릭하면 인스타그램 스토리처럼 전체 화면으로 나타나고, 화면을 탭하면 다음 리포트로 넘어가는 UI를 구현합니다. `TabView`나 `UIPageViewController`를 SwiftUI와 연동하여 구현할 수 있습니다.
-
-### 3.3. 🎯 Goals
-
-*   **사용자 목표:** "내가 되고 싶은 모습은 무엇이고, 얼마나 가까워졌나?"
-*   **핵심 기능:** 행동 교정 프로그램 제안 및 진행 상황 추적
-*   **개발 전략:**
-    1.  **젬(Gems) 시각화:** 각 프로그램의 성격과 유형을 나타내는 **젬(Gems)**을 디자인에 맞춰 구현합니다. 젬 또한 Orb처럼 파라미터를 받아 동적으로 모양과 색상이 변하는 SwiftUI `View`로 만듭니다.
-    2.  **진행 상황 시각화:** 프로그램의 진행률을 보여주기 위해 SwiftUI의 기본 차트나 커스텀 `Shape` 및 `Path`를 사용하여 원형 프로그레스 바, 라인 차트 등을 구현합니다.
-    3.  **검색 및 제안:** `GoalViewModel`에서 사용자가 참여할 수 있는 프로그램 목록을 관리하고, 검색 기능을 구현하여 사용자가 원하는 프로그램을 찾을 수 있도록 합니다.
-
-### 3.4. 🏆 Status
-
-*   **사용자 목표:** "나는 지금까지 무엇을 해냈는가?"
-*   **핵심 기능:** 달성 현황, 뱃지, 통계 비교
-*   **개발 전략:**
-    1.  **달성 현황 UI:** 연속 기록일, 총 기록 개수, 완료한 프로그램 수를 `StatusViewModel`에서 계산하여 화면에 표시합니다.
-    2.  **뱃지 시스템:** 특정 조건을 만족했을 때(예: 30일 연속 기록) 얻게 되는 뱃지를 시각화합니다. 뱃지 목록은 `GridView`를 사용하여 깔끔하게 보여줍니다.
-    3.  **가치관 분석:** 다른 사용자와의 익명화된 데이터 비교는 `Firebase Cloud Functions`에서 복잡한 계산을 처리하고, 앱은 그 결과만 받아서 시각화에 집중합니다. (MVP 이후 고려)
+*   **`PIP_ProjectTests/`** 와 **`PIP_ProjectUITests/`**: 이곳이 바로 '품질 검사원(XCTest)'이 일하는 곳입니다. `ViewModel`의 계산 로직이 맞는지, 버튼을 눌렀을 때 화면이 잘 넘어가는지 등을 자동으로 검사하는 코드를 작성하여 앱의 안정성을 높입니다.
 
 ---
 
-## 4. ✨ 디자인 시스템 구현 (Design System in Code)
+## 4. ✨ 핵심 기능 개발: 어떻게 만들까?
 
-Figma의 디자인을 코드로 옮겨, 언제든 재사용할 수 있는 부품으로 만듭니다.
+Figma 디자인의 핵심인 **Gems, Orbs, Jewels**는 단순한 이미지가 아닙니다. 데이터에 따라 모습이 변하는 '살아있는' 부품으로 만듭니다.
 
-### 4.1. 색상 (Colors)
+`Components` 폴더 안에 각각의 SwiftUI `View` 파일을 만들고, 데이터(밝기, 모양, 색상 등)를 넣어주면 그에 맞게 스스로를 그리는 방식으로 구현할 것입니다.
 
-`Assets.xcassets`에 색상을 등록하거나, `Color` 익스텐션(Extension)을 만들어 사용합니다. 이렇게 하면 "Teal-Bright"처럼 의미 있는 이름으로 색상을 사용할 수 있어 실수를 줄일 수 있습니다.
-
-**`Color+Extensions.swift` 예시:**
+**`OrbView.swift` (가상 코드 예시):**
 ```swift
 import SwiftUI
 
-extension Color {
-    // Background
-    static let backgroundGradient = LinearGradient(
-        gradient: Gradient(colors: [Color(hex: "#000000"), Color(hex: "#202020")]),
-        startPoint: .top,
-        endPoint: .bottom
-    )
-
-    // Accent: Teal System
-    static let tealLogo = Color(hex: "#31B0B0")
-    // ... 나머지 색상 추가
-    
-    // Text
-    static let primaryText = Color.white
-}
-```
-
-### 4.2. 타이포그래피 (Typography)
-
-`Pretendard` 폰트를 일관되게 적용하기 위해 `Font` 익스텐션을 만듭니다.
-
-**`Font+Extensions.swift` 예시:**
-```swift
-import SwiftUI
-
-extension Font {
-    static func pretendard(size: CGFloat, weight: PretendardWeight = .regular) -> Font {
-        return .custom("Pretendard-\(weight.rawValue)", size: size)
-    }
-}
-
-enum PretendardWeight: String {
-    case bold = "Bold"
-    case medium = "Medium"
-    case regular = "Regular"
-    // ... 나머지 굵기 추가
-}
-```
-
-### 4.3. 핵심 시각 요소: Gems, Orbs, Jewels
-
-이들은 단순한 이미지가 아닌, 데이터에 따라 모습이 변하는 살아있는 객체입니다. 각각 별도의 SwiftUI `View` 파일로 만듭니다.
-
-**`OrbView.swift` (가상 코드):**
-```swift
+// OrbView는 이런 식으로 데이터만 넣어주면
+// 알아서 모양, 색, 그림자까지 그려주는 부품이 됩니다.
 struct OrbView: View {
     let brightness: Double // 데이터 완성도 (0.0 ~ 1.0)
     let complexity: Int    // 데이터 특성 (기하학적 다양성)
@@ -144,10 +100,10 @@ struct OrbView: View {
 
     var body: some View {
         ZStack {
-            // 1. 기본 도형: complexity에 따라 다른 모양
-            // 2. 글래스 효과: .background(.ultraThinMaterial)
+            // 1. 기본 도형: complexity 값에 따라 다른 모양을 그림
+            // 2. 글래스 효과 적용
             // 3. 밝기 조절: .brightness(brightness)
-            // 4. 네온 섀도우: .shadow(color: .tealLogo.opacity(uncertainty), radius: 20)
+            // 4. 네온 섀도우 효과: .shadow(color: .tealLogo.opacity(uncertainty), radius: 20)
         }
     }
 }
@@ -155,28 +111,4 @@ struct OrbView: View {
 
 ---
 
-## 5. 🛠️ 개발 환경 설정 및 폴더 구조
-
-1.  **Firebase 설정:** Firebase 콘솔에서 iOS 앱을 만들고, `GoogleService-Info.plist` 파일을 다운받아 `PIP_Project/PIP_Project/` 폴더에 넣습니다.
-2.  **폰트 설정:** `03_Development/assets/fonts/`의 폰트 파일들을 Xcode 프로젝트에 추가하고, `Info.plist`에 "Fonts provided by application" 항목을 등록합니다.
-3.  **프로젝트 열기:** `PIP_Project/PIP_Project.xcodeproj` 파일을 Xcode로 열어 개발을 시작합니다.
-
-**추천 폴더 구조 (`PIP_Project/PIP_Project/` 내부):**
-```
-├── Application/         // 앱의 시작점 (PIP_ProjectApp.swift)
-├── Views/               // 화면 (View)
-│   ├── Home/
-│   ├── Insight/
-│   ├── Goals/
-│   └── Status/
-├── ViewModels/          // 두뇌 (ViewModel)
-├── Models/              // 데이터 상자 (Model)
-├── Services/            // 배송 트럭 (Service)
-├── Components/          // 재사용 부품 (Gems, Orbs, Buttons...)
-├── Extensions/          // 확장 도구 (Color+, Font+...)
-└── Resources/
-    └── Assets.xcassets  // 이미지, 색상 등 리소스
-```
-
----
-이 가이드가 당신의 손에 들린 지도가 되길 바랍니다. 막히는 부분이 있다면 언제든지 다시 질문해주세요. 함께 멋진 앱을 만들어봅시다!
+이 가이드가 당신의 손에 들린 지도가 되길 바랍니다. 막히는 부분이 있거나 더 궁금한 점이 생기면 언제든지 다시 질문해주세요. 함께 멋진 앱을 만들어봅시다!
