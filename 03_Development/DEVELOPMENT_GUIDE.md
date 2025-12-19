@@ -18,18 +18,18 @@
     *   *(예: `JournalEntry.swift`는 감정 기록이라는 식자재의 규격)*
 
 ```mermaid
-graph TD
-    A[📱 View (메뉴판)]
-    B[💡 ViewModel (셰프)]
-    C[📓 Model (식자재)]
+graph TD;
+    A["📱 View (메뉴판)"];
+    B["💡 ViewModel (셰프)"];
+    C["📓 Model (식자재)"];
 
-    A -- "주문 요청 (버튼 클릭 등)" --> B
-    B -- "요리 결과 전달" --> A
-    B -- "식자재 요청/가공" --> C
+    A -- "주문 요청 (버튼 클릭 등)" --> B;
+    B -- "요리 결과 전달" --> A;
+    B -- "식자재 요청/가공" --> C;
 
-    style A fill:#D6EAF8,stroke:#333,stroke-width:2px
-    style B fill:#D1F2EB,stroke:#333,stroke-width:2px
-    style C fill:#FDEDEC,stroke:#333,stroke-width:2px
+    style A fill:#D6EAF8,stroke:#333,stroke-width:2px;
+    style B fill:#D1F2EB,stroke:#333,stroke-width:2px;
+    style C fill:#FDEDEC,stroke:#333,stroke-width:2px;
 ```
 
 **왜 이렇게 나눌까요?** 메뉴판 디자이너는 메뉴판만 바꾸고, 셰프는 레시피 개발에만 집중할 수 있습니다. 각자 역할이 명확해서 일이 꼬이지 않고, 어떤 요리(기능)에 문제가 생겼을 때 원인을 찾기 훨씬 쉬워집니다.
