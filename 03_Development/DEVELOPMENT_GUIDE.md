@@ -19,17 +19,9 @@
 
 ```mermaid
 graph TD
-    subgraph " "
-        A[📱 View (메뉴판)]
-    end
-
-    subgraph " "
-        B[💡 ViewModel (셰프)]
-    end
-
-    subgraph " "
-        C[📓 Model (식자재)]
-    end
+    A[📱 View (메뉴판)]
+    B[💡 ViewModel (셰프)]
+    C[📓 Model (식자재)]
 
     A -- "주문 요청 (버튼 클릭 등)" --> B
     B -- "요리 결과 전달" --> A
