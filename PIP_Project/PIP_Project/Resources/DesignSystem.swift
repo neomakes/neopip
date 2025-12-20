@@ -62,6 +62,8 @@ extension Color {
         let bgBadgeGrad1 = Color("bg_badge_grad_1")
         let bgBadgeGrad2 = Color("bg_badge_grad_2")
         let bgBadgeGrad3 = Color("bg_badge_grad_3")
+        let numRecords = Color("num_records")
+        let numStreaks = Color("num_streaks")
         let numWins = Color("num_wins")
         let buttonSetting = Color("button_setting")
         let textHi = Color("text_hi")
