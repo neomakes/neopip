@@ -76,15 +76,29 @@ struct InsightGenerationCriteria: Codable {
 // MARK: - Orb Visualization
 /// Orb 시각화 데이터 (ML 출력 기반)
 /// Firestore의 anonymous_users/{anonymousUserId}/orbs/{orbId}에 저장
+/// 
+/// Orb의 의미:
+/// - brightness: 사용자 모델의 재생성 성능 (0.0 ~ 1.0)
+///   - 밝을수록 기존 시계열 정보의 재구성 성능이 높음
+///   - 어두우면 사용자 모델의 성능이 좋지 않음을 나타냄
+/// - borderBrightness: 오늘 예측의 정확도 (0.0 ~ 1.0)
+///   - 밝을수록 예측이 정확함
+///   - 어두울수록 예측이 부정확할 수 있음을 나타냄
+/// - uniqueFeatures: 다른 사용자들과 구분되는 고유 Feature
+///   - 내부 색상과 형태를 결정
 struct OrbVisualization: Identifiable, Codable {
     let id: UUID
     var anonymousUserId: UUID
     var date: Date
     
     // ML 모델에서 계산된 값
-    var brightness: Double              // 데이터 완성도 (0.0 ~ 1.0)
+    var brightness: Double              // 사용자 모델의 재생성 성능 (0.0 ~ 1.0)
+    var borderBrightness: Double        // 오늘 예측의 정확도 (0.0 ~ 1.0)
     var complexity: Int                  // 기하학적 복잡도 (1 ~ 10)
     var uncertainty: Double              // AI 모델 불확실성 (0.0 ~ 1.0)
+    
+    // 고유 Feature (다른 사용자들과 구분)
+    var uniqueFeatures: [String: Double]  // 고유 특징값 (색상과 형태 결정)
     
     // 시계열 특징값에서 추출
     var timeSeriesFeatures: [String: Double]  // 주기성, 트렌드 등
@@ -94,7 +108,7 @@ struct OrbVisualization: Identifiable, Codable {
     var gemType: GemType
     var colorTheme: ColorTheme
     var size: Double
-    var colorGradient: [String]
+    var colorGradient: [String]          // 고유 Feature 기반 색상 그라데이션
     
     // 연결된 데이터
     var dataPointIds: [String]             // 관련 TimeSeriesDataPoint ID들
@@ -105,21 +119,6 @@ struct OrbVisualization: Identifiable, Codable {
     var anonymousUserIdString: String {
         anonymousUserId.uuidString
     }
-}
-
-enum GemType: String, Codable {
-    case sphere      // 구체
-    case diamond     // 다이아몬드
-    case crystal     // 수정
-    case prism       // 프리즘
-    case custom      // 커스텀 형태
-}
-
-enum ColorTheme: String, Codable {
-    case teal        // 기본 Teal
-    case amber       // Amber Flame
-    case tiger       // Tiger Flame
-    case blue        // French Blue
 }
 
 // MARK: - Trend Data
@@ -167,5 +166,176 @@ struct PredictionData: Identifiable, Codable {
     
     var anonymousUserIdString: String {
         anonymousUserId.uuidString
+    }
+}
+
+// MARK: - Insight Analysis Card
+/// 인사이트 분석 카드 (카드뉴스 형식)
+/// Firestore의 anonymous_users/{anonymousUserId}/insights/{insightId}/analysis_cards/{cardId}에 저장
+/// 인스타그램 스토리처럼 여러 페이지로 구성
+struct InsightAnalysisCard: Identifiable, Codable {
+    let id: UUID
+    var insightId: UUID
+    var anonymousUserId: UUID
+    
+    // 카드 내용
+    var title: String
+    var subtitle: String?
+    var cardType: AnalysisCardType
+    
+    // 여러 페이지 (인스타 스토리 형식)
+    var pages: [AnalysisCardPage]
+    
+    // 행동 제안
+    var actionProposals: [ActionProposal]
+    
+    // 사용자 반응
+    var isLiked: Bool              // 하트 버튼 클릭 여부
+    var likedAt: Date?
+    var acceptedActions: [String]  // 수락한 ActionProposal ID 배열
+    
+    var createdAt: Date
+    
+    var insightIdString: String {
+        insightId.uuidString
+    }
+    
+    var anonymousUserIdString: String {
+        anonymousUserId.uuidString
+    }
+}
+
+enum AnalysisCardType: String, Codable {
+    case explanation   // 설명
+    case prediction    // 예측
+    case control       // 제어 (행동 제안)
+    case correlation   // 상관관계
+}
+
+struct AnalysisCardPage: Identifiable, Codable {
+    let id: UUID
+    var pageNumber: Int
+    var contentType: PageContentType
+    var content: PageContent
+    var visualizations: [PageVisualization]?  // 그래프, 수치 등
+}
+
+enum PageContentType: String, Codable {
+    case text         // 텍스트
+    case graph        // 그래프
+    case mantra       // 만트라
+    case statistics   // 수치
+    case mixed        // 혼합
+}
+
+struct PageContent: Codable {
+    var text: String?
+    var headline: String?
+    var body: String?
+    var mantra: String?           // 행동 제안 만트라
+}
+
+struct PageVisualization: Codable {
+    var type: VisualizationType
+    var data: [String: AnyCodable]?  // 그래프 데이터
+    var chartType: ChartType?
+}
+
+enum VisualizationType: String, Codable {
+    case lineChart
+    case barChart
+    case radarChart
+    case pieChart
+    case number
+    case gauge
+}
+
+enum ChartType: String, Codable {
+    case line
+    case bar
+    case radar
+    case pie
+}
+
+struct ActionProposal: Identifiable, Codable {
+    let id: UUID
+    var title: String
+    var description: String
+    var actionType: ActionType
+    var targetDate: Date?
+    var calendarEvent: CalendarEvent?
+    var alarm: AlarmEvent?
+    var isAccepted: Bool
+    var acceptedAt: Date?
+}
+
+enum ActionType: String, Codable {
+    case calendar      // 캘린더 추가
+    case alarm         // 알람 설정
+    case reminder      // 리마인더
+    case habit         // 습관 추가
+}
+
+struct CalendarEvent: Codable {
+    var title: String
+    var description: String?
+    var startDate: Date
+    var endDate: Date?
+    var location: String?
+    var notes: String?
+}
+
+struct AlarmEvent: Codable {
+    var title: String
+    var time: Date
+    var repeatDays: [Int]?  // 1=일요일, 7=토요일
+    var sound: String?
+}
+
+// AnyCodable for Firestore compatibility
+struct AnyCodable: Codable {
+    let value: Any
+    
+    init(_ value: Any) {
+        self.value = value
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if let bool = try? container.decode(Bool.self) {
+            value = bool
+        } else if let int = try? container.decode(Int.self) {
+            value = int
+        } else if let double = try? container.decode(Double.self) {
+            value = double
+        } else if let string = try? container.decode(String.self) {
+            value = string
+        } else if let array = try? container.decode([AnyCodable].self) {
+            value = array.map { $0.value }
+        } else if let dict = try? container.decode([String: AnyCodable].self) {
+            value = dict.mapValues { $0.value }
+        } else {
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Unsupported type")
+        }
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch value {
+        case let bool as Bool:
+            try container.encode(bool)
+        case let int as Int:
+            try container.encode(int)
+        case let double as Double:
+            try container.encode(double)
+        case let string as String:
+            try container.encode(string)
+        case let array as [Any]:
+            try container.encode(array.map { AnyCodable($0) })
+        case let dict as [String: Any]:
+            try container.encode(dict.mapValues { AnyCodable($0) })
+        default:
+            throw EncodingError.invalidValue(value, EncodingError.Context(codingPath: encoder.codingPath, debugDescription: "Unsupported type"))
+        }
     }
 }

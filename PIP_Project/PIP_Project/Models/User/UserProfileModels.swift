@@ -14,6 +14,11 @@ struct UserProfile: Codable {
     var accountId: UUID
     var displayName: String?
     var email: String?
+    
+    // 프로필 이미지
+    var profileImageURL: String?    // 프로필 사진 URL
+    var backgroundImageURL: String? // 배경 이미지 URL
+    
     var createdAt: Date
     var lastActiveAt: Date
     var preferences: UserPreferences
@@ -67,6 +72,8 @@ struct OnboardingState: Codable {
 enum OnboardingStep: String, Codable {
     case welcome
     case goalSelection
+    case programSelection      // 프로그램 선택
+    case dataConsent           // 민감 정보 동의
     case dataCollectionIntro
     case insightPreview
     case onboardingComplete

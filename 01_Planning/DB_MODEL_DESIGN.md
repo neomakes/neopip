@@ -70,7 +70,7 @@ graph TB
     end
     
     subgraph User["👤 User Layer (사용자 정보)"]
-        UP[UserProfile<br/>프로필]
+        UP[UserProfile<br/>프로필<br/>프로필/배경 이미지]
         UDCS[UserDataCollectionSettings<br/>수집 설정]
         OBS[OnboardingState<br/>온보딩 상태]
         PS[PIPScore<br/>종합 점수]
@@ -105,9 +105,10 @@ graph TB
     
     subgraph Insight["💡 Insight Layer (인사이트)"]
         INS[Insight<br/>인사이트]
-        OV[OrbVisualization<br/>Orb 시각화]
+        OV[OrbVisualization<br/>Orb 시각화<br/>brightness: 재생성 성능<br/>borderBrightness: 예측 정확도<br/>uniqueFeatures: 고유 색상]
         TD[TrendData<br/>트렌드 데이터]
         PD[PredictionData<br/>예측 데이터]
+        IAC[InsightAnalysisCard<br/>카드뉴스 형식<br/>인스타 스토리]
         
         AUI -->|1:N| INS
         TSP -->|basedOnDataPoints| INS
@@ -119,12 +120,14 @@ graph TB
         TSP -->|집계| TD
         AUI -->|1:N| PD
         MLMO -->|예측| PD
+        INS -->|1:N| IAC
+        AUI -->|1:N| IAC
     end
     
     subgraph Goal["🎯 Goal Layer (목표)"]
         G[Goal<br/>목표]
         GP[GoalProgress<br/>진행 상황]
-        P[Program<br/>프로그램]
+        P[Program<br/>프로그램<br/>3D 일러스트<br/>인기도/평점]
         GR[GoalRecommendation<br/>목표 추천]
         
         UA -->|1:N| G
@@ -134,9 +137,9 @@ graph TB
     end
     
     subgraph Status["📈 Status Layer (통계)"]
-        US[UserStats<br/>사용자 통계]
+        US[UserStats<br/>사용자 통계<br/>totalDataPoints]
         B[Badge<br/>뱃지]
-        A[Achievement<br/>성취]
+        A[Achievement<br/>성취<br/>3D 일러스트<br/>색상 스키마]
         VA[ValueAnalysis<br/>가치관 분석]
         
         UA -->|1:1| US
@@ -159,17 +162,20 @@ graph TB
 graph LR
     subgraph PII["🔴 PII 영역 (users/{accountId})"]
         UA[UserAccount]
-        UP[UserProfile]
+        UP[UserProfile<br/>프로필/배경 이미지]
         DG[DailyGem]
         G[Goal]
+        P[Program<br/>3D 일러스트]
+        A[Achievement<br/>3D 일러스트]
     end
     
     subgraph Anonymous["🟢 익명화 영역 (anonymous_users/{anonymousUserId})"]
         AUI[AnonymousUserIdentity]
         TSP[TimeSeriesDataPoint]
         INS[Insight]
-        OV[OrbVisualization]
+        OV[OrbVisualization<br/>brightness/borderBrightness<br/>uniqueFeatures]
         TD[TrendData]
+        IAC[InsightAnalysisCard<br/>카드뉴스]
     end
     
     subgraph Mapping["🔐 매핑 영역 (identity_mappings)"]
@@ -183,14 +189,18 @@ graph LR
     UA --> UP
     UA --> DG
     UA --> G
+    UA --> P
+    UA --> A
     
     AUI --> TSP
     AUI --> INS
     AUI --> OV
     AUI --> TD
+    AUI --> IAC
     
     TSP -->|basedOnDataPoints| INS
     TSP -->|dataPointIds| OV
+    INS -->|1:N| IAC
     
     style UA fill:#ff6b6b,stroke:#333,stroke-width:2px
     style AUI fill:#4ecdc4,stroke:#333,stroke-width:2px
@@ -209,6 +219,8 @@ sequenceDiagram
     participant DS as DailyStats
     participant ML as ML 모델
     participant INS as Insight
+    participant OV as OrbVisualization
+    participant IAC as InsightAnalysisCard
     
     User->>App: 데이터 입력 (mood, stress, energy, focus)
     User->>App: 메모 입력 (선택)
@@ -221,9 +233,10 @@ sequenceDiagram
     Note over TSP,DS: 일주일 후...
     
     TSP->>ML: 충분한 데이터 수집<br/>(7일 이상)
-    ML->>ML: ML 모델 실행
+    ML->>ML: ML 모델 실행<br/>재생성 성능 계산<br/>예측 정확도 계산<br/>고유 Feature 추출
     ML->>INS: Insight 생성<br/>(basedOnDataPoints)
-    ML->>DG: OrbVisualization 생성<br/>(ML 출력 기반)
+    ML->>OV: OrbVisualization 생성<br/>brightness: 재생성 성능 (0.85)<br/>borderBrightness: 예측 정확도 (0.75)<br/>uniqueFeatures: 고유 색상 결정
+    ML->>IAC: InsightAnalysisCard 생성<br/>(카드뉴스 형식)<br/>행동 제안 포함
 ```
 
 ### 2.4. 모델 간 참조 관계 (ER Diagram)
@@ -232,13 +245,15 @@ sequenceDiagram
 erDiagram
     UserAccount ||--o{ DailyGem : "has"
     UserAccount ||--o{ Goal : "has"
-    UserAccount ||--|| UserProfile : "has"
+    UserAccount ||--|| UserProfile : "has<br/>프로필/배경 이미지"
     UserAccount ||--|| UserDataCollectionSettings : "has"
+    UserAccount ||--|| UserStats : "has<br/>totalDataPoints"
     
     AnonymousUserIdentity ||--o{ TimeSeriesDataPoint : "has"
     AnonymousUserIdentity ||--o{ Insight : "has"
-    AnonymousUserIdentity ||--o{ OrbVisualization : "has"
+    AnonymousUserIdentity ||--o{ OrbVisualization : "has<br/>brightness/borderBrightness<br/>uniqueFeatures"
     AnonymousUserIdentity ||--o{ TrendData : "has"
+    AnonymousUserIdentity ||--o{ InsightAnalysisCard : "has"
     
     TimeSeriesDataPoint ||--o{ Insight : "basedOnDataPoints"
     TimeSeriesDataPoint ||--o{ OrbVisualization : "dataPointIds"
@@ -246,10 +261,20 @@ erDiagram
     TimeSeriesDataPoint ||--o{ DailyGem : "dataPointIds array"
     
     MLModelOutput ||--o| Insight : "mlModelOutputId"
-    MLModelOutput ||--o| OrbVisualization : "mlModelOutputId"
+    MLModelOutput ||--o| OrbVisualization : "mlModelOutputId<br/>재생성 성능/예측 정확도"
+    
+    Insight ||--o{ InsightAnalysisCard : "has<br/>카드뉴스 형식"
+    InsightAnalysisCard ||--o{ ActionProposal : "has<br/>행동 제안"
     
     Goal ||--o{ GoalProgress : "has"
     Insight ||--o{ GoalRecommendation : "basedOnInsights"
+    
+    Program ||--o{ Goal : "recommends"
+    Program ||--o{ ProgramReview : "has<br/>인기도/평점"
+    Program ||--|| ProgramIllustration3D : "has<br/>3D 일러스트"
+    
+    UserAccount ||--o{ Achievement : "has<br/>3D 일러스트<br/>색상 스키마"
+    Achievement ||--|| AchievementIllustration3D : "has"
     
     UserAccount ||--|| IdentityMapping : "mapped"
     AnonymousUserIdentity ||--|| IdentityMapping : "mapped"
@@ -324,20 +349,26 @@ Models/
 └── Features/
     ├── InsightModels.swift
     │   - Insight
-    │   - OrbVisualization
+    │   - OrbVisualization ⭐ (brightness, borderBrightness, uniqueFeatures)
     │   - TrendData
     │   - PredictionData
+    │   - InsightAnalysisCard (카드뉴스 형식)
+    │   - AnalysisCardPage
+    │   - ActionProposal
     │
     ├── GoalModels.swift
     │   - Goal
-    │   - Program
+    │   - Program ⭐ (3D 일러스트, 인기도, 평점)
+    │   - ProgramIllustration3D
+    │   - ProgramReview
     │   - GoalProgress
     │   - GoalRecommendation
     │
     └── StatusModels.swift
-        - UserStats
+        - UserStats ⭐ (totalDataPoints)
         - Badge
-        - Achievement
+        - Achievement ⭐ (3D 일러스트, 색상 스키마)
+        - AchievementIllustration3D
         - ValueAnalysis
 ```
 
@@ -358,6 +389,15 @@ Models/
 **✅ 추가된 것**:
 - `DataModels.swift` (DailyGem, DailyStats 포함)
 - `DailyStats.notesCount` (메모가 있는 데이터 포인트 수)
+- `OrbVisualization.brightness` (재생성 성능)
+- `OrbVisualization.borderBrightness` (예측 정확도)
+- `OrbVisualization.uniqueFeatures` (고유 색상 결정)
+- `InsightAnalysisCard` (카드뉴스 형식 인사이트)
+- `Program.illustration3D` (3D 일러스트)
+- `Program.popularity`, `rating`, `reviewCount` (인기도 및 평가)
+- `UserProfile.profileImageURL`, `backgroundImageURL` (프로필 이미지)
+- `Achievement.illustration3D` (3D 일러스트)
+- `Achievement.colorScheme` (달성 패턴별 색상)
 
 ---
 
@@ -468,7 +508,73 @@ struct DailyStats: Codable {
 - `notesCount` 추가
 - `categories` → `notesByCategory`
 
-### 4.4. Goal (목표)
+### 4.4. OrbVisualization (Orb 시각화)
+
+```swift
+struct OrbVisualization: Identifiable, Codable {
+    let id: UUID
+    var anonymousUserId: UUID
+    var date: Date
+    
+    // ML 모델에서 계산된 값
+    var brightness: Double              // 사용자 모델의 재생성 성능 (0.0 ~ 1.0)
+    var borderBrightness: Double        // 오늘 예측의 정확도 (0.0 ~ 1.0)
+    var complexity: Int                  // 기하학적 복잡도 (1 ~ 10)
+    var uncertainty: Double              // AI 모델 불확실성 (0.0 ~ 1.0)
+    
+    // 고유 Feature (다른 사용자들과 구분)
+    var uniqueFeatures: [String: Double]  // 고유 특징값 (색상과 형태 결정)
+    
+    // 시계열 특징값에서 추출
+    var timeSeriesFeatures: [String: Double]
+    var categoryWeights: [String: Double]
+    
+    // 시각화 파라미터
+    var gemType: GemType
+    var colorTheme: ColorTheme
+    var size: Double
+    var colorGradient: [String]          // 고유 Feature 기반 색상 그라데이션
+    
+    // 연결된 데이터
+    var dataPointIds: [String]
+    var mlModelOutputId: UUID?
+    
+    var createdAt: Date
+}
+```
+
+**Orb 시각화 의미** (InsightView 최상단 표시):
+
+1. **brightness (내부 밝기)**: 사용자 모델의 재생성 성능
+   - **밝을수록**: 기존 시계열 정보의 재구성 성능이 높음 → 서비스가 사용자를 잘 이해함
+   - **어두울수록**: 사용자 모델의 재생성 성능이 좋지 않음 → 데이터가 부족하거나 패턴 파악이 어려움
+   - **시각화**: Orb 내부 색상의 opacity로 표현
+
+2. **borderBrightness (테두리 밝기)**: 오늘 예측의 정확도
+   - **밝을수록**: 오늘의 예측이 정확함 → 신뢰할 수 있는 예측
+   - **어두울수록**: 예측이 부정확할 수 있음 → 불확실성이 높음
+   - **시각화**: Orb 테두리의 opacity로 표현
+
+3. **uniqueFeatures (고유 특징)**: 다른 사용자들과 구분되는 고유 Feature
+   - **의미**: 사용자만의 고유한 데이터 패턴
+   - **시각화**: 내부 색상과 형태를 결정
+   - **예시**: 
+     - `feature1: 0.8, feature2: 0.6` → 특정 색상 그라데이션 생성
+     - 각 사용자마다 다른 색상 조합으로 시각화
+
+**시각화 예시**:
+```
+┌─────────────────────────┐
+│   Orb (brightness: 0.85)│
+│   ┌─────────────────┐   │
+│   │  고유 색상      │   │ ← uniqueFeatures 기반
+│   │  (밝음)         │   │ ← brightness = 재생성 성능
+│   └─────────────────┘   │
+│   ═══════════════════   │ ← borderBrightness = 예측 정확도
+└─────────────────────────┘
+```
+
+### 4.5. Goal (목표)
 
 ```swift
 struct Goal: Identifiable, Codable {
@@ -490,6 +596,75 @@ struct Goal: Identifiable, Codable {
 ```
 
 **변경사항**: `relatedJournalEntries` → `relatedDataPointIds`
+
+### 4.6. Program (프로그램)
+
+```swift
+struct Program: Identifiable, Codable {
+    let id: UUID
+    var name: String
+    var description: String
+    var category: GoalCategory
+    var duration: Int              // 일 단위
+    var difficulty: DifficultyLevel
+    var gemVisualization: GemVisualization
+    
+    // 3D 일러스트 정보
+    var illustration3D: ProgramIllustration3D?
+    
+    // 인기도 및 평가
+    var popularity: Double          // 0.0 ~ 1.0 (인기도 점수)
+    var rating: Double?             // 1.0 ~ 5.0 (평균 평점)
+    var reviewCount: Int            // 리뷰 수
+    var userCount: Int             // 사용자 수
+    
+    // 프로그램 상세
+    var steps: [ProgramStep]
+    var prerequisites: [String]?
+    var tags: [String]
+    var expectedEffects: [String]   // 기대 효과 목록
+    var requiredDataTypes: [String] // 필요한 데이터 타입 ID 배열
+    
+    // 사용자 평가
+    var userReviews: [ProgramReview]?  // 최근 리뷰들
+    
+    var isRecommended: Bool        // AI 추천 여부
+    var createdAt: Date
+}
+```
+
+### 4.7. InsightAnalysisCard (인사이트 분석 카드)
+
+```swift
+struct InsightAnalysisCard: Identifiable, Codable {
+    let id: UUID
+    var insightId: UUID
+    var anonymousUserId: UUID
+    
+    // 카드 내용
+    var title: String
+    var subtitle: String?
+    var cardType: AnalysisCardType  // explanation, prediction, control
+    
+    // 여러 페이지 (인스타 스토리 형식)
+    var pages: [AnalysisCardPage]
+    
+    // 행동 제안
+    var actionProposals: [ActionProposal]
+    
+    // 사용자 반응
+    var isLiked: Bool              // 하트 버튼 클릭 여부
+    var likedAt: Date?
+    var acceptedActions: [String]  // 수락한 ActionProposal ID 배열
+    
+    var createdAt: Date
+}
+```
+
+**특징**:
+- 인스타그램 스토리처럼 여러 페이지로 구성
+- 각 페이지에 그래프, 수치, 만트라 등 포함
+- 행동 제안을 캘린더, 알람 등으로 실행 가능
 
 ---
 
@@ -564,6 +739,9 @@ anonymous_users/
     insights/
       {insightId}/
         - Insight
+        analysis_cards/
+          {cardId}/
+            - InsightAnalysisCard
     orbs/
       {orbId}/
         - OrbVisualization
@@ -973,9 +1151,10 @@ let mlModelOutput = MLModelOutput(
 )
 ```
 
-#### Step 3: Insight 생성
+#### Step 3: Insight 및 OrbVisualization 생성
 
 ```swift
+// Insight 생성
 let insight = Insight(
     id: UUID(),
     anonymousUserId: anonymousUserId,
@@ -1000,6 +1179,100 @@ let insight = Insight(
         "수요일의 긍정적인 패턴을 유지하기 위해 비슷한 활동을 계획해보세요."
     ],
     visualizations: ["line_chart", "orb"],
+    createdAt: Date()
+)
+
+// OrbVisualization 생성 (ML 모델 출력 기반)
+// 재생성 성능 계산: 기존 시계열 데이터를 얼마나 잘 재구성할 수 있는지
+let reconstructionPerformance = calculateReconstructionPerformance(
+    dataPoints: recentDataPoints,
+    mlOutput: mlModelOutput
+)  // 예: 0.85
+
+// 예측 정확도 계산: 오늘 예측의 신뢰도
+let predictionAccuracy = mlModelOutput.confidence  // 예: 0.75
+
+// 고유 Feature 추출: 다른 사용자들과 구분되는 특징
+let uniqueFeatures = extractUniqueFeatures(
+    dataPoints: recentDataPoints,
+    allUsersFeatures: globalUserFeatures
+)  // 예: ["morning_energy": 0.8, "evening_stress": 0.6]
+
+// 고유 Feature 기반 색상 그라데이션 생성
+let colorGradient = generateColorGradient(from: uniqueFeatures)
+// 예: ["#82EBEB", "#40DBDB", "#31B0B0"]
+
+let orb = OrbVisualization(
+    id: UUID(),
+    anonymousUserId: anonymousUserId,
+    date: Date(),
+    brightness: reconstructionPerformance,  // 0.85 (재생성 성능)
+    borderBrightness: predictionAccuracy,   // 0.75 (예측 정확도)
+    complexity: 7,
+    uncertainty: mlModelOutput.uncertainty,  // 0.18
+    uniqueFeatures: uniqueFeatures,  // 고유 Feature
+    timeSeriesFeatures: mlModelOutput.features,
+    categoryWeights: calculateCategoryWeights(dataPoints: recentDataPoints),
+    gemType: .crystal,
+    colorTheme: .teal,
+    size: 1.2,
+    colorGradient: colorGradient,  // 고유 Feature 기반
+    dataPointIds: recentDataPoints.map { $0.id.uuidString },
+    mlModelOutputId: mlModelOutput.id,
+    createdAt: Date()
+)
+
+// InsightAnalysisCard 생성 (카드뉴스 형식)
+let analysisCard = InsightAnalysisCard(
+    id: UUID(),
+    insightId: insight.id,
+    anonymousUserId: anonymousUserId,
+    title: "이번 주 감정 패턴 분석",
+    subtitle: "설명, 예측, 제어",
+    cardType: .explanation,
+    pages: [
+        AnalysisCardPage(
+            id: UUID(),
+            pageNumber: 1,
+            contentType: .mixed,
+            content: PageContent(
+                text: "최근 일주일간 전반적으로 긍정적인 감정이 증가했습니다.",
+                headline: "긍정적 트렌드",
+                body: "기분 점수가 평균 0.72로, 이전 주 대비 5% 상승했습니다.",
+                mantra: "수요일의 긍정적인 패턴을 유지하세요"
+            ),
+            visualizations: [
+                PageVisualization(
+                    type: .lineChart,
+                    data: ["mood": AnyCodable([0.65, 0.70, 0.75, 0.68, 0.70, 0.72, 0.74])],
+                    chartType: .line
+                )
+            ]
+        )
+    ],
+    actionProposals: [
+        ActionProposal(
+            id: UUID(),
+            title: "명상 시간",
+            description: "수요일의 긍정적인 패턴을 유지하기 위해",
+            actionType: .calendar,
+            targetDate: nil,
+            calendarEvent: CalendarEvent(
+                title: "명상",
+                description: "10분 명상",
+                startDate: Calendar.current.date(byAdding: .day, value: 3, to: Date())!,
+                endDate: nil,
+                location: nil,
+                notes: nil
+            ),
+            alarm: nil,
+            isAccepted: false,
+            acceptedAt: nil
+        )
+    ],
+    isLiked: false,
+    likedAt: nil,
+    acceptedActions: [],
     createdAt: Date()
 )
 ```
@@ -1030,6 +1303,257 @@ ML 모델 실행
 Insight 생성
   - basedOnDataPoints: [TimeSeriesDataPoint.id 배열]
   - mlModelOutputId: MLModelOutput.id
+```
+
+### 6.5. 구체적인 사용자 시나리오
+
+#### 시나리오 1: 목표 선택 (틴더 스타일)
+
+**UI/UX**:
+- 틴더처럼 카드를 좌우로 스와이프하여 목표 선택
+- 한 두개의 목표 선택 가능
+- 선택한 목표에 따라 프로그램 추천
+
+**데이터 생성**:
+```swift
+OnboardingState(
+    isCompleted: false,
+    completedSteps: ["welcome", "goalSelection"],
+    selectedGoals: ["wellness", "productivity"],  // 틴더 스타일로 선택
+    completedAt: nil,
+    skippedSteps: []
+)
+```
+
+#### 시나리오 2: 프로그램 선택 및 데이터 동의
+
+**UI/UX**:
+- 선택한 목표에 맞는 프로그램 목록 표시
+- 프로그램 클릭 시 상세 정보:
+  - 간단한 설명
+  - 기대 효과
+  - 필요한 데이터 목록
+- 민감 정보 동의 페이지:
+  - 날씨, 스크린타임, 위치, 심박수, 걸음수, 건강 등
+
+**데이터 생성**:
+```swift
+UserDataCollectionSettings(
+    accountId: accountId,
+    enabledDataTypes: ["mood", "stress", "energy", "focus", "weather", "location", "heartRate", "steps"],
+    permissions: DataPermissions(
+        screenTime: .granted,
+        healthKit: .granted,
+        location: .granted,
+        // ...
+    ),
+    // ...
+)
+```
+
+#### 시나리오 3: 홈 화면 - RailRoad 및 카드 기반 입력
+
+**UI/UX**:
+- 상단: 총 기록수, 최근 연속 기록 수
+- RailRoad: 상하 스크롤로 과거 기록 확인
+  - 개별 기록은 오픈소스 gem 애셋으로 시각화
+- 우측 하단 버튼: 새로운 데이터 기록
+- 카드 기반 입력 (틴더 스타일):
+  - 여러 장의 카드에서 간단한 데이터 기록
+  - 슬라이더로 점수 구체화
+  - 텍스트 상자로 저널링 기록
+  - 카드마다 마음, 행동, 신체로 구분
+  - 설정한 목표에 따라 프로그램 카드 포함
+  - 작성 완료 시 좌측으로 슬라이딩 또는 체크 버튼
+  - 되돌리기 버튼으로 이전 카드 수정
+
+**데이터 생성**:
+```swift
+// 각 카드 입력마다 TimeSeriesDataPoint 생성
+let dataPoint = TimeSeriesDataPoint(
+    // ... 기존 필드들
+    values: [
+        "mood": .integer(75),      // 마음 카드
+        "productivity": .integer(85),  // 행동 카드
+        "sleepScore": .integer(70)     // 신체 카드
+    ],
+    notes: "오늘은 프로젝트가 잘 진행되어...",  // 텍스트 상자 입력
+    category: .mind,  // 카드 타입에 따라
+    // ...
+)
+
+// DailyGem 생성 (오픈소스 gem 애셋으로 시각화)
+let dailyGem = DailyGem(
+    // ... 기존 필드들
+    gemType: .crystal,  // gem 애셋 타입
+    // ...
+)
+```
+
+#### 시나리오 4: InsightView - Orb 및 분석
+
+**UI/UX**:
+- **Orb (최상단)**:
+  - 색상 밝기 = 사용자 모델의 재생성 성능
+  - 테두리 밝기 = 오늘 예측의 정확도
+  - 내부 색상 = 고유 Feature 기반
+- **Dashboard (Orb 하단)**:
+  - 수집한 데이터의 예측 값과 신뢰도
+  - 슬라이딩으로 마음/행동/신체 카테고리별 예측 확인
+- **Analysis (하단)**:
+  - 카드뉴스 형식 인사이트
+  - 인스타그램 스토리처럼 여러 페이지
+  - 그래프, 수치, 만트라 포함
+  - 우측 하단 하트 버튼: 좋아요
+  - 수락 버튼: 캘린더, 알람 등 실행
+
+**데이터 생성**:
+```swift
+// Orb 생성
+let orb = OrbVisualization(
+    // ... 기존 필드들
+    brightness: 0.85,  // 사용자 모델 재생성 성능
+    borderBrightness: 0.75,  // 오늘 예측 정확도
+    uniqueFeatures: [
+        "feature1": 0.8,
+        "feature2": 0.6
+    ],  // 고유 Feature (색상 결정)
+    colorGradient: ["#82EBEB", "#40DBDB"],  // 고유 Feature 기반
+    // ...
+)
+
+// InsightAnalysisCard 생성
+let analysisCard = InsightAnalysisCard(
+    // ... 기존 필드들
+    cardType: .explanation,  // 또는 .prediction, .control
+    pages: [
+        AnalysisCardPage(
+            pageNumber: 1,
+            contentType: .mixed,
+            content: PageContent(
+                text: "설명 텍스트",
+                mantra: "행동 제안 만트라"
+            ),
+            visualizations: [
+                PageVisualization(
+                    type: .lineChart,
+                    chartType: .line
+                )
+            ]
+        )
+    ],
+    actionProposals: [
+        ActionProposal(
+            title: "명상 시간",
+            actionType: .calendar,
+            calendarEvent: CalendarEvent(
+                title: "명상",
+                startDate: Date()
+            )
+        )
+    ],
+    // ...
+)
+```
+
+#### 시나리오 5: GoalView - 프로그램 진행
+
+**UI/UX**:
+- **Program List (최상단)**:
+  - 현재 진행 중 프로그램의 3D 일러스트
+- **Progress (중간)**:
+  - BarLineChart: 기대 진행 상황 vs 현재 진행 상황
+  - RadarChart: 초기 시작 시와의 변화
+- **Programs (하단)**:
+  - 다양한 프로그램 카드뉴스
+  - 클릭 시 인스타 스토리 형식:
+    - 프로그램 설명
+    - 인기도
+    - 사용자 평가
+
+**데이터 생성**:
+```swift
+// Program 조회 및 표시
+let program = Program(
+    // ... 기존 필드들
+    illustration3D: ProgramIllustration3D(
+        modelId: "program_3d_model_1",
+        previewImageURL: "https://..."
+    ),
+    popularity: 0.85,
+    rating: 4.5,
+    reviewCount: 120,
+    userCount: 500,
+    userReviews: [
+        ProgramReview(
+            rating: 5.0,
+            comment: "정말 도움이 되었어요!"
+        )
+    ],
+    // ...
+)
+
+// GoalProgress 생성
+let progress = GoalProgress(
+    goalId: goalId,
+    progress: 0.65,  // BarLineChart용
+    // ...
+)
+```
+
+#### 시나리오 6: StatusView - 프로필 및 성취
+
+**UI/UX**:
+- **Profile (상단)**:
+  - 배경 및 프로필 사진
+  - 달성한 프로그램 수, 기록 수, 연속 기록 수
+  - 우측 상단 설정 아이콘:
+    - 서비스 정보
+    - 저작권
+    - 수집 중인 데이터 목록
+- **Achievement (중간)**:
+  - 달성한 프로그램의 3D 일러스트
+  - 달성 패턴에 따른 색상 다양화
+  - 뱃지로 전시
+- **Value (하단)**:
+  - RadarChart: 다른 사용자들과 비교
+  - BarChart: 독립적인 상태와 추구하는 가치관
+  - 아비투스 시각화
+
+**데이터 생성**:
+```swift
+// UserProfile 업데이트
+userProfile.profileImageURL = "https://..."
+userProfile.backgroundImageURL = "https://..."
+
+// Achievement 생성
+let achievement = Achievement(
+    programId: programId,
+    illustration3D: AchievementIllustration3D(
+        modelId: "achievement_3d_model_1",
+        colorScheme: ["#FF8A00", "#D94800"]  // 달성 패턴에 따른 색상
+    ),
+    colorScheme: ["#FF8A00", "#D94800"],  // 뱃지 전시용
+    // ...
+)
+
+// ValueAnalysis 생성
+let valueAnalysis = ValueAnalysis(
+    topValues: [
+        ValueItem(name: "개인 성장", score: 0.85),
+        ValueItem(name: "건강", score: 0.78)
+    ],
+    valueDistribution: [
+        "personalGrowth": 0.85,
+        "health": 0.78
+    ],
+    comparisonData: ComparisonData(
+        userPercentile: 75.5,
+        averageScore: 0.65,
+        uniqueAspects: ["개인 성장에 대한 관심이 높음"]
+    ),
+    // ...
+)
 ```
 
 ---

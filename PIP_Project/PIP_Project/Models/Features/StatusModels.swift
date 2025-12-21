@@ -12,7 +12,7 @@ import Foundation
 /// Firestore의 users/{accountId}/stats에 저장
 struct UserStats: Codable {
     var accountId: UUID
-    var totalJournalEntries: Int
+    var totalDataPoints: Int       // 총 데이터 포인트 수 (기록 수)
     var totalDaysActive: Int
     var currentStreak: Int         // 현재 연속 기록 일수
     var longestStreak: Int         // 최장 연속 기록 일수
@@ -74,7 +74,7 @@ struct BadgeRequirement: Codable {
 }
 
 enum RequirementType: String, Codable {
-    case totalEntries      // 총 기록 수
+    case totalDataPoints   // 총 데이터 포인트 수 (기록 수)
     case streakDays        // 연속 기록 일수
     case goalsCompleted    // 완료한 목표 수
     case programsCompleted // 완료한 프로그램 수
@@ -82,22 +82,37 @@ enum RequirementType: String, Codable {
 }
 
 // MARK: - Achievement
-/// 성취
+/// 성취 (달성한 프로그램의 3D 일러스트)
 /// Firestore의 users/{accountId}/achievements/{achievementId}에 저장
 struct Achievement: Identifiable, Codable {
     let id: UUID
     var accountId: UUID
+    var programId: UUID?           // 달성한 프로그램 ID
     var title: String
     var description: String
     var category: AchievementCategory
     var unlockedDate: Date?
     var isUnlocked: Bool
+    
+    // 3D 일러스트 정보
+    var illustration3D: AchievementIllustration3D?
+    
+    // 달성 패턴에 따른 색상
+    var colorScheme: [String]       // Hex 색상 배열 (뱃지 전시용)
+    
     var iconName: String?
     var createdAt: Date
     
     var accountIdString: String {
         accountId.uuidString
     }
+}
+
+struct AchievementIllustration3D: Codable {
+    var modelId: String            // 3D 모델 ID
+    var modelURL: String?          // 3D 모델 URL
+    var previewImageURL: String?   // 프리뷰 이미지 URL
+    var colorScheme: [String]      // 색상 스키마 (Hex 배열)
 }
 
 enum AchievementCategory: String, Codable {

@@ -71,14 +71,51 @@ struct Program: Identifiable, Codable {
     var duration: Int              // 일 단위
     var difficulty: DifficultyLevel
     var gemVisualization: GemVisualization
+    
+    // 3D 일러스트 정보
+    var illustration3D: ProgramIllustration3D?
+    
+    // 인기도 및 평가
+    var popularity: Double          // 0.0 ~ 1.0 (인기도 점수)
+    var rating: Double?             // 1.0 ~ 5.0 (평균 평점)
+    var reviewCount: Int            // 리뷰 수
+    var userCount: Int             // 사용자 수
+    
+    // 프로그램 상세
     var steps: [ProgramStep]
     var prerequisites: [String]?
     var tags: [String]
+    var expectedEffects: [String]   // 기대 효과 목록
+    var requiredDataTypes: [String] // 필요한 데이터 타입 ID 배열
+    
+    // 사용자 평가
+    var userReviews: [ProgramReview]?  // 최근 리뷰들
+    
     var isRecommended: Bool        // AI 추천 여부
     var createdAt: Date
     
     var programIdString: String {
         id.uuidString
+    }
+}
+
+struct ProgramIllustration3D: Codable {
+    var modelId: String            // 3D 모델 ID
+    var modelURL: String?          // 3D 모델 URL
+    var previewImageURL: String?   // 프리뷰 이미지 URL
+    var colorScheme: [String]      // 색상 스키마 (Hex 배열)
+}
+
+struct ProgramReview: Identifiable, Codable {
+    let id: UUID
+    var accountId: UUID
+    var programId: UUID
+    var rating: Double             // 1.0 ~ 5.0
+    var comment: String?
+    var createdAt: Date
+    
+    var accountIdString: String {
+        accountId.uuidString
     }
 }
 
