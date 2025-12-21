@@ -85,7 +85,7 @@ PIP 앱은 **MVVM (Model-View-ViewModel)** 패턴을 따릅니다.
 graph TD
     subgraph UI["UI Layer (SwiftUI)"]
         A[Views] -->|사용자 액션| B[ViewModels]
-        B -->|@Published 프로퍼티| A
+        B -->|"Published 프로퍼티"| A
     end
     
     subgraph Logic["Business Logic"]
