@@ -20,3 +20,7 @@ struct LaunchView: View {
         }
     }
 }
+
+#Preview {
+    LaunchView()
+}

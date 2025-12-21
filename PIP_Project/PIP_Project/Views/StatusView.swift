@@ -1,38 +1,31 @@
-//
-//  StatusView.swift
-//  PIP_Project
-//
-//  Created by NEO on 12/20/25.
-//
-
+// Location: Views/StatusView.swift
 import SwiftUI
 
-// MARK: - Navigation Route
 enum AppRoute: Hashable {
     case settings
     case licenses
 }
 
 struct StatusView: View {
-    // Manage navigation state
     @State private var path = NavigationPath()
     
     var body: some View {
         NavigationStack(path: $path) {
             VStack(spacing: 25) {
-                // Status Content Area
+                Spacer()
+                
                 Image(systemName: "bolt.circle.fill")
                     .resizable()
                     .frame(width: 100, height: 100)
                     .foregroundColor(.yellow)
                 
                 Text("System Operational")
-                    .font(.title)
-                    .fontWeight(.semibold)
+                    .font(.pip.hero)
+                    .foregroundColor(.white)
                 
                 Spacer()
                 
-                // Navigation Button to Settings
+                // Clicking this will push SettingsView onto the stack
                 Button(action: {
                     path.append(AppRoute.settings)
                 }) {
@@ -44,14 +37,16 @@ struct StatusView: View {
                     .foregroundColor(.white)
                     .padding()
                     .frame(maxWidth: .infinity)
-                    .background(Color.blue)
+                    .background(Color.blue.opacity(0.8))
                     .cornerRadius(15)
                 }
                 .padding(.horizontal)
             }
             .padding()
             .navigationTitle("Status")
-            // Navigation Router
+            .background(Color.clear) // Essential for transparency
+            .scrollContentBackground(.hidden)
+            // This handles the transition to sub-pages
             .navigationDestination(for: AppRoute.self) { route in
                 switch route {
                 case .settings:
@@ -61,27 +56,44 @@ struct StatusView: View {
                 }
             }
         }
+        .background(Color.clear)
+        .onAppear {
+            setNavigationTransparency()
+        }
+    }
+    
+    // Forces the system NavigationBar to be transparent
+    private func setNavigationTransparency() {
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithTransparentBackground()
+        appearance.backgroundColor = .clear
+        
+        UINavigationBar.appearance().standardAppearance = appearance
+        UINavigationBar.appearance().scrollEdgeAppearance = appearance
     }
 }
-
 struct SettingsView: View {
     @Binding var path: NavigationPath
     
     var body: some View {
         List {
-            Section(header: Text("Legal")) {
+            Section(header: Text("Legal").foregroundColor(.gray)) {
                 Button(action: {
                     path.append(AppRoute.licenses)
                 }) {
                     Label("Open Source Licenses", systemImage: "text.book.closed.fill")
                 }
+                .listRowBackground(Color.white.opacity(0.05)) // Subtle row tint
             }
             
-            Section(header: Text("Device Info")) {
+            Section(header: Text("Device Info").foregroundColor(.gray)) {
                 LabeledContent("Version", value: "1.0.0 (Build 2025)")
+                    .listRowBackground(Color.white.opacity(0.05))
             }
         }
         .navigationTitle("Settings")
+        .scrollContentBackground(.hidden) // Critical for transparency
+        .background(Color.clear)
     }
 }
 
@@ -91,16 +103,18 @@ struct LicenseView: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text(item.title)
                     .font(.headline)
+                    .foregroundColor(.white)
                 
                 Text("Author: \(item.author)")
                     .font(.subheadline)
+                    .foregroundColor(.gray)
                 
                 HStack {
                     Text(item.licenseType)
                         .font(.caption)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
-                        .background(Color.gray.opacity(0.1))
+                        .background(Color.white.opacity(0.1))
                         .cornerRadius(4)
                     
                     Spacer()
@@ -112,9 +126,11 @@ struct LicenseView: View {
                     }
                 }
             }
-            .padding(.vertical, 4)
+            .listRowBackground(Color.white.opacity(0.05))
         }
         .navigationTitle("Licenses")
+        .scrollContentBackground(.hidden) // Critical for transparency
+        .background(Color.clear)
     }
 }
 

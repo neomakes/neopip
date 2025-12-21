@@ -75,12 +75,30 @@ extension Color {
 // MARK: - 03. Layout Constants
 extension CGFloat {
     enum PIPLayout {
-        // Footer
-        static let footerWidth: CGFloat = 400
-        static let footerHeight: CGFloat = 83
-        static let footerCornerRadius: CGFloat = 50
-        static let footerHorizontalPadding: CGFloat = 32
+        // TabBar
+        static var fullScreenWidth: CGFloat {
+            UIScreen.main.bounds.width
+        }
         
+        // Standard iPhone Safe Area Bottom Height (Approx 34pt)
+        static var safeAreaBottomHeight: CGFloat {
+            let scenes = UIApplication.shared.connectedScenes
+            let windowScene = scenes.first as? UIWindowScene
+            return windowScene?.windows.first?.safeAreaInsets.bottom ?? 0
+        }
+        
+        // TabBar Height = Safe Area + Content Area (requested 4~5pt padding)
+        // This ensures icons sit perfectly above the Home Indicator
+        static var tabbarHeight: CGFloat {
+            let iconHeight: CGFloat = 44
+            let topPadding: CGFloat = 14
+            let requestedBottomPadding: CGFloat = 2
+            return safeAreaBottomHeight + iconHeight + topPadding + requestedBottomPadding
+        }
+        
+        static let tabbarHorizontalPadding: CGFloat = 32
+        static let tabbarCornerRadius: CGFloat = 40
+
         // Home Railroad
         static let railroadWidth: CGFloat = 402
         static let railroadHeight: CGFloat = 700
