@@ -51,9 +51,9 @@ extension Color {
     }
     
     struct GoalColors {
-        let bgAnalsGrad1 = Color("bg_anals_grad_1")
-        let bgAnalsGrad2 = Color("bg_anals_grad_2")
-        let bgAnalsGrad3 = Color("bg_anals_grad_3")
+        let bgProgGrad1 = Color("bg_prog_grad_1")
+        let bgProgGrad2 = Color("bg_prog_grad_2")
+        let bgProgGrad3 = Color("bg_prog_grad_3")
         let shadowGemGrad = Color("shadow_gem_grad")
         let textProgram = Color("text_program")
     }

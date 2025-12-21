@@ -13,12 +13,15 @@ struct TabBar: View {
                         selectedTab = index
                     }
                 }) {
-                    let assetName = "icon_\(tabs[index])\(selectedTab == index ? "" : "_deactivated")"
+                    let isSelected = selectedTab == index
+                    let assetName = isSelected ? "icon_\(tabs[index])" : "icon_\(tabs[index])_deactivated"
                     Image(assetName)
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(width: 44, height: 44)
+                        .opacity(isSelected ? 1.0 : 0.6)
                 }
+                .buttonStyle(PlainButtonStyle())
                 
                 if index < tabs.count - 1 { Spacer() }
             }
