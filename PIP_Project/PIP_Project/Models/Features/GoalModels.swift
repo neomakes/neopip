@@ -22,7 +22,7 @@ struct Goal: Identifiable, Codable {
     var progress: Double           // 0.0 ~ 1.0 (진행률)
     var gemVisualization: GemVisualization
     var milestones: [Milestone]
-    var relatedJournalEntries: [String]  // JournalEntry ID 배열 (String)
+    var relatedDataPointIds: [String]    // 관련 TimeSeriesDataPoint ID 배열
     var createdAt: Date
     var updatedAt: Date
     

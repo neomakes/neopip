@@ -32,9 +32,10 @@ struct TimeSeriesDataPoint: Identifiable, Codable {
     var completeness: Double          // 0.0 ~ 1.0 (해당 시점의 데이터 완성도)
     
     // 메타데이터 (PII 제거된)
-    var notes: String?                // 개인 식별 정보 제거된 메모
+    var notes: String?                // 사용자 메모 (PII 제거 로직 적용)
     var tags: [String]                // 일반 태그만
     var context: [String: String]?    // PII 없는 컨텍스트
+    var category: DataCategory?       // 데이터 카테고리 (메모 분류용)
     
     // ML/AI 관련
     var features: [String: Double]?   // ML 모델용 추출된 특징값
