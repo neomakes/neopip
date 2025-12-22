@@ -22,10 +22,20 @@ extension Color {
         let lineTabbar = Color("line_tabbar")
         
         // Tab-specific Colors
+        let tabBar = TabBarColors()
         let home = HomeColors()
         let insight = InsightColors()
         let goal = GoalColors()
         let status = StatusColors()
+    }
+    
+    struct TabBarColors {
+        let addButtonGrad1 = Color("button_add_grad_1")
+        let addButtonGrad2 = Color("button_add_grad_2")
+        
+        // Alias for consistency with HomeColors
+        var buttonAddGrad1: Color { addButtonGrad1 }
+        var buttonAddGrad2: Color { addButtonGrad2 }
     }
     
     struct HomeColors {
@@ -69,7 +79,14 @@ extension Color {
         let textHi = Color("text_hi")
     }
     
+    struct GemDetailColors {
+        let journalBoxBackground = Color.white.opacity(0.05)
+        let journalTextColor = Color.white.opacity(0.8)
+        let scrollIndicator = Color.white
+    }
+    
     static let pip = PIPColor()
+    static let gemDetail = GemDetailColors()
 }
 
 // MARK: - 03. Layout Constants
@@ -96,13 +113,26 @@ extension CGFloat {
             return safeAreaBottomHeight + iconHeight + topPadding + requestedBottomPadding
         }
         
-        static let tabbarHorizontalPadding: CGFloat = 32
+        static let tabbarHorizontalPadding: CGFloat = 20
         static let tabbarCornerRadius: CGFloat = 40
+        static let tabbarAddButtonSize: CGFloat = 56
+        static let tabbarAddButtonCornerRadius: CGFloat = 28
 
         // Home Railroad
         static let railroadWidth: CGFloat = 402
         static let railroadHeight: CGFloat = 700
         
+        // Home > Gem Detail View - Auto Layout Rules
+        static let gemDetailTabViewMaxHeight: CGFloat = 520 // TabView 전체 높이
+        static let gemDetailTabViewBottomPadding: CGFloat = 20 // 페이지 인디케이터 하단 패딩
+        static let gemDetailChartBottomPadding: CGFloat = 15 // 차트 아래 페이지 인디케이터와의 거리
+        static let gemDetailIndicatorHeight: CGFloat = 6 // 페이지 인디케이터 높이 (추정)
+        static let gemDetailChartToIndicatorSpacing: CGFloat = 5 // 차트와 인디케이터 사이 공간
+        static let gemDetailIndicatorToJournalSpacing: CGFloat = 16 // 인디케이터와 저널박스 사이 간격 (명시적 Spacer)
+        static let gemDetailJournalPadding: CGFloat = 16 // 저널박스 상하 패딩
+        static let gemDetailTitleToChartSpacing: CGFloat = 24 // 제목과 차트 사이 간격
+        static let gemDetailNavButtonPadding: CGFloat = 10 // 네비게이션 버튼 좌우 패딩
+
         // Write View
         static let writeSheetWidth: CGFloat = 380
         static let writeSheetHeight: CGFloat = 715
@@ -114,5 +144,13 @@ extension CGFloat {
         static let dashBoardWidth: CGFloat = 380
         static let dashBoardHeight: CGFloat = 173
         static let dashBoardCornerRadius: CGFloat = 12.5
+        
+        // Gem Detail View
+        static let gemDetailChartMaxWidth: CGFloat = 380
+        static let gemDetailChartMaxHeight: CGFloat = 380
+        static let gemDetailChartPadding: CGFloat = 20
+        static let gemDetailJournalMaxHeight: CGFloat = 80 // 스크롤 인디케이터 표시를 위해 높이 감소
+        static let gemDetailJournalCornerRadius: CGFloat = 16
+        static let gemDetailTitleFontSize: CGFloat = 24
     }
 }

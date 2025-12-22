@@ -55,9 +55,13 @@
 
 **진행 중/예정 작업:**
 - 🔄 아이콘 세트 정의 (`00_3`)
-- 📋 Services, ViewModels, Extensions 폴더 구현 (MVVM 아키텍처 완성)
+- 📋 Services, ViewModels 폴더 구현 (MVVM 아키텍처 완성)
+  - ✅ HomeViewModel 완성
+  - ✅ WriteViewModel 완성
+  - 📋 InsightViewModel, GoalViewModel, StatusViewModel 예정
 - 🔗 Firebase 연동
 - 🎨 Gems, Orbs 컴포넌트 구현
+- 📝 온보딩 플로우 구현 (5개 탭 기반)
 
 ### 1.4. 주요 설계 결정 (ADR 요약)
 
@@ -148,13 +152,19 @@ PIP_Project/
 ├── Application/
 │   └── PIP_ProjectApp.swift          # 앱 진입점
 ├── Views/
-│   ├── MainTabView.swift             # 메인 탭 네비게이션
+│   ├── MainTabView.swift             # 메인 탭 네비게이션 (5개 탭)
 │   ├── LaunchView.swift              # 런치 스크린
-│   ├── HomeView.swift                # 홈 (저널링) 페이지
+│   ├── HomeView.swift                # 홈 (저널링/Gem 조회) 페이지
 │   ├── InsightView.swift             # 인사이트 페이지
+│   ├── WriteView.swift               # 쓰기 (카드 입력) 페이지 (新)
 │   ├── GoalView.swift                # 목표 페이지
 │   └── StatusView.swift              # 현황 페이지
-├── ViewModels/                       # (현재 비어있음, 구현 예정)
+├── ViewModels/
+│   ├── HomeViewModel.swift           # Home 탭 로직
+│   ├── WriteViewModel.swift          # Write 탭 로직 (카드 생성/저장)
+│   ├── InsightViewModel.swift        # Insight 탭 로직 (예정)
+│   ├── GoalViewModel.swift           # Goal 탭 로직 (예정)
+│   └── StatusViewModel.swift         # Status 탭 로직 (예정)
 ├── Models/
 │   └── JournalEntry.swift            # 저널 엔트리 모델
 ├── Services/                         # (현재 비어있음, 구현 예정)
@@ -671,9 +681,11 @@ graph LR
 
 ### 주요 코드 파일
 - **DesignSystem.swift:** `PIP_Project/PIP_Project/Resources/DesignSystem.swift`
-- **MainTabView.swift:** `PIP_Project/PIP_Project/Views/MainTabView.swift`
+- **MainTabView.swift:** `PIP_Project/PIP_Project/Views/MainTabView.swift` (5개 탭 라우팅)
+- **WriteView.swift:** `PIP_Project/PIP_Project/Views/WriteView.swift` (카드 입력 UI)
+- **HomeViewModel.swift:** `PIP_Project/PIP_Project/ViewModels/HomeViewModel.swift` (Home 탭 로직)
+- **WriteViewModel.swift:** `PIP_Project/PIP_Project/ViewModels/WriteViewModel.swift` (카드 생성/저장 로직)
 - **TabBar.swift:** `PIP_Project/PIP_Project/Components/TabBar.swift`
-- **JournalEntry.swift:** `PIP_Project/PIP_Project/Models/JournalEntry.swift`
 
 ### DesignSystem 빠른 참조
 - **폰트:** `.pip.hero`, `.pip.title1`, `.pip.title2`, `.pip.body`, `.pip.caption`

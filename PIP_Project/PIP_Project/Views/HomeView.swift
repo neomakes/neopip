@@ -38,9 +38,6 @@ struct HomeView: View {
             fixedStatsHeader
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .sheet(isPresented: $showWriteSheet) {
-            WriteSheet(viewModel: viewModel)
-        }
         .sheet(item: $selectedGem) { gem in
             GemDetailView(gem: gem, viewModel: viewModel)
         }

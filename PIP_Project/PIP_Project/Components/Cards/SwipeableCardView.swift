@@ -116,46 +116,54 @@ struct CardContentView: View {
                     }
                 }()
                 
-                LiquidGlassContainer(cornerRadius: 16) {
-                    TextField(
-                        placeholder,
-                        text: $textInput,
-                        axis: .vertical
-                    )
-                    .font(.pip.body)
-                    .foregroundColor(.white)
-                    .lineLimit(3...6)
-                    .padding(16)
-                    .focused($isTextFieldFocused)
-                }
+                TextField(
+                    placeholder,
+                    text: $textInput,
+                    axis: .vertical
+                )
+                .font(.pip.body)
+                .foregroundColor(.white)
+                .lineLimit(3...6)
+                .padding(16)
+                .background(Color.white.opacity(0.1))
+                .cornerRadius(16)
                 .padding(.horizontal, 24)
+                .focused($isTextFieldFocused)
             }
             
-            // Bottom buttons (Liquid Glass)
+            // Bottom buttons
             HStack(spacing: 16) {
                 // Return button
                 if let onReturn = onReturn {
-                    LiquidGlassButton(
-                        systemIcon: "arrow.left",
-                        title: "Back",
-                        size: 48,
-                        cornerRadius: 24,
-                        tintColor: .white.opacity(0.8)
-                    ) {
-                        onReturn()
+                    Button(action: onReturn) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "arrow.left")
+                            Text("Back")
+                        }
+                        .font(.pip.body)
+                        .foregroundColor(.white.opacity(0.8))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(Color.white.opacity(0.1))
+                        .cornerRadius(12)
                     }
                 }
                 
                 // Save/Check button
-                LiquidGlassButton(
-                    systemIcon: isLast ? "checkmark.circle.fill" : "arrow.right",
-                    title: isLast ? "Save" : "Next",
-                    size: 48,
-                    cornerRadius: 24,
-                    tintColor: .pip.home.buttonCheck
-                ) {
+                Button(action: {
                     isTextFieldFocused = false
                     onCheck()
+                }) {
+                    HStack(spacing: 8) {
+                        Image(systemName: isLast ? "checkmark.circle.fill" : "arrow.right")
+                        Text(isLast ? "Save" : "Next")
+                    }
+                    .font(.pip.body)
+                    .foregroundColor(.pip.home.buttonCheck)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(Color.white.opacity(0.1))
+                    .cornerRadius(12)
                 }
             }
             .padding(.horizontal, 24)
@@ -163,13 +171,8 @@ struct CardContentView: View {
         }
         .frame(width: CGFloat.PIPLayout.writeSheetWidth, height: CGFloat.PIPLayout.writeSheetHeight)
         .background(
-            LiquidGlassContainer(cornerRadius: CGFloat.PIPLayout.writeSheetCornerRadius) {
-                Color.clear
-            }
-            .background(
-                RoundedRectangle(cornerRadius: CGFloat.PIPLayout.writeSheetCornerRadius)
-                    .fill(Color.black.opacity(0.8))
-            )
+            RoundedRectangle(cornerRadius: CGFloat.PIPLayout.writeSheetCornerRadius)
+                .fill(Color.black.opacity(0.8))
         )
         .onTapGesture {
             // Dismiss keyboard on tap outside

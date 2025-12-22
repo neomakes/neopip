@@ -52,6 +52,59 @@ struct TimeSeriesDataPoint: Identifiable, Codable {
     var dataPointIdString: String {
         id.uuidString
     }
+    
+    // MARK: - Convenience Initializer
+    init(
+        timestamp: Date,
+        category: DataCategory? = nil,
+        values: [String: DataValue] = [:],
+        source: DataSource = .manual,
+        confidence: Double = 1.0,
+        completeness: Double = 1.0,
+        anonymousUserId: UUID? = nil,
+        notes: String? = nil,
+        tags: [String] = [],
+        context: [String: String]? = nil
+    ) {
+        let now = Date()
+        let calendar = Calendar.current
+        let components = calendar.dateComponents([.weekday, .weekOfYear, .month], from: timestamp)
+        
+        self.id = UUID()
+        self.anonymousUserId = anonymousUserId ?? UUID()
+        self.timestamp = timestamp
+        self.date = calendar.startOfDay(for: timestamp)
+        self.timeOfDay = Self.calculateTimeOfDay(timestamp)
+        self.dayOfWeek = components.weekday
+        self.weekOfYear = components.weekOfYear
+        self.month = components.month
+        self.values = values
+        self.source = source
+        self.confidence = confidence
+        self.completeness = completeness
+        self.notes = notes
+        self.tags = tags
+        self.context = context
+        self.category = category
+        self.features = nil
+        self.predictions = nil
+        self.anomalies = nil
+        self.createdAt = now
+        self.updatedAt = now
+    }
+    
+    private static func calculateTimeOfDay(_ date: Date) -> TimeOfDay? {
+        let calendar = Calendar.current
+        let hour = calendar.component(.hour, from: date)
+        
+        switch hour {
+        case 6..<12: return .morning
+        case 12..<18: return .afternoon
+        case 18..<22: return .evening
+        case 22...23, 0..<6: return .night
+        default: return nil
+        }
+    }
 }
 
 enum TimeOfDay: String, Codable {

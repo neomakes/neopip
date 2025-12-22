@@ -104,203 +104,130 @@ class HomeViewModel: ObservableObject {
         }
     }
     
-    // MARK: - Card Generation
-    
-    /// 데이터 입력 카드 생성 (스키마 기반)
-    func generateCards() -> [CardData] {
-        var cards: [CardData] = []
-        
-        // MockDataService에서 스키마 가져오기
-        guard let mockService = dataService as? MockDataService else {
-            // MockDataService가 아닌 경우 기본 카드 반환
-            return generateDefaultCards()
-        }
-        
-        // 카테고리별로 카드 생성
-        let categories: [DataCategory] = [.mind, .behavior, .physical]
-        
-        for category in categories {
-            let schemas = mockService.getSchemas(for: category)
-            guard !schemas.isEmpty else { continue }
-            
-            // 카테고리별 입력 필드 생성
-            var inputs: [CardInput] = []
-            for schema in schemas {
-                if let range = schema.range {
-                    inputs.append(.slider(
-                        key: schema.name,
-                        label: schema.displayName,
-                        range: ClosedRange(uncheckedBounds: (range.min ?? 0, range.max ?? 100)),
-                        value: (range.min ?? 0 + (range.max ?? 100)) / 2
-                    ))
-                }
-            }
-            
-            // 카드 타입 결정
-            let cardType: CardType
-            switch category {
-            case .mind: cardType = .mind
-            case .behavior: cardType = .behavior
-            case .physical: cardType = .physical
-            default: cardType = .mind
-            }
-            
-            // Card title
-            let title: String
-            switch category {
-            case .mind: title = "How was your mood today?"
-            case .behavior: title = "How was your behavior?"
-            case .physical: title = "How was your physical state?"
-            default: title = "How was your day?"
-            }
-            
-            cards.append(CardData(
-                type: cardType,
-                title: title,
-                inputs: inputs,
-                textInput: .optional(key: "notes", placeholder: "Today's note")
-            ))
-        }
-        
-        return cards.isEmpty ? generateDefaultCards() : cards
-    }
-    
-    /// Default card generation (when schema is not available)
-    private func generateDefaultCards() -> [CardData] {
-        return [
-            CardData(
-                type: .mind,
-                title: "How was your mood today?",
-                inputs: [
-                    .slider(key: "mood", label: "Mood", range: 0...100, value: 50),
-                    .slider(key: "stress", label: "Stress", range: 0...100, value: 50),
-                    .slider(key: "energy", label: "Energy", range: 0...100, value: 50),
-                    .slider(key: "focus", label: "Focus", range: 0...100, value: 50)
-                ],
-                textInput: .optional(key: "notes", placeholder: "Today's note")
-            ),
-            CardData(
-                type: .behavior,
-                title: "How was your behavior?",
-                inputs: [
-                    .slider(key: "productivity", label: "Productivity", range: 0...100, value: 50),
-                    .slider(key: "socialActivity", label: "Social Activity", range: 0...100, value: 50),
-                    .slider(key: "digitalDistraction", label: "Digital Distraction", range: 0...100, value: 50),
-                    .slider(key: "exploration", label: "Exploration", range: 0...100, value: 50)
-                ],
-                textInput: .optional(key: "notes", placeholder: "Note")
-            ),
-            CardData(
-                type: .physical,
-                title: "How was your physical state?",
-                inputs: [
-                    .slider(key: "sleepScore", label: "Sleep Score", range: 0...100, value: 50),
-                    .slider(key: "fatigue", label: "Fatigue", range: 0...100, value: 50),
-                    .slider(key: "activityLevel", label: "Activity Level", range: 0...100, value: 50),
-                    .slider(key: "nutrition", label: "Nutrition", range: 0...100, value: 50)
-                ],
-                textInput: .optional(key: "notes", placeholder: "Note")
-            )
-        ]
-    }
-    
-    // MARK: - Card Data Saving
-    
-    /// 카드 데이터 저장
-    func saveCardData(_ card: CardData, inputs: [String: Any], textInput: String) {
-        let now = Date()
-        let calendar = Calendar.current
-        
-        // 입력값을 DataValue로 변환
-        var values: [String: DataValue] = [:]
-        
-        for (key, value) in inputs {
-            if let doubleValue = value as? Double {
-                values[key] = .double(doubleValue)
-            } else if let intValue = value as? Int {
-                values[key] = .integer(intValue)
-            } else if let boolValue = value as? Bool {
-                values[key] = .boolean(boolValue)
-            } else if let stringValue = value as? String {
-                values[key] = .string(stringValue)
-            }
-        }
-        
-        // 시간대 결정
-        let hour = calendar.component(.hour, from: now)
-        let timeOfDay: TimeOfDay
-        switch hour {
-        case 6..<12: timeOfDay = .morning
-        case 12..<18: timeOfDay = .afternoon
-        case 18..<22: timeOfDay = .evening
-        default: timeOfDay = .night
-        }
-        
-        // 카테고리 결정: 각 데이터 필드의 실제 카테고리를 확인
-        let category: DataCategory
-        if let mockService = dataService as? MockDataService {
-            // MockDataService에서 각 필드의 스키마를 조회하여 카테고리 확인
-            var categoryCounts: [DataCategory: Int] = [:]
-            
-            for key in values.keys {
-                if let schema = mockService.getAllSchemas().first(where: { $0.name == key }) {
-                    categoryCounts[schema.category, default: 0] += 1
-                }
-            }
-            
-            // 가장 많은 카테고리 사용, 없으면 card.type 기반
-            if let mostCommonCategory = categoryCounts.max(by: { $0.value < $1.value })?.key {
-                category = mostCommonCategory
-            } else {
-                // 폴백: card.type 기반
-                switch card.type {
-                case .mind: category = .mind
-                case .behavior: category = .behavior
-                case .physical: category = .physical
-                case .program: category = .custom
-                }
-            }
-        } else {
-            // MockDataService가 아닌 경우 card.type 기반
-            switch card.type {
-            case .mind: category = .mind
-            case .behavior: category = .behavior
-            case .physical: category = .physical
-            case .program: category = .custom
-            }
-        }
-        
-        // TimeSeriesDataPoint 생성
-        let dataPoint = TimeSeriesDataPoint(
-            id: UUID(),
-            anonymousUserId: UUID(), // 실제로는 사용자 ID 사용
-            timestamp: now,
-            date: calendar.startOfDay(for: now),
-            timeOfDay: timeOfDay,
-            dayOfWeek: calendar.component(.weekday, from: now),
-            weekOfYear: calendar.component(.weekOfYear, from: now),
-            month: calendar.component(.month, from: now),
-            values: values,
-            source: .manual,
-            confidence: 1.0,
-            completeness: Double(values.count) / Double(card.inputs.count),
-            notes: textInput.isEmpty ? nil : textInput,
-            tags: [],
-            context: nil,
-            category: category,
-            features: nil,
-            predictions: nil,
-            anomalies: nil,
-            createdAt: now,
-            updatedAt: now
-        )
-        
-        // 저장
-        saveDataPoint(dataPoint)
-    }
-    
     /// 특정 날짜의 데이터 포인트 가져오기
     func fetchDataPoints(for date: Date) -> AnyPublisher<[TimeSeriesDataPoint], Error> {
         return dataService.fetchDataPoints(for: date)
     }
+
+    
+    // MARK: - Icon Name Mapping
+    
+    /// 데이터 항목명에 해당하는 아이콘 이름을 반환합니다.
+    /// Assets에 있는 아이콘 이름과 자동으로 매핑합니다.
+    private func iconNameFor(_ schemaName: String) -> String {
+        let lowerName = schemaName.lowercased()
+        
+        // Assets에 실제 존재하는 아이콘 매핑 (02_Insight/00_Insights_icons/)
+        let mappings: [String: String] = [
+            "mood": "Icon_mood",
+            "stress": "Icon_stress",
+            "energy": "Icon_energy",
+            "focus": "Icon_focus",
+            "productivity": "Icon_productivity",
+            "social": "Icon_social_activity",
+            "socialactivity": "Icon_social_activity",
+            "distraction": "Icon_digital_distraction",
+            "digitaldistraction": "Icon_digital_distraction",
+            "exploration": "Icon_exploration",
+            "sleep": "Icon_sleep",
+            "sleepscore": "Icon_sleep",
+            "fatigue": "Icon_fatigue",
+            "activity": "Icon_activity",
+            "activitylevel": "Icon_activity",
+            "nutrition": "Icon_nutrition"
+        ]
+        
+        // 매핑 테이블에서 먼저 찾기
+        if let mapped = mappings[lowerName] {
+            return mapped
+        }
+        
+        // 공백 제거 후 다시 시도
+        let normalizedName = schemaName.replacingOccurrences(of: " ", with: "").lowercased()
+        if let mapped = mappings[normalizedName] {
+            return mapped
+        }
+        
+        // 기본값: Icon_${이름} 형식 시도
+        return "Icon_\(lowerName.replacingOccurrences(of: " ", with: "_").capitalized)"
+    }
+
+    // MARK: - Chart Data Generation
+
+    func createRadarChartDataSets(for date: Date, completion: @escaping (Result<[RadarChartDataSet], Error>) -> Void) {
+        // 1. Fetch the single data point for the day
+        dataService.fetchDataPoints(for: date)
+            .sink(
+                receiveCompletion: { result in
+                    if case .failure(let error) = result {
+                        completion(.failure(error))
+                    }
+                },
+                receiveValue: { dataPoints in
+                    guard let dataPoint = dataPoints.first else {
+                        let error = NSError(domain: "HomeViewModel", code: 404, userInfo: [NSLocalizedDescriptionKey: "No data point found for the selected date."])
+                        completion(.failure(error))
+                        return
+                    }
+
+                    // 2. Get schemas from the data service
+                    guard let mockService = self.dataService as? MockDataService else {
+                        let error = NSError(domain: "HomeViewModel", code: 500, userInfo: [NSLocalizedDescriptionKey: "Data service is not a MockDataService."])
+                        completion(.failure(error))
+                        return
+                    }
+
+                    var dataSets: [RadarChartDataSet] = []
+                    let categories: [(category: DataCategory, color: Color)] = [
+                        (.mind, .red),
+                        (.behavior, .blue),
+                        (.physical, .orange)
+                    ]
+
+                    // 3. Process data for each category
+                    for (category, color) in categories {
+                        let schemas = mockService.getSchemas(for: category)
+                        var chartDataItems: [RadarChartDataItem] = []
+
+                        for schema in schemas {
+                            guard let dataValue = dataPoint.values[schema.name] else { continue }
+                            
+                            let rawValue: Double
+                            switch dataValue {
+                            case .double(let v): rawValue = v
+                            case .integer(let v): rawValue = Double(v)
+                            default: continue
+                            }
+                            
+                            // Normalize the value (assuming max is 100)
+                            let maxValue = schema.range?.max ?? 100.0
+                            let normalizedValue = rawValue / maxValue
+                            
+                            let displayValue = String(format: "%.0f", rawValue)
+                            let iconName = self.iconNameFor(schema.name)
+                            chartDataItems.append(
+                                RadarChartDataItem(iconName: iconName, value: normalizedValue, displayValue: displayValue)
+                            )
+                        }
+
+                        if !chartDataItems.isEmpty {
+                            let title: String
+                            switch category {
+                            case .mind: title = "Mind"
+                            case .behavior: title = "Behavior"
+                            case .physical: title = "Physical"
+                            default: title = "Data"
+                            }
+                            dataSets.append(
+                                RadarChartDataSet(title: title, data: chartDataItems, dataColor: color)
+                            )
+                        }
+                    }
+
+                    completion(.success(dataSets))
+                }
+            )
+            .store(in: &self.cancellables)
+    }
+
 }

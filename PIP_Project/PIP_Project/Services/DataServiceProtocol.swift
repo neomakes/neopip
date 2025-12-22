@@ -14,6 +14,7 @@ protocol DataServiceProtocol {
     func fetchDataPoints(for date: Date) -> AnyPublisher<[TimeSeriesDataPoint], Error>
     func fetchDataPoints(from startDate: Date, to endDate: Date) -> AnyPublisher<[TimeSeriesDataPoint], Error>
     func saveDataPoint(_ dataPoint: TimeSeriesDataPoint) -> AnyPublisher<TimeSeriesDataPoint, Error>
+    func saveData(_ dataPoint: TimeSeriesDataPoint, for category: DataCategory) async throws
     func deleteDataPoint(_ id: UUID) -> AnyPublisher<Void, Error>
     
     // MARK: - DailyGem

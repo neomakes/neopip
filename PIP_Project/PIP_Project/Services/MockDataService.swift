@@ -327,45 +327,71 @@ class MockDataService: DataServiceProtocol {
         for dayOffset in 0..<30 {
             guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: today) else { continue }
             
-            var dayDataPoints: [TimeSeriesDataPoint] = []
+            // 하루에 하나의 '통합 데이터 포인트' 생성
+            // 시간은 저녁 시간대로 설정
+            let hour = Int.random(in: 20...22)
+            guard let timestamp = calendar.date(bySettingHour: hour, minute: Int.random(in: 0...59), second: 0, of: date) else { continue }
             
-            // 각 카테고리별로 데이터 포인트 생성 (하루에 mind, behavior, physical 각각 1개씩)
-            let categories: [DataCategory] = [.mind, .behavior, .physical]
+            // 모든 카테고리의 활성화된 스키마 가져오기
+            let allEnabledSchemas = getEnabledSchemas()
+            var combinedValues: [String: DataValue] = [:]
             
-            for (index, category) in categories.enumerated() {
-                // 카테고리별로 다른 시간대에 데이터 생성
-                let hour: Int
-                switch category {
-                case .mind: hour = Int.random(in: 8...11)      // 아침
-                case .behavior: hour = Int.random(in: 12...17) // 오후
-                case .physical: hour = Int.random(in: 18...22) // 저녁
-                default: hour = Int.random(in: 8...22)
+            // 모든 스키마에 대해 값 생성
+            for schema in allEnabledSchemas {
+                let min = schema.range?.min ?? 0.0
+                let max = schema.range?.max ?? 100.0
+                
+                switch schema.dataType {
+                case .double:
+                    let value = Double.random(in: min...max)
+                    combinedValues[schema.name] = .double(value)
+                case .integer:
+                    let value = Int.random(in: Int(min)...Int(max))
+                    combinedValues[schema.name] = .integer(value)
+                case .boolean:
+                    combinedValues[schema.name] = .boolean(Bool.random())
+                case .string:
+                    let examples = ["Good", "Normal", "Bad"]
+                    combinedValues[schema.name] = .string(examples.randomElement() ?? "Normal")
+                default:
+                    break
                 }
-                
-                guard let timestamp = calendar.date(bySettingHour: hour, minute: Int.random(in: 0...59), second: 0, of: date) else { continue }
-                
-                let dataPoint = createMockDataPoint(
-                    id: UUID(),
-                    timestamp: timestamp,
-                    date: date,
-                    category: category,
-                    index: index
-                )
-                dayDataPoints.append(dataPoint)
-                mockDataPoints.append(dataPoint)
             }
+            
+            let journalTemplates = [
+                "A productive day overall. Managed to finish the main tasks.",
+                "Felt a bit low on energy, but pushed through. Social interaction was nice.",
+                "Slept well and felt refreshed. A good day for physical activity.",
+                "A fairly normal day. Nothing special to report.",
+                "Feeling stressed from work, but managed to relax in the evening."
+            ]
+
+            let dataPoint = TimeSeriesDataPoint(
+                timestamp: timestamp,
+                category: nil, // 특정 카테고리에 속하지 않는 통합 데이터
+                values: combinedValues,
+                source: .manual,
+                confidence: Double.random(in: 0.8...1.0),
+                completeness: Double.random(in: 0.8...1.0),
+                anonymousUserId: mockAnonymousUserId,
+                notes: journalTemplates.randomElement(),
+                tags: ["daily-summary", "journal"],
+                context: nil
+            )
+            
+            mockDataPoints.append(dataPoint)
             
             // DailyGem 생성
             let gem = createMockDailyGem(
                 date: date,
-                dataPointIds: dayDataPoints.map { $0.id.uuidString }
+                dataPointIds: [dataPoint.id.uuidString] // 단일 데이터 포인트 ID
             )
             mockDailyGems.append(gem)
             
             // DailyStats 생성
             let stats = createMockDailyStats(
                 date: date,
-                dataPoints: dayDataPoints
+                dataPoints: [dataPoint] // 단일 데이터 포인트
             )
             mockDailyStats.append(stats)
         }
@@ -375,80 +401,6 @@ class MockDataService: DataServiceProtocol {
     }
     
     // MARK: - Helper Methods
-    private func createMockDataPoint(id: UUID, timestamp: Date, date: Date, category: DataCategory, index: Int) -> TimeSeriesDataPoint {
-        let calendar = Calendar.current
-        let hour = calendar.component(.hour, from: timestamp)
-        
-        // 해당 카테고리의 스키마만 사용하여 데이터 생성
-        var values: [String: DataValue] = [:]
-        
-        // 해당 카테고리의 활성화된 스키마만 가져오기
-        let categorySchemas = getSchemas(for: category)
-        
-        for schema in categorySchemas {
-            // 스키마의 range를 기반으로 랜덤 값 생성
-            let min = schema.range?.min ?? 0.0
-            let max = schema.range?.max ?? 100.0
-            
-            switch schema.dataType {
-            case .double:
-                let value = Double.random(in: min...max)
-                values[schema.name] = .double(value)
-            case .integer:
-                let value = Int.random(in: Int(min)...Int(max))
-                values[schema.name] = .integer(value)
-            case .boolean:
-                values[schema.name] = .boolean(Bool.random())
-            case .string:
-                let examples = ["Good", "Normal", "Bad"]
-                values[schema.name] = .string(examples.randomElement() ?? "Normal")
-            default:
-                break
-            }
-        }
-        
-        // 시간대 결정
-        let timeOfDay: TimeOfDay
-        switch hour {
-        case 6..<12: timeOfDay = .morning
-        case 12..<18: timeOfDay = .afternoon
-        case 18..<22: timeOfDay = .evening
-        default: timeOfDay = .night
-        }
-        
-        // 카테고리별 메모 (50% 확률)
-        let noteTemplates: [DataCategory: [String]] = [
-            .mind: ["Feeling good today", "A bit stressed", "Very focused morning"],
-            .behavior: ["Productive day", "Had some distractions", "Good social interaction"],
-            .physical: ["Slept well", "Feeling tired", "Good workout today"]
-        ]
-        let notes: String? = Bool.random() ? (noteTemplates[category]?.randomElement() ?? nil) : nil
-        
-        return TimeSeriesDataPoint(
-            id: id,
-            anonymousUserId: mockAnonymousUserId,
-            timestamp: timestamp,
-            date: date,
-            timeOfDay: timeOfDay,
-            dayOfWeek: calendar.component(.weekday, from: date),
-            weekOfYear: calendar.component(.weekOfYear, from: date),
-            month: calendar.component(.month, from: date),
-            values: values,
-            source: .manual,
-            confidence: Double.random(in: 0.7...1.0),
-            completeness: Double.random(in: 0.6...1.0),
-            notes: notes,
-            tags: index == 0 ? ["morning", "productive"] : [],
-            context: nil,
-            category: category,
-            features: nil,
-            predictions: nil,
-            anomalies: nil,
-            createdAt: timestamp,
-            updatedAt: timestamp
-        )
-    }
-    
     private func createMockDailyGem(date: Date, dataPointIds: [String]) -> DailyGem {
         let gemTypes: [GemType] = [.sphere, .diamond, .crystal, .prism]
         let colorThemes: [ColorTheme] = [.teal, .amber, .tiger, .blue]
@@ -694,5 +646,17 @@ class MockDataService: DataServiceProtocol {
         return Just(stats)
             .setFailureType(to: Error.self)
             .eraseToAnyPublisher()
+    }
+    
+    // MARK: - Save Data (async method)
+    func saveData(_ dataPoint: TimeSeriesDataPoint, for category: DataCategory) async throws {
+        var updatedDataPoint = dataPoint
+        updatedDataPoint.category = category
+        
+        if let index = mockDataPoints.firstIndex(where: { $0.id == dataPoint.id }) {
+            mockDataPoints[index] = updatedDataPoint
+        } else {
+            mockDataPoints.append(updatedDataPoint)
+        }
     }
 }
