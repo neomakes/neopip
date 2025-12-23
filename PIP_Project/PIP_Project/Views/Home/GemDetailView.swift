@@ -9,7 +9,7 @@ import SwiftUI
 import Combine
 
 struct GemDetailView: View {
-    let gem: DailyGem
+    let gemRecord: GemRecord
     @ObservedObject var viewModel: HomeViewModel
     @Environment(\.dismiss) var dismiss
     
@@ -41,9 +41,12 @@ struct GemDetailView: View {
                 } else {
                     // 상단: Gem 및 날짜
                     VStack(spacing: 16) {
-                        GemView(gem: gem, size: 120)
+                        Image("gem_\(gemRecord.gemIndex)")
+                            .resizable()
+                            .frame(width: 120, height: 120)
+                            .opacity(gemRecord.opacity)
                         
-                        Text(formatDate(gem.date))
+                        Text(formatDate(gemRecord.date))
                             .font(.pip.title1)
                             .foregroundColor(.white)
                     }
@@ -161,7 +164,7 @@ struct GemDetailView: View {
         errorMessage = nil
 
         // Radar Chart 데이터 로드
-        viewModel.createRadarChartDataSets(for: gem.date) { result in
+        viewModel.createRadarChartDataSets(for: gemRecord.date) { result in
             DispatchQueue.main.async {
                 self.isLoading = false
                 switch result {
@@ -174,7 +177,7 @@ struct GemDetailView: View {
         }
 
         // 저널 노트 로드 (TimeSeriesDataPoint에서)
-        viewModel.fetchDataPoints(for: gem.date)
+        viewModel.fetchDataPoints(for: gemRecord.date)
             .receive(on: DispatchQueue.main)
             .sink(
                 receiveCompletion: { _ in },
@@ -199,16 +202,12 @@ struct GemDetailView: View {
 struct GemDetailView_Previews: PreviewProvider {
     static var previews: some View {
         GemDetailView(
-            gem: DailyGem(
+            gemRecord: GemRecord(
                 id: UUID(),
-                accountId: UUID(),
                 date: Date(),
-                gemType: .sphere,
-                brightness: 0.8,
-                uncertainty: 0.2,
-                dataPointIds: [],
-                colorTheme: .teal,
-                createdAt: Date()
+                gemIndex: 0,
+                isCompleted: true,
+                dataPointIds: []
             ),
             viewModel: HomeViewModel()
         )

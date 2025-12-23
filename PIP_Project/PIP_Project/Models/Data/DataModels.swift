@@ -78,3 +78,21 @@ enum ColorTheme: String, Codable {
     case tiger       // Tiger Flame
     case blue        // French Blue
 }
+
+// MARK: - Gem Record (MVP용 단순화 모델)
+/// 기록 데이터를 나타내는 단순한 Gem 레코드
+/// - 하나의 기록 = 하나의 Gem
+/// - brightness/uncertainty/colorTheme 등 복잡한 속성 없음
+/// - Asset에서 gem_0, gem_1, gem_2... 순서대로 표시
+struct GemRecord: Identifiable, Codable {
+    let id: UUID
+    var date: Date
+    var gemIndex: Int                   // Asset 이미지 인덱스 (gem_0, gem_1, ...)
+    var isCompleted: Bool               // 기록 작성 완료 여부
+    var dataPointIds: [String]          // 연결된 TimeSeriesDataPoint ID 배열
+    
+    // UI 상태
+    var opacity: Double {
+        isCompleted ? 1.0 : 0.4         // 미완성: 40%, 완성: 100%
+    }
+}

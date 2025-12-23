@@ -16,6 +16,8 @@ class HomeViewModel: ObservableObject {
     @Published var userStats: UserStats?
     @Published var isLoading = false
     @Published var errorMessage: String?
+    @Published var last7Days: [GemRecord] = []
+    @Published var userName: String?
     
     // MARK: - Dependencies
     let dataService: DataServiceProtocol
@@ -24,6 +26,7 @@ class HomeViewModel: ObservableObject {
     // MARK: - Initialization
     init(dataService: DataServiceProtocol? = nil) {
         self.dataService = dataService ?? MockDataService.shared
+        self.userName = "Neo"  // Mock 사용자명 (실제로는 Firebase Auth에서 가져옴)
         loadInitialData()
     }
     
@@ -53,6 +56,7 @@ class HomeViewModel: ObservableObject {
                 },
                 receiveValue: { [weak self] gems in
                     self?.dailyGems = gems
+                    self?.updateLast7Days()
                 }
             )
             .store(in: &cancellables)
@@ -102,6 +106,40 @@ class HomeViewModel: ObservableObject {
         return dailyGems.first { gem in
             Calendar.current.isDate(gem.date, inSameDayAs: today)
         }
+    }
+    
+    /// last7Days 업데이트 (과거 6일 + 오늘 = 7개)
+    private func updateLast7Days() {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        
+        var gemRecords: [GemRecord] = []
+        
+        // 과거 6일 + 오늘 = 7일
+        for i in (0...6).reversed() {
+            let date = calendar.date(byAdding: .day, value: -i, to: today) ?? Date()
+            
+            // dailyGems에서 해당 날짜의 gem을 찾기
+            let dailyGem = dailyGems.first { gem in
+                calendar.isDate(gem.date, inSameDayAs: date)
+            }
+            
+            // GemRecord 생성 (기록 순서대로 gemIndex 설정)
+            let gemIndex = 7 - i  // 오늘: 7, 1일전: 6, 2일전: 5, ..., 6일전: 1 ✨
+            let isCompleted = dailyGem != nil  // DailyGem이 존재하면 완성된 것으로 간주
+            
+            let gemRecord = GemRecord(
+                id: UUID(),
+                date: date,
+                gemIndex: gemIndex,
+                isCompleted: isCompleted,
+                dataPointIds: []
+            )
+            
+            gemRecords.append(gemRecord)
+        }
+        
+        self.last7Days = gemRecords
     }
     
     /// 특정 날짜의 데이터 포인트 가져오기

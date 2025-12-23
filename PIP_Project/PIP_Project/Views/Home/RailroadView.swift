@@ -2,565 +2,228 @@
 //  RailroadView.swift
 //  PIP_Project
 //
-//  Fixed perspective Railroad with 7 gem slots
-//  Time grouping: daily (7 days) → weekly → monthly → yearly
+//  세로 스크롤 가능한 타임라인 (원근감 효과 포함)
+//  과거 6일 + 오늘 = 7개의 GemRecord 표시
 //
 
 import SwiftUI
 
-// MARK: - Time Period for Gem Grouping
-enum GemGroupPeriod: String, CaseIterable {
-    case day = "Day"
-    case week = "Week"
-    case month = "Month"
-    case year = "Year"
-}
-
-// MARK: - Grouped Gem Data
-struct GroupedGem: Identifiable {
-    let id = UUID()
-    let period: GemGroupPeriod
-    let startDate: Date
-    let endDate: Date
-    let gems: [DailyGem]
-    let label: String
-    
-    // Aggregated properties
-    var averageBrightness: Double {
-        guard !gems.isEmpty else { return 0.5 }
-        return gems.map { $0.brightness }.reduce(0, +) / Double(gems.count)
-    }
-    
-    var dominantColorTheme: ColorTheme {
-        // Most common color theme
-        let counts = Dictionary(grouping: gems, by: { $0.colorTheme })
-        return counts.max(by: { $0.value.count < $1.value.count })?.key ?? .teal
-    }
-    
-    var totalDataPoints: Int {
-        gems.reduce(0) { $0 + $1.dataPointIds.count }
+// MARK: - Trapezoid Shape (삼각형이 화면에 의해 잘린 사다리꼴)
+/// apex는 상단(소실점), 밑변은 하단(사용자)
+struct TrapezoidShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        
+        // Apex는 화면 상단 (소실점)
+        let _ = rect.midX - 50
+        let _: CGFloat = 0
+        
+        // 화면 상단에서 삼각형이 좌우 경계와 만나는 점 (더 좁게)
+        let topLeftX: CGFloat = rect.midX - 45
+        let topRightX: CGFloat = rect.midX + 45
+        let topY: CGFloat = 0
+        
+        // 화면 하단 (밑변, 1.5배 넓게)
+        let bottomLeftX: CGFloat = -rect.width * 0.25  // 좌측으로 확장
+        let bottomRightX = rect.width * 1.25  // 우측으로 확장
+        let bottomY = rect.height
+        
+        // 사다리꼴 그리기
+        path.move(to: CGPoint(x: topLeftX, y: topY))
+        path.addLine(to: CGPoint(x: topRightX, y: topY))
+        path.addLine(to: CGPoint(x: bottomRightX, y: bottomY))
+        path.addLine(to: CGPoint(x: bottomLeftX, y: bottomY))
+        path.closeSubpath()
+        
+        return path
     }
 }
 
-// MARK: - Railroad View
+// MARK: - Railroad View (세로 스크롤)
 struct RailroadView: View {
-    let gems: [DailyGem]
-    let onGemTap: ((DailyGem) -> Void)?
-    let onGroupTap: ((GroupedGem) -> Void)?
+    let gemRecords: [GemRecord]  // 과거 6일 + 오늘 (총 7개)
+    let onGemTap: ((GemRecord) -> Void)?
+    let onWriteRequested: (() -> Void)
     
-    // Fixed 7 slots for the railroad
-    private let slotCount = 7
-    
-    // Perspective configuration
-    private let baseGemSize: CGFloat = 65
-    private let minGemSize: CGFloat = 25
-    private let baseTrackWidth: CGFloat = 140
-    private let minTrackWidth: CGFloat = 35
-    
-    @State private var currentOffset: Int = 0
-    
-    init(gems: [DailyGem], 
-         onGemTap: ((DailyGem) -> Void)? = nil,
-         onGroupTap: ((GroupedGem) -> Void)? = nil) {
-        self.gems = gems
-        self.onGemTap = onGemTap
-        self.onGroupTap = onGroupTap
-    }
+    @State private var scrollViewHeight: CGFloat = 0
     
     var body: some View {
-        let groupedGems = createGroupedGems()
-        let visibleGems = getVisibleGems(from: groupedGems)
-        
-        GeometryReader { geometry in
-            ZStack {
-                // Fixed Railroad Track (perspective)
-                FixedPerspectiveTrack(
-                    slotCount: slotCount,
-                    baseWidth: baseTrackWidth,
-                    minWidth: minTrackWidth,
-                    containerHeight: geometry.size.height
+        ZStack {
+            // 배경: 사다리꼴 (상단: 검은색 → 하단: railroad_front)
+            TrapezoidShape()
+                .fill(
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            Color.black,
+                            Color("railroad_front")
+                        ]),
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
                 )
-                
-                // Gem slots (fixed positions, gems animate in/out)
-                ForEach(Array(visibleGems.enumerated()), id: \.element.id) { index, groupedGem in
-                    let slotPosition = calculateSlotPosition(
-                        slot: index,
-                        containerSize: geometry.size
-                    )
-                    
-                    RailroadGemSlot(
-                        groupedGem: groupedGem,
-                        size: calculateGemSize(for: index),
-                        onTap: {
-                            if groupedGem.gems.count == 1,
-                               let gem = groupedGem.gems.first {
-                                onGemTap?(gem)
-                            } else {
-                                onGroupTap?(groupedGem)
-                            }
-                        }
-                    )
-                    .position(slotPosition)
-                    .transition(.asymmetric(
-                        insertion: .scale.combined(with: .opacity),
-                        removal: .scale.combined(with: .opacity)
-                    ))
-                }
-            }
-        }
-        .frame(height: 500)
-        .gesture(
-            DragGesture()
-                .onEnded { value in
-                    let threshold: CGFloat = 50
-                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                        if value.translation.height < -threshold {
-                            // Swipe up - show older
-                            currentOffset = min(currentOffset + 1, max(0, createGroupedGems().count - slotCount))
-                        } else if value.translation.height > threshold {
-                            // Swipe down - show newer
-                            currentOffset = max(0, currentOffset - 1)
-                        }
+                .ignoresSafeArea()
+            
+            // 스크롤 가능한 Gem 컨텐츠
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(spacing: 30) {
+                    ForEach(gemRecords.indices, id: \.self) { index in
+                        GemSlot(
+                            gemRecord: gemRecords[index],
+                            onTap: onGemTap,
+                            onWriteRequested: onWriteRequested,
+                            scrollViewHeight: scrollViewHeight,
+                            index: index,  // 젬의 인덱스 전달
+                            totalCount: gemRecords.count
+                        )
                     }
                 }
-        )
-    }
-    
-    // MARK: - Time Grouping Logic
-    
-    /// Create grouped gems based on time periods
-    private func createGroupedGems() -> [GroupedGem] {
-        guard !gems.isEmpty else { return [] }
-        
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
-        var groupedGems: [GroupedGem] = []
-        
-        // Sort gems by date (newest first)
-        let sortedGems = gems.sorted { $0.date > $1.date }
-        
-        // Group 1: Last 7 days - individual daily gems
-        for dayOffset in 0..<7 {
-            guard let targetDate = calendar.date(byAdding: .day, value: -dayOffset, to: today) else { continue }
-            
-            let dayGems = sortedGems.filter { gem in
-                calendar.isDate(gem.date, inSameDayAs: targetDate)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 16)
+                .padding(.bottom, 150)  // TabBar와 더 가까워지도록 패딩 감소
+                .background(
+                    GeometryReader { geometry in
+                        Color.clear
+                            .onAppear {
+                                scrollViewHeight = geometry.size.height
+                            }
+                            .onChange(of: geometry.size.height) { newHeight in
+                                scrollViewHeight = newHeight
+                            }
+                    }
+                )
             }
-            
-            if !dayGems.isEmpty {
-                let formatter = DateFormatter()
-                formatter.dateFormat = dayOffset == 0 ? "'Today'" : (dayOffset == 1 ? "'Yesterday'" : "E")
-                
-                groupedGems.append(GroupedGem(
-                    period: GemGroupPeriod.day,
-                    startDate: targetDate,
-                    endDate: targetDate,
-                    gems: dayGems,
-                    label: formatter.string(from: targetDate)
-                ))
-            }
-        }
-        
-        // Group 2: 1-4 weeks ago - weekly grouped
-        for weekOffset in 1...4 {
-            guard let weekStart = calendar.date(byAdding: .weekOfYear, value: -weekOffset, to: today),
-                  let weekEnd = calendar.date(byAdding: .day, value: 6, to: weekStart) else { continue }
-            
-            let weekGems = sortedGems.filter { gem in
-                gem.date >= weekStart && gem.date <= weekEnd &&
-                gem.date < calendar.date(byAdding: .day, value: -7, to: today)!
-            }
-            
-            if !weekGems.isEmpty {
-                groupedGems.append(GroupedGem(
-                    period: GemGroupPeriod.week,
-                    startDate: weekStart,
-                    endDate: weekEnd,
-                    gems: weekGems,
-                    label: "W-\(weekOffset)"
-                ))
-            }
-        }
-        
-        // Group 3: 1-12 months ago - monthly grouped
-        for monthOffset in 1...12 {
-            guard let monthStart = calendar.date(byAdding: .month, value: -monthOffset, to: today),
-                  let monthEnd = calendar.date(byAdding: .month, value: -monthOffset + 1, to: today) else { continue }
-            
-            let monthGems = sortedGems.filter { gem in
-                gem.date >= monthStart && gem.date < monthEnd
-            }
-            
-            if !monthGems.isEmpty {
-                let formatter = DateFormatter()
-                formatter.dateFormat = "MMM"
-                
-                groupedGems.append(GroupedGem(
-                    period: GemGroupPeriod.month,
-                    startDate: monthStart,
-                    endDate: monthEnd,
-                    gems: monthGems,
-                    label: formatter.string(from: monthStart)
-                ))
-            }
-        }
-        
-        // Group 4: Years - yearly grouped (beyond 1 year)
-        let yearAgo = calendar.date(byAdding: .year, value: -1, to: today)!
-        let oldGems = sortedGems.filter { $0.date < yearAgo }
-        
-        if !oldGems.isEmpty {
-            // Group by year
-            let yearGroups = Dictionary(grouping: oldGems) { gem in
-                calendar.component(.year, from: gem.date)
-            }
-            
-            for (year, yearGems) in yearGroups.sorted(by: { $0.key > $1.key }) {
-                groupedGems.append(GroupedGem(
-                    period: GemGroupPeriod.year,
-                    startDate: yearGems.last?.date ?? Date(),
-                    endDate: yearGems.first?.date ?? Date(),
-                    gems: yearGems,
-                    label: "\(year)"
-                ))
-            }
-        }
-        
-        return groupedGems
-    }
-    
-    /// Get visible gems for current offset
-    private func getVisibleGems(from allGems: [GroupedGem]) -> [GroupedGem] {
-        guard !allGems.isEmpty else { return [] }
-        let start = min(currentOffset, max(0, allGems.count - slotCount))
-        let end = min(start + slotCount, allGems.count)
-        return Array(allGems[start..<end])
-    }
-    
-    // MARK: - Position Calculations
-    
-    private func calculateSlotPosition(slot: Int, containerSize: CGSize) -> CGPoint {
-        let centerX = containerSize.width / 2
-        let progress = CGFloat(slot) / CGFloat(slotCount - 1)
-        
-        // Y position (top = 0, bottom = height)
-        let topPadding: CGFloat = 40
-        let bottomPadding: CGFloat = 60
-        let availableHeight = containerSize.height - topPadding - bottomPadding
-        let y = topPadding + availableHeight * progress
-        
-        // X offset (alternating, decreasing towards top)
-        let trackWidth = minTrackWidth + (baseTrackWidth - minTrackWidth) * progress
-        let xOffset = trackWidth * 0.4 * (slot % 2 == 0 ? -1 : 1)
-        
-        return CGPoint(x: centerX + xOffset, y: y)
-    }
-    
-    private func calculateGemSize(for slot: Int) -> CGFloat {
-        let progress = CGFloat(slot) / CGFloat(slotCount - 1)
-        return minGemSize + (baseGemSize - minGemSize) * progress
-    }
-}
-
-// MARK: - Fixed Perspective Track
-struct FixedPerspectiveTrack: View {
-    let slotCount: Int
-    let baseWidth: CGFloat
-    let minWidth: CGFloat
-    let containerHeight: CGFloat
-    
-    var body: some View {
-        ZStack {
-            // Track fill (trapezoid)
-            PerspectiveTrackShape(
-                baseWidth: baseWidth,
-                minWidth: minWidth,
-                topPadding: 40,
-                bottomPadding: 60
-            )
-            .fill(
+            .defaultScrollAnchor(.bottom)  // 최신 gem(Today)이 하단에 위치하도록 초기화
+            .mask(
+                // 하단에서 fade-out 효과
                 LinearGradient(
-                    colors: [
-                        Color.pip.home.railroadFront.opacity(0.05),
-                        Color.pip.home.railroadFront.opacity(0.2)
-                    ],
+                    gradient: Gradient(stops: [
+                        .init(color: .black, location: 0),
+                        .init(color: .black, location: 0.85),
+                        .init(color: .clear, location: 1)
+                    ]),
                     startPoint: .top,
                     endPoint: .bottom
                 )
             )
-            
-            // Track rails
-            PerspectiveRailsShape(
-                baseWidth: baseWidth,
-                minWidth: minWidth,
-                topPadding: 40,
-                bottomPadding: 60
-            )
-            .stroke(
-                LinearGradient(
-                    colors: [
-                        Color.pip.home.railroadFront.opacity(0.2),
-                        Color.pip.home.railroadFront.opacity(0.6)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                ),
-                lineWidth: 2
-            )
-            
-            // Cross ties at each slot
-            ForEach(0..<slotCount, id: \.self) { slot in
-                let progress = CGFloat(slot) / CGFloat(slotCount - 1)
-                let y = 40 + (containerHeight - 100) * progress
-                let tieWidth = minWidth * 0.6 + (baseWidth * 0.6 - minWidth * 0.6) * progress
-                
-                Rectangle()
-                    .fill(Color.pip.home.railroadFront.opacity(0.3 + 0.3 * progress))
-                    .frame(width: tieWidth, height: 2 + progress * 2)
-                    .position(x: UIScreen.main.bounds.width / 2, y: y)
-            }
         }
     }
 }
 
-// MARK: - Perspective Track Shape
-struct PerspectiveTrackShape: Shape {
-    let baseWidth: CGFloat
-    let minWidth: CGFloat
-    let topPadding: CGFloat
-    let bottomPadding: CGFloat
-    
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        let centerX = rect.midX
-        let topY = topPadding
-        let bottomY = rect.height - bottomPadding
-        
-        path.move(to: CGPoint(x: centerX - minWidth / 2, y: topY))
-        path.addLine(to: CGPoint(x: centerX + minWidth / 2, y: topY))
-        path.addLine(to: CGPoint(x: centerX + baseWidth / 2, y: bottomY))
-        path.addLine(to: CGPoint(x: centerX - baseWidth / 2, y: bottomY))
-        path.closeSubpath()
-        
-        return path
-    }
-}
-
-// MARK: - Perspective Rails Shape
-struct PerspectiveRailsShape: Shape {
-    let baseWidth: CGFloat
-    let minWidth: CGFloat
-    let topPadding: CGFloat
-    let bottomPadding: CGFloat
-    
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        let centerX = rect.midX
-        let topY = topPadding
-        let bottomY = rect.height - bottomPadding
-        
-        // Left rail
-        path.move(to: CGPoint(x: centerX - minWidth / 2, y: topY))
-        path.addLine(to: CGPoint(x: centerX - baseWidth / 2, y: bottomY))
-        
-        // Right rail
-        path.move(to: CGPoint(x: centerX + minWidth / 2, y: topY))
-        path.addLine(to: CGPoint(x: centerX + baseWidth / 2, y: bottomY))
-        
-        return path
-    }
-}
-
-// MARK: - Railroad Gem Slot
-struct RailroadGemSlot: View {
-    let groupedGem: GroupedGem
-    let size: CGFloat
-    let onTap: () -> Void
+// MARK: - Gem Slot (개별 슬롯 - 원근감 적용)
+struct GemSlot: View {
+    let gemRecord: GemRecord
+    let onTap: ((GemRecord) -> Void)?
+    let onWriteRequested: (() -> Void)
+    let scrollViewHeight: CGFloat
+    let index: Int  // 젬의 인덱스 (0 = 과거, 6 = Today)
+    let totalCount: Int  // 전체 젬 개수
     
     var body: some View {
-        VStack(spacing: 4) {
-            // Gem visualization
+        GeometryReader { geometry in
+            let yPosition = geometry.frame(in: .global).midY
+            let normalizedY = yPosition / max(1, scrollViewHeight)  // 0~1 사이 값
+            
             ZStack {
-                // Glow + Main gem + Stroke - using concrete shapes
-                gemVisualization
+                // 타원형 그림자 (모든 젬 하단) - 크기 변화 적용 ✨
+                ZStack {
+                    Ellipse()
+                        .fill(radialGradient(for: gemRecord, index: index, totalCount: totalCount))
+                        .frame(width: 120, height: 40)
+                }
+                .scaleEffect(perspectiveScale(for: normalizedY))  // 위치에 따라 크기 변화 적용 ✨
+                .offset(y: 40)  // 젬 이미지 아래로 더 낮게 위치
+                .opacity(gemRecord.opacity * perspectiveOpacity(for: normalizedY) * (gemRecord.isCompleted ? 1 : 0.6))  // 젬의 투명도와 동일하게 적용
                 
-                // Count badge for grouped gems
-                if groupedGem.gems.count > 1 {
-                    Text("\(groupedGem.gems.count)")
-                        .font(.system(size: size * 0.25, weight: .bold))
-                        .foregroundColor(.white)
-                        .padding(4)
-                        .background(
-                            Circle()
-                                .fill(Color.black.opacity(0.5))
-                        )
-                        .offset(x: size * 0.35, y: -size * 0.35)
+                VStack(spacing: 12) {
+                    // 날짜 라벨 (투명도 적용)
+                    Text(formatDate(gemRecord.date))
+                        .font(.pip.body)
+                        .foregroundColor(.white.opacity(0.7 * perspectiveOpacity(for: normalizedY)))  // 투명도 적용 ✨
+                    
+                    // Gem 이미지 (기록 상태에 따라 시각적 표시)
+                    Image("gem_\(gemIndexForAsset(gemRecord.gemIndex))")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(height: 100)
+                        .scaleEffect(perspectiveScale(for: normalizedY))  // 크기 조절 적용 ✨
+                        .opacity(gemRecord.opacity * perspectiveOpacity(for: normalizedY))  // y 위치에 따라 투명도 조절
+                        .opacity(gemRecord.isCompleted ? 1 : 0.6)  // 기록 안 된 경우 전체 투명도 낮춤
                 }
             }
-            .opacity(0.7 + groupedGem.averageBrightness * 0.3)
-            
-            // Label
-            Text(groupedGem.label)
-                .font(.system(size: max(10, size * 0.18)))
-                .foregroundColor(.white.opacity(0.7))
+            .offset(x: horizontalOffset(for: normalizedY))  // 좌우 위치 오프셋 적용 ✨
+            .frame(maxWidth: .infinity)
+            .onTapGesture {
+                if gemRecord.isCompleted {
+                    onTap?(gemRecord)
+                } else {
+                    onWriteRequested()
+                }
+            }
         }
-        .onTapGesture {
-            onTap()
-        }
+        .frame(height: 120)  // 고정 높이로 GeometryReader가 작동하도록
     }
     
-    @ViewBuilder
-    private var gemVisualization: some View {
-        switch groupedGem.period {
-        case .day:
-            gemLayers(shape: DiamondGemShape())
-        case .week:
-            gemLayers(shape: DoubleTriangleShape())
-        case .month:
-            gemLayers(shape: StackedRectShape())
-        case .year:
-            gemLayers(shape: TriangleRectShape())
-        }
+    // gem_1 ~ gem_18 순환 적용 (처음 기록된 것부터 1,2,3,...,18,1,2,... 순서)
+    private func gemIndexForAsset(_ gemIndex: Int) -> Int {
+        return ((gemIndex - 1) % 18) + 1  // 1~18 범위로 순환
     }
     
-    private func gemLayers<S: Shape>(shape: S) -> some View {
-        ZStack {
-            // Glow
-            shape
-                .fill(themeColor.opacity(0.3))
-                .frame(width: size * 1.3, height: size * 1.3)
-                .blur(radius: 8)
-            
-            // Main gem
-            shape
-                .fill(glassGradient)
-                .frame(width: size, height: size)
-            
-            // Stroke
-            shape
-                .stroke(themeColor.opacity(0.6), lineWidth: 1.5)
-                .frame(width: size, height: size)
+    // 타원형 그림자의 그라데이션
+    private func radialGradient(for gemRecord: GemRecord, index: Int, totalCount: Int) -> RadialGradient {
+        let centerColor: Color
+        if index == totalCount - 1 && !gemRecord.isCompleted {
+            centerColor = .white  // 오늘 젬이 비어있는 경우 가운데 흰색
+        } else {
+            centerColor = .black  // 그 외 가운데 검은색
         }
-    }
-    
-    private var themeColor: Color {
-        switch groupedGem.dominantColorTheme {
-        case .teal: return Color(red: 0.51, green: 0.92, blue: 0.92)
-        case .amber: return Color(red: 1.0, green: 0.65, blue: 0.0)
-        case .tiger: return Color(red: 1.0, green: 0.4, blue: 0.0)
-        case .blue: return Color(red: 0.0, green: 0.4, blue: 0.8)
-        }
-    }
-    
-    private var glassGradient: LinearGradient {
-        LinearGradient(
-            colors: [
-                themeColor.opacity(0.6),
-                themeColor.opacity(0.3),
-                Color.white.opacity(0.1)
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
+        return RadialGradient(
+            colors: [centerColor, Color("railroad_front")],
+            center: .center,
+            startRadius: 0,
+            endRadius: 60
         )
     }
-}
-
-// MARK: - Custom Shapes
-
-struct TriangleRectShape: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        let triHeight = rect.height * 0.4
+    
+    // 좌우 위치 오프셋 계산 (오늘 젬 제외)
+    private func horizontalOffset(for normalizedY: CGFloat) -> CGFloat {
+        guard index < totalCount - 1 else { return 0 }  // Today는 중앙 고정
         
-        path.move(to: CGPoint(x: rect.midX, y: rect.minY))
-        path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY + triHeight))
-        path.addLine(to: CGPoint(x: rect.minX, y: rect.minY + triHeight))
-        path.closeSubpath()
+        // 도형의 닮음을 고려한 좌우 퍼짐 (간격 더 벌림)
+        // normalizedY가 1에 가까울수록 더 넓게 퍼짐
+        let spreadFactor = normalizedY * 160  // 기존 120 → 160으로 증가 ✨
         
-        path.addRect(CGRect(
-            x: rect.minX + rect.width * 0.15,
-            y: rect.minY + triHeight - 2,
-            width: rect.width * 0.7,
-            height: rect.height * 0.6 + 2
-        ))
+        // 인덱스에 따라 좌우 번갈아 배치
+        let direction: CGFloat = index % 2 == 1 ? 1 : -1  // 홀수: 오른쪽, 짝수: 왼쪽
         
-        return path
+        return direction * spreadFactor
+    }
+    
+    // y 위치에 따른 원근감 계산: 하단(y값 큼)에 가까울수록 크고 밝음
+    private func perspectiveScale(for normalizedY: CGFloat) -> CGFloat {
+        // 더 극적인 변화: 0.1배 ~ 2.5배
+        return 0.1 + (normalizedY * 2.4)
+    }
+    
+    private func perspectiveOpacity(for normalizedY: CGFloat) -> Double {
+        // Today(하단, normalizedY≈1)에서 완전 불투명, 위쪽으로 갈수록 투명해짐
+        return normalizedY
     }
 }
 
-struct RectTriangleShape: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        let rectHeight = rect.height * 0.5
-        
-        path.addRect(CGRect(
-            x: rect.minX + rect.width * 0.15,
-            y: rect.minY,
-            width: rect.width * 0.7,
-            height: rectHeight
-        ))
-        
-        let triTop = rect.minY + rectHeight - 2
-        path.move(to: CGPoint(x: rect.minX, y: triTop))
-        path.addLine(to: CGPoint(x: rect.maxX, y: triTop))
-        path.addLine(to: CGPoint(x: rect.midX, y: rect.maxY))
-        path.closeSubpath()
-        
-        return path
-    }
-}
-
-struct DoubleTriangleShape: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        
-        path.move(to: CGPoint(x: rect.minX, y: rect.minY))
-        path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
-        path.addLine(to: CGPoint(x: rect.midX, y: rect.midY))
-        path.closeSubpath()
-        
-        path.move(to: CGPoint(x: rect.midX, y: rect.midY))
-        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
-        path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
-        path.closeSubpath()
-        
-        return path
-    }
-}
-
-struct StackedRectShape: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        
-        path.addRect(CGRect(
-            x: rect.minX + rect.width * 0.25,
-            y: rect.minY,
-            width: rect.width * 0.5,
-            height: rect.height * 0.35
-        ))
-        
-        path.addRect(CGRect(
-            x: rect.minX + rect.width * 0.1,
-            y: rect.minY + rect.height * 0.35 - 2,
-            width: rect.width * 0.8,
-            height: rect.height * 0.65 + 2
-        ))
-        
-        return path
-    }
-}
-
-struct DiamondGemShape: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        
-        path.move(to: CGPoint(x: rect.midX, y: rect.minY))
-        path.addLine(to: CGPoint(x: rect.maxX, y: rect.midY))
-        path.addLine(to: CGPoint(x: rect.midX, y: rect.maxY))
-        path.addLine(to: CGPoint(x: rect.minX, y: rect.midY))
-        path.closeSubpath()
-        
-        return path
+// MARK: - Helper Functions
+private func formatDate(_ date: Date) -> String {
+    let formatter = DateFormatter()
+    let calendar = Calendar.current
+    let today = calendar.startOfDay(for: Date())
+    
+    if calendar.isDate(date, inSameDayAs: today) {
+        return "Today"
+    } else if calendar.isDate(date, inSameDayAs: calendar.date(byAdding: .day, value: -1, to: today)!) {
+        return "Yesterday"
+    } else {
+        formatter.dateFormat = "M/d (E)"
+        formatter.locale = Locale(identifier: "en_US")
+        return formatter.string(from: date)
     }
 }
 
@@ -570,26 +233,19 @@ struct DiamondGemShape: Shape {
         Color.black.ignoresSafeArea()
         
         RailroadView(
-            gems: (0..<30).map { i in
-                DailyGem(
+            gemRecords: (0..<7).map { i in
+                GemRecord(
                     id: UUID(),
-                    accountId: UUID(),
                     date: Calendar.current.date(byAdding: .day, value: -i, to: Date())!,
-                    gemType: [.sphere, .diamond, .crystal, .prism][i % 4],
-                    brightness: Double.random(in: 0.6...1.0),
-                    uncertainty: Double.random(in: 0.1...0.4),
-                    dataPointIds: Array(repeating: "id", count: Int.random(in: 1...5)),
-                    colorTheme: [.teal, .amber, .tiger, .blue][i % 4],
-                    createdAt: Date()
+                    gemIndex: i + 1,  // 1부터 시작해서 순차적으로 증가 (1,2,3,4,5,6,7)
+                    isCompleted: i < 6,  // 마지막 하나만 미완성
+                    dataPointIds: []
                 )
             },
             onGemTap: { gem in
                 print("Tapped gem: \(gem.date)")
             },
-            onGroupTap: { group in
-                print("Tapped group: \(group.label) with \(group.gems.count) gems")
-            }
+            onWriteRequested: {}
         )
-        .padding(.horizontal, 20)
     }
 }

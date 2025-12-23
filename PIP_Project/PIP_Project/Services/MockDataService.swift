@@ -323,9 +323,12 @@ class MockDataService: DataServiceProtocol {
         let calendar = Calendar.current
         let today = Date()
         
-        // 최근 30일간의 데이터 생성
+        // 최근 30일간의 데이터 생성 (오늘 제외)
         for dayOffset in 0..<30 {
             guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: today) else { continue }
+            
+            // 오늘은 데이터 생성하지 않음 (미완성 상태로 유지)
+            if dayOffset == 0 { continue }
             
             // 하루에 하나의 '통합 데이터 포인트' 생성
             // 시간은 저녁 시간대로 설정
