@@ -28,7 +28,8 @@ struct HomeView: View {
                     onGemTap: { gem in
                         selectedGem = gem
                     },
-                    onWriteRequested: onWriteRequested ?? {}
+                    onWriteRequested: onWriteRequested ?? {},
+                    currentStreak: viewModel.userStats?.currentStreak ?? 0  // DB 설계에 따라 UserStats에서 가져옴
                 )
                 
                 Spacer()  // TabBar 위까지 확장
@@ -50,7 +51,7 @@ struct HomeView: View {
         VStack(alignment: .leading, spacing: 16) {
             // "Hi, 사용자명"
             Text("Hi, \(viewModel.userName ?? "User")")
-                .font(.pip.title1)
+                .font(.pip.hero)
                 .foregroundColor(.white)
                 .padding(.horizontal, 20)
             
@@ -99,7 +100,7 @@ struct StatItem: View {
     let valueColor: Color
     
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(alignment: .center, spacing: 4) {
             Image(iconName)
                 .resizable()
                 .frame(width: 40, height: 40)

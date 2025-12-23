@@ -1,13 +1,41 @@
 # 🚀 PROJECT HANDOVER: PIP 프로젝트 설계 결정 마스터
 
-## I. 프로젝트 진행 현황 및 시작점 (Status: 2025. 12. 11.)
+## I. 프로젝트 진행 현황 및 시작점 (Status: 2025. 12. 23. 업데이트)
+
+### 📊 전체 진행도
+- **Design System**: ✅ 완료 (컬러, 타이포그래피)
+- **DB 모델**: ✅ 설계 완료 (TimeSeriesDataPoint 중심)
+- **Views 구현**: 🔄 진행 중 (HomeView 기본 완성, RailRoad 동적 배치 완성)
 
 * **현재 완료 상태:**
-    * `00_1` (핵심 컬러 팔레트), `00_2` (폰트 스타일) 정의 완료.
-    * **Xcode 프로젝트 생성 및 초기 설정 완료.**
-    * **`.gitignore` 파일에 Xcode 및 macOS 관련 항목 추가 완료.**
-* **다음 진행 작업:** `00_3` (아이콘 세트 정의) 및 초기 코드 구조 설정.
-* **핵심 비전:** **다크 모드(Black) 기반**의 지적인 미니멀리즘 UX/UI.
+    * ✅ `00_1` (핵심 컬러 팔레트), `00_2` (폰트 스타일) 정의 완료
+    * ✅ **Xcode 프로젝트 생성 및 초기 설정 완료**
+    * ✅ **`.gitignore` 파일에 Xcode 및 macOS 관련 항목 추가 완료**
+    * ✅ **MockDataService 구현 완료 (최근 30일 데이터 생성)**
+    * ✅ **HomeView 기본 구현 완료**
+      - 고정 헤더 (\"Hi, UserName\" + Records/Streaks)
+      - RailRoadView와의 레이아웃 통합
+      - StatItem 정렬 개선 (아이콘 + 숫자 수직 중앙 정렬)
+    * ✅ **RailRoadView 동적 배치 완성**
+      - 오늘 Gem 중앙 고정, 과거 Gems 양쪽 확산
+      - 투명도 및 스케일 동적 조정
+      - 불필요한 streak 텍스트 제거
+    * ✅ **currentStreak 계산 로직 수정**
+      - 오늘 데이터 포함하여 정확한 연속 기록 일수 반영
+
+* **최근 진행 사항 (2025.12.23)**
+    * `MockDataService.generateMockData()`: 오늘 데이터 포함하도록 수정
+    * `StatItem`: HStack(alignment: .center) + baselineOffset(-4)로 정렬 개선
+    * `HomeView` 헤더: \"Hi, UserName\" 폰트 크기 증대 (.pip.title1 → .pip.hero)
+    * `RailRoadView`: \"Current Streak: X days\" 텍스트 제거
+
+* **다음 진행 작업:**
+    * WriteView 구현 (카드 스와이프 입력)
+    * InsightView 구현 (Orb 시각화)
+    * GoalView & StatusView 구현
+    * 온보딩 플로우 구현
+    
+* **핵심 비전:** **다크 모드(Black) 기반**의 지적인 미니멀리즘 UX/UI
 
 ---
 

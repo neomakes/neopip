@@ -323,12 +323,9 @@ class MockDataService: DataServiceProtocol {
         let calendar = Calendar.current
         let today = Date()
         
-        // 최근 30일간의 데이터 생성 (오늘 제외)
-        for dayOffset in 0..<30 {
+        // 최근 30일간의 데이터 생성 (오늘 제외 - dayOffset 1부터 시작)
+        for dayOffset in 1..<30 {
             guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: today) else { continue }
-            
-            // 오늘은 데이터 생성하지 않음 (미완성 상태로 유지)
-            if dayOffset == 0 { continue }
             
             // 하루에 하나의 '통합 데이터 포인트' 생성
             // 시간은 저녁 시간대로 설정
@@ -501,17 +498,21 @@ class MockDataService: DataServiceProtocol {
         
         // 연속 기록 일수 계산
         let sortedDates = Set(mockDataPoints.map { Calendar.current.startOfDay(for: $0.date) })
-            .sorted(by: >)
+            .sorted(by: >)  // 내림차순: 최신 날짜부터
         
         var currentStreak = 0
-        let today = Calendar.current.startOfDay(for: Date())
         
-        for (index, date) in sortedDates.enumerated() {
-            let expectedDate = Calendar.current.date(byAdding: .day, value: -index, to: today)!
-            if Calendar.current.isDate(date, inSameDayAs: expectedDate) {
-                currentStreak += 1
-            } else {
-                break
+        // 가장 최신 기록부터 역순으로 연속된 날짜 세기
+        if !sortedDates.isEmpty {
+            let mostRecentDate = sortedDates[0]
+            
+            for (index, date) in sortedDates.enumerated() {
+                let expectedDate = Calendar.current.date(byAdding: .day, value: -index, to: mostRecentDate)!
+                if Calendar.current.isDate(date, inSameDayAs: expectedDate) {
+                    currentStreak += 1
+                } else {
+                    break
+                }
             }
         }
         

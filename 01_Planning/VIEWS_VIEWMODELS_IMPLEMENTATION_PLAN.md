@@ -208,33 +208,101 @@ struct WriteSheet: View {
 }
 ```
 
-### 2.3. HomeViewModel
+### 2.3. HomeViewModel (✅ 2025.12.23 완성)
+
+**완성 사항:**
+- ✅ UserStats 모델을 통한 currentStreak 조회
+- ✅ last7Days 계산 로직 (최근 7일 데이터)
+- ✅ 스트리크 계산: MockDataService에서 오늘 데이터부터 거꾸로 확인하며 연속 기록 일수 계산
+
+**스트리크 계산 알고리즘:**
+```
+1. 모든 데이터 포인트의 날짜를 중복 제거
+2. 최신 날짜부터 정렬 (내림차순)
+3. 오늘부터 시작해서 연속된 날짜에 데이터 있는지 확인
+4. 연속이 끊기면 중단
+5. 최종 카운트 = currentStreak
+```
 
 ```swift
 @MainActor
 class HomeViewModel: ObservableObject {
     @Published var dailyGems: [DailyGem] = []
-    @Published var totalDataPoints: Int = 0
-    @Published var currentStreak: Int = 0
+    @Published var userStats: UserStats?
     @Published var isLoading = false
+    @Published var errorMessage: String?
+    @Published var last7Days: [GemRecord] = []
+    @Published var userName: String?
     
-    private let dataService: DataServiceProtocol
+    let dataService: DataServiceProtocol
+    var cancellables = Set<AnyCancellable>()
     
-    init(dataService: DataServiceProtocol = DataService.shared) {
-        self.dataService = dataService
+    init(dataService: DataServiceProtocol? = nil) {
+        self.dataService = dataService ?? MockDataService.shared
+        self.userName = "Neo"
+        loadInitialData()
     }
     
-    func loadData() async {
+    func loadInitialData() {
         isLoading = true
-        defer { isLoading = false }
+        errorMessage = nil
+        
+        let calendar = Calendar.current
+        let endDate = Date()
+        guard let startDate = calendar.date(byAdding: .day, value: -30, to: endDate) else {
+            isLoading = false
+            return
+        }
         
         // DailyGems 로드
-        dailyGems = await dataService.fetchDailyGems()
+        dataService.fetchDailyGems(from: startDate, to: endDate)
+            .receive(on: DispatchQueue.main)
+            .sink(
+                receiveCompletion: { [weak self] completion in
+                    self?.isLoading = false
+                    if case .failure(let error) = completion {
+                        self?.errorMessage = error.localizedDescription
+                    }
+                },
+                receiveValue: { [weak self] gems in
+                    self?.dailyGems = gems
+                    self?.updateLast7Days()
+                }
+            )
+            .store(in: &cancellables)
         
-        // 통계 로드
-        let stats = await dataService.fetchUserStats()
-        totalDataPoints = stats.totalDataPoints
-        currentStreak = stats.currentStreak
+        // UserStats 로드 (currentStreak 포함)
+        dataService.fetchUserStats()
+            .receive(on: DispatchQueue.main)
+            .sink(
+                receiveCompletion: { [weak self] completion in
+                    if case .failure(let error) = completion {
+                        self?.errorMessage = error.localizedDescription
+                    }
+                },
+                receiveValue: { [weak self] stats in
+                    self?.userStats = stats
+                }
+            )
+            .store(in: &cancellables)
+    }
+    
+    private func updateLast7Days() {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        
+        var last7: [GemRecord] = []
+        for dayOffset in 0..<7 {
+            guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: today) else { continue }
+            
+            if let gem = dailyGems.first(where: { calendar.isDate($0.date, inSameDayAs: date) }) {
+                last7.append(GemRecord(from: gem))
+            } else {
+                last7.append(GemRecord(date: date, isIncomplete: true))
+            }
+        }
+        
+        self.last7Days = last7
     }
     
     func generateCards() -> [CardData] {

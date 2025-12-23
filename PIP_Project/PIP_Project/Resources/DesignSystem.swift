@@ -1,13 +1,54 @@
 import SwiftUI
 
 // MARK: - 01. Font Setting
+// Pretendard 폰트 기반 일관된 타이포그래피 체계
+extension UIFont {
+    // Pretendard 커스텀 폰트 로더
+    static func pretendard(weight: String, size: CGFloat) -> UIFont {
+        let fontName = "Pretendard-\(weight)"
+        if let customFont = UIFont(name: fontName, size: size) {
+            return customFont
+        }
+        // Fallback to system font if custom font is not available
+        return .systemFont(ofSize: size, weight: .regular)
+    }
+    
+    // 자주 사용되는 Pretendard 스타일들
+    static let pipHero = pretendard(weight: "ExtraBold", size: 34)
+    static let pipTitle1 = pretendard(weight: "Bold", size: 24)
+    static let pipTitle2 = pretendard(weight: "SemiBold", size: 18)
+    static let pipSubtitle = pretendard(weight: "SemiBold", size: 16)
+    static let pipBody = pretendard(weight: "Regular", size: 16)
+    static let pipCaption = pretendard(weight: "Light", size: 12)
+    static let pipOverline = pretendard(weight: "SemiBold", size: 10)
+    static let pipButton = pretendard(weight: "SemiBold", size: 14)
+}
+
 extension Font {
     struct PIPFont {
-        static let hero = Font.system(size: 34, weight: .bold, design: .rounded)
-        static let title1 = Font.system(size: 24, weight: .semibold, design: .default)
-        static let title2 = Font.system(size: 18, weight: .medium, design: .default)
-        static let body = Font.system(size: 16, weight: .regular, design: .default)
-        static let caption = Font.system(size: 12, weight: .regular, design: .default)
+        // 메인 헤드라인 (홈 화면 "Hi, UserName")
+        static let hero = Font(UIFont.pretendard(weight: "ExtraBold", size: 34))
+        
+        // 섹션 타이틀
+        static let title1 = Font(UIFont.pretendard(weight: "Bold", size: 24))
+        
+        // 서브 타이틀 (섹션 헤드, 카드 타이틀)
+        static let title2 = Font(UIFont.pretendard(weight: "SemiBold", size: 18))
+        
+        // 강조된 바디 텍스트 (라벨, 숫자)
+        static let subtitle = Font(UIFont.pretendard(weight: "SemiBold", size: 16))
+        
+        // 일반 본문 텍스트
+        static let body = Font(UIFont.pretendard(weight: "Regular", size: 16))
+        
+        // 보조 텍스트 (설명, 메타 정보)
+        static let caption = Font(UIFont.pretendard(weight: "Light", size: 12))
+        
+        // 작은 라벨 (태그, 오버라인 텍스트)
+        static let overline = Font(UIFont.pretendard(weight: "SemiBold", size: 10))
+        
+        // 버튼 텍스트
+        static let button = Font(UIFont.pretendard(weight: "SemiBold", size: 14))
     }
     
     static let pip = PIPFont.self
@@ -132,6 +173,7 @@ extension CGFloat {
         static let gemDetailJournalPadding: CGFloat = 16 // 저널박스 상하 패딩
         static let gemDetailTitleToChartSpacing: CGFloat = 24 // 제목과 차트 사이 간격
         static let gemDetailNavButtonPadding: CGFloat = 10 // 네비게이션 버튼 좌우 패딩
+        static let gemDetailTitleFontSize: CGFloat = 18 // Radar Chart 데이터셋 제목 폰트 크기
 
         // Write View
         static let writeSheetWidth: CGFloat = 380
@@ -151,6 +193,5 @@ extension CGFloat {
         static let gemDetailChartPadding: CGFloat = 20
         static let gemDetailJournalMaxHeight: CGFloat = 80 // 스크롤 인디케이터 표시를 위해 높이 감소
         static let gemDetailJournalCornerRadius: CGFloat = 16
-        static let gemDetailTitleFontSize: CGFloat = 24
     }
 }

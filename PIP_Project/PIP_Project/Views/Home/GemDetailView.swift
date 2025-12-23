@@ -58,7 +58,7 @@ struct GemDetailView: View {
                             ForEach(Array(radarDataSets.enumerated()), id: \.element.title) { index, dataSet in
                                 VStack(spacing: CGFloat.PIPLayout.gemDetailTitleToChartSpacing) {
                                     Text(dataSet.title)
-                                        .font(.system(size: CGFloat.PIPLayout.gemDetailTitleFontSize, weight: .semibold))
+                                        .font(.pip.title2)
                                         .foregroundColor(.white)
                                     
                                     RadarChartView(dataSet: dataSet)

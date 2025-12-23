@@ -44,6 +44,7 @@ struct RailroadView: View {
     let gemRecords: [GemRecord]  // 과거 6일 + 오늘 (총 7개)
     let onGemTap: ((GemRecord) -> Void)?
     let onWriteRequested: (() -> Void)
+    let currentStreak: Int  // DB 설계에 따라 UserStats에서 가져온 현재 streak
     
     @State private var scrollViewHeight: CGFloat = 0
     
@@ -148,6 +149,14 @@ struct GemSlot: View {
                         .scaleEffect(perspectiveScale(for: normalizedY))  // 크기 조절 적용 ✨
                         .opacity(gemRecord.opacity * perspectiveOpacity(for: normalizedY))  // y 위치에 따라 투명도 조절
                         .opacity(gemRecord.isCompleted ? 1 : 0.6)  // 기록 안 된 경우 전체 투명도 낮춤
+                    
+                    // 오늘 기록이 없는 경우 아래 화살표 추가
+                    if index == totalCount - 1 && !gemRecord.isCompleted {
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundColor(.white)
+                            .padding(.top, 20)
+                    }
                 }
             }
             .offset(x: horizontalOffset(for: normalizedY))  // 좌우 위치 오프셋 적용 ✨
@@ -245,7 +254,8 @@ private func formatDate(_ date: Date) -> String {
             onGemTap: { gem in
                 print("Tapped gem: \(gem.date)")
             },
-            onWriteRequested: {}
+            onWriteRequested: {},
+            currentStreak: 5  // DB 설계에 따라 UserStats에서 가져온 값
         )
     }
 }
