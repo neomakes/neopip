@@ -14,9 +14,8 @@ struct StatusView: View {
     var body: some View {
         NavigationStack(path: $path) {
             ZStack {
-                Color.clear
-                    .background(Color.clear)
-                    .scrollContentBackground(.hidden)
+                PrimaryBackground()
+                    .ignoresSafeArea()
                 
                 ScrollView {
                     VStack(spacing: 0) {
