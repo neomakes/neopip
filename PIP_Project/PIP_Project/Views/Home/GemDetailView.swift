@@ -52,32 +52,29 @@ struct GemDetailView: View {
                     }
                     .padding(.vertical, 24)
 
-                    // 중앙: Radar Chart TabView
-                    ZStack {
-                        TabView(selection: $selectedTab) {
-                            ForEach(Array(radarDataSets.enumerated()), id: \.element.title) { index, dataSet in
-                                VStack(spacing: CGFloat.PIPLayout.gemDetailTitleToChartSpacing) {
-                                    Text(dataSet.title)
-                                        .font(.pip.title2)
-                                        .foregroundColor(.white)
-                                    
-                                    RadarChartView(dataSet: dataSet)
-                                        .frame(maxWidth: CGFloat.PIPLayout.gemDetailChartMaxWidth, maxHeight: CGFloat.PIPLayout.gemDetailChartMaxHeight)
-                                        .padding(.bottom, CGFloat.PIPLayout.gemDetailChartBottomPadding)
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical)
-                                .tag(index)
+                    // 중앙: Radar Chart Carousel
+                    VStack(spacing: 16) {
+                        if selectedTab < radarDataSets.count {
+                            let dataSet = radarDataSets[selectedTab]
+                            
+                            VStack(spacing: CGFloat.PIPLayout.gemDetailTitleToChartSpacing) {
+                                Text(dataSet.title)
+                                    .font(.pip.title2)
+                                    .foregroundColor(.white)
+                                
+                                RadarChartView(dataSet: dataSet)
+                                    .frame(maxWidth: CGFloat.PIPLayout.gemDetailChartMaxWidth, maxHeight: CGFloat.PIPLayout.gemDetailChartMaxHeight)
+                                    .padding(.bottom, CGFloat.PIPLayout.gemDetailChartBottomPadding)
                             }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical)
                         }
-                        .tabViewStyle(.page(indexDisplayMode: .always))
-                        .padding(.bottom, CGFloat.PIPLayout.gemDetailTabViewBottomPadding)
                         
                         // 네비게이션 버튼
                         HStack {
                             Button(action: {
                                 withAnimation {
-                                    selectedTab = max(0, selectedTab - 1)
+                                    selectedTab = (selectedTab - 1 + radarDataSets.count) % radarDataSets.count
                                 }
                             }) {
                                 Image(systemName: "chevron.left")
@@ -85,13 +82,22 @@ struct GemDetailView: View {
                                     .foregroundColor(.white.opacity(0.7))
                                     .padding()
                             }
-                            .opacity(selectedTab > 0 ? 1 : 0)
+                            
+                            Spacer()
+                            
+                            HStack(spacing: 8) {
+                                ForEach(0..<radarDataSets.count, id: \.self) { index in
+                                    Circle()
+                                        .fill(index == selectedTab ? Color.white : Color.white.opacity(0.3))
+                                        .frame(width: 8, height: 8)
+                                }
+                            }
                             
                             Spacer()
                             
                             Button(action: {
                                 withAnimation {
-                                    selectedTab = min(radarDataSets.count - 1, selectedTab + 1)
+                                    selectedTab = (selectedTab + 1) % radarDataSets.count
                                 }
                             }) {
                                 Image(systemName: "chevron.right")
@@ -99,11 +105,24 @@ struct GemDetailView: View {
                                     .foregroundColor(.white.opacity(0.7))
                                     .padding()
                             }
-                            .opacity(selectedTab < radarDataSets.count - 1 ? 1 : 0)
                         }
                         .padding(.horizontal, CGFloat.PIPLayout.gemDetailNavButtonPadding)
                     }
                     .frame(maxHeight: CGFloat.PIPLayout.gemDetailTabViewMaxHeight)
+                    .gesture(
+                        DragGesture()
+                            .onEnded { value in
+                                if value.translation.width < -50 {
+                                    withAnimation {
+                                        selectedTab = (selectedTab + 1) % radarDataSets.count
+                                    }
+                                } else if value.translation.width > 50 {
+                                    withAnimation {
+                                        selectedTab = (selectedTab - 1 + radarDataSets.count) % radarDataSets.count
+                                    }
+                                }
+                            }
+                    )
 
                     // 인디케이터와 저널 사이 spacing
                     Spacer()
