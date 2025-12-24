@@ -25,11 +25,11 @@ struct StatusView: View {
                             viewModel: viewModel,
                             path: $path
                         )
-                        .padding(.bottom, 30)
+                        .padding(.bottom, 5)
                         
                         // MARK: - Stats Cards Section
                         StatsCardsSection(viewModel: viewModel)
-                            .padding(.horizontal, 16)
+                            .padding(.horizontal, 20)
                             .padding(.bottom, 30)
                         
                         // MARK: - Achievements Section
@@ -44,7 +44,7 @@ struct StatusView: View {
                         // MARK: - Values Section
                         if let valueAnalysis = viewModel.valueAnalysis {
                             ValuesSection(valueAnalysis: valueAnalysis)
-                                .padding(.horizontal, 16)
+                                .padding(.horizontal, 20)
                         }
                         
                         Spacer(minLength: 30)
@@ -167,19 +167,22 @@ struct StatsCardsSection: View {
             // Wins
             StatsCard(
                 iconName: "icon_wins",
-                value: "\(viewModel.userStats?.totalProgramsCompleted ?? 0)"
+                value: "\(viewModel.userStats?.totalProgramsCompleted ?? 0)",
+                valueColor: .pip.status.numWins
             )
             
             // Records
             StatsCard(
                 iconName: "icon_records",
-                value: "\(viewModel.userStats?.totalDataPoints ?? 0)"
+                value: "\(viewModel.userStats?.totalDataPoints ?? 0)",
+                valueColor: .pip.status.numRecords
             )
             
             // Streaks
             StatsCard(
                 iconName: "icon_streaks",
-                value: "\(viewModel.userStats?.currentStreak ?? 0)"
+                value: "\(viewModel.userStats?.currentStreak ?? 0)",
+                valueColor: .pip.status.numStreaks
             )
         }
     }
@@ -188,20 +191,21 @@ struct StatsCardsSection: View {
 struct StatsCard: View {
     let iconName: String
     let value: String
+    let valueColor: Color
     
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 8) {
             Image(iconName)
                 .resizable()
                 .scaledToFit()
-                .frame(width: 28, height: 28)
+                .frame(width: 36, height: 36)
             
             Text(value)
-                .font(.system(size: 24, weight: .bold))
-                .foregroundColor(.white)
+                .font(.system(size: 26, weight: .bold))
+                .foregroundColor(valueColor)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 16)
+        .padding(.vertical, 18)
         .background(Color.white.opacity(0.08))
         .cornerRadius(12)
     }
@@ -215,73 +219,122 @@ struct AchievementsSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                Image(systemName: "star.square.fill")
-                    .font(.system(size: 20))
-                    .foregroundColor(Color(red: 0.8, green: 0.5, blue: 0.5))
-                
-                Text("Achievements")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(.white)
+                HStack(alignment: .center, spacing: 6) {
+                    Image("title_logo_8")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(height: 24)
+                    
+                    Text("Achievements")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(.white)
+                }
                 
                 Spacer()
-                
-                Text("\(selectedIndex + 1)/\(achievements.count)")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(.gray)
             }
             .padding(.horizontal, 16)
             
-            // Achievement carousel
+            // Achievement carousel with navigation buttons integrated
             VStack(spacing: 12) {
-                ZStack {
+                HStack(spacing: 12) {
+                    // Left navigation button
+                    Button(action: {
+                        withAnimation {
+                            selectedIndex = max(0, selectedIndex - 1)
+                        }
+                    }) {
+                        Image("icon_expand_left")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 24, height: 24)
+                            .foregroundColor(.white)
+                    }
+                    .disabled(selectedIndex == 0)
+                    .opacity(selectedIndex == 0 ? 0.5 : 1.0)
+                    
                     // Achievement item
-                    if selectedIndex < achievements.count {
-                        let achievement = achievements[selectedIndex]
-                        
-                        VStack(spacing: 12) {
-                            // Preview image or gradient
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(
-                                        LinearGradient(
-                                            gradient: Gradient(colors: achievement.colorScheme.map { Color(hex: $0) }),
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
+                    ZStack {
+                        if selectedIndex < achievements.count {
+                            let achievement = achievements[selectedIndex]
+                            
+                            VStack(spacing: 12) {
+                                // Preview image or gradient
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(
+                                            LinearGradient(
+                                                gradient: Gradient(colors: achievement.colorScheme.map { Color(hex: $0) }),
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            )
                                         )
-                                    )
+                                    
+                                    VStack(spacing: 0) {
+                                        Spacer()
+                                        HStack(spacing: 0) {
+                                            Spacer()
+                                            Image("3d_shape_\(Int.random(in: 1...15))")
+                                                .resizable()
+                                                .scaledToFit()
+                                                .frame(width: 100, height: 100)
+                                                .blendMode(.screen)
+                                            Spacer()
+                                        }
+                                        Spacer()
+                                    }
+                                }
+                                .frame(height: 100)
                                 
-                                VStack(spacing: 8) {
-                                    Image(systemName: "cube.fill")
-                                        .font(.system(size: 40))
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text(achievement.title)
+                                        .font(.system(size: 16, weight: .bold))
                                         .foregroundColor(.white)
                                     
-                                    Text("3D Model")
-                                        .font(.system(size: 12, weight: .semibold))
-                                        .foregroundColor(.white.opacity(0.8))
+                                    Text(achievement.description)
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.gray)
+                                        .lineLimit(2)
                                 }
+                                .frame(maxWidth: .infinity, alignment: .leading)
                             }
-                            .frame(height: 140)
-                            
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text(achievement.title)
-                                    .font(.system(size: 16, weight: .bold))
-                                    .foregroundColor(.white)
-                                
-                                Text(achievement.description)
-                                    .font(.system(size: 12))
-                                    .foregroundColor(.gray)
-                                    .lineLimit(2)
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(12)
+                            .background(Color.white.opacity(0.06))
+                            .cornerRadius(12)
+                            .gesture(
+                                DragGesture()
+                                    .onEnded { value in
+                                        withAnimation {
+                                            if value.translation.width < -50 {
+                                                selectedIndex = min(achievements.count - 1, selectedIndex + 1)
+                                            } else if value.translation.width > 50 {
+                                                selectedIndex = max(0, selectedIndex - 1)
+                                            }
+                                        }
+                                    }
+                            )
                         }
-                        .padding(12)
-                        .background(Color.white.opacity(0.06))
-                        .cornerRadius(12)
                     }
+                    .frame(maxWidth: .infinity)
+                    
+                    // Right navigation button
+                    Button(action: {
+                        withAnimation {
+                            selectedIndex = min(achievements.count - 1, selectedIndex + 1)
+                        }
+                    }) {
+                        Image("icon_expand_right")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 24, height: 24)
+                            .foregroundColor(.white)
+                    }
+                    .disabled(selectedIndex == achievements.count - 1)
+                    .opacity(selectedIndex == achievements.count - 1 ? 0.5 : 1.0)
                 }
                 
-                // Navigation dots
+                // Navigation dots at bottom (separated from card)
                 HStack(spacing: 8) {
+                    Spacer()
                     ForEach(0..<achievements.count, id: \.self) { index in
                         Circle()
                             .fill(index == selectedIndex ? Color.white : Color.white.opacity(0.3))
@@ -294,42 +347,6 @@ struct AchievementsSection: View {
                     }
                     Spacer()
                 }
-                .padding(.horizontal, 16)
-            }
-            
-            // Navigation buttons
-            HStack(spacing: 12) {
-                Button(action: {
-                    withAnimation {
-                        selectedIndex = max(0, selectedIndex - 1)
-                    }
-                }) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.white)
-                        .frame(width: 40, height: 40)
-                        .background(Color.white.opacity(0.1))
-                        .cornerRadius(8)
-                }
-                .disabled(selectedIndex == 0)
-                .opacity(selectedIndex == 0 ? 0.5 : 1.0)
-                
-                Spacer()
-                
-                Button(action: {
-                    withAnimation {
-                        selectedIndex = min(achievements.count - 1, selectedIndex + 1)
-                    }
-                }) {
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.white)
-                        .frame(width: 40, height: 40)
-                        .background(Color.white.opacity(0.1))
-                        .cornerRadius(8)
-                }
-                .disabled(selectedIndex == achievements.count - 1)
-                .opacity(selectedIndex == achievements.count - 1 ? 0.5 : 1.0)
             }
             .padding(.horizontal, 16)
         }
@@ -343,9 +360,10 @@ struct ValuesSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                Image(systemName: "chart.bar.fill")
-                    .font(.system(size: 20))
-                    .foregroundColor(Color(red: 0.5, green: 0.7, blue: 0.8))
+                Image("title_logo3")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(height: 24)
                 
                 Text("Values")
                     .font(.system(size: 18, weight: .semibold))
@@ -445,6 +463,7 @@ struct ValuesSection: View {
                 .cornerRadius(8)
             }
         }
+        .padding(.horizontal, 16)
     }
     
     private func getColorForValue(_ value: Double) -> Color {
