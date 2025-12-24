@@ -44,10 +44,9 @@ struct StatusView: View {
                         // MARK: - Values Section
                         if let valueAnalysis = viewModel.valueAnalysis {
                             ValuesSection(valueAnalysis: valueAnalysis)
-                                .padding(.horizontal, 20)
                         }
                         
-                        Spacer(minLength: 30)
+                        Spacer(minLength: 100)
                     }
                 }
                 .navigationDestination(for: AppRoute.self) { route in
@@ -240,7 +239,7 @@ struct AchievementsSection: View {
                     // Left navigation button
                     Button(action: {
                         withAnimation {
-                            selectedIndex = max(0, selectedIndex - 1)
+                            selectedIndex = (selectedIndex - 1 + achievements.count) % achievements.count
                         }
                     }) {
                         Image("icon_expand_left")
@@ -249,8 +248,6 @@ struct AchievementsSection: View {
                             .frame(width: 24, height: 24)
                             .foregroundColor(.white)
                     }
-                    .disabled(selectedIndex == 0)
-                    .opacity(selectedIndex == 0 ? 0.5 : 1.0)
                     
                     // Achievement item
                     ZStack {
@@ -305,9 +302,9 @@ struct AchievementsSection: View {
                                     .onEnded { value in
                                         withAnimation {
                                             if value.translation.width < -50 {
-                                                selectedIndex = min(achievements.count - 1, selectedIndex + 1)
+                                                selectedIndex = (selectedIndex + 1) % achievements.count
                                             } else if value.translation.width > 50 {
-                                                selectedIndex = max(0, selectedIndex - 1)
+                                                selectedIndex = (selectedIndex - 1 + achievements.count) % achievements.count
                                             }
                                         }
                                     }
@@ -319,7 +316,7 @@ struct AchievementsSection: View {
                     // Right navigation button
                     Button(action: {
                         withAnimation {
-                            selectedIndex = min(achievements.count - 1, selectedIndex + 1)
+                            selectedIndex = (selectedIndex + 1) % achievements.count
                         }
                     }) {
                         Image("icon_expand_right")
@@ -328,8 +325,6 @@ struct AchievementsSection: View {
                             .frame(width: 24, height: 24)
                             .foregroundColor(.white)
                     }
-                    .disabled(selectedIndex == achievements.count - 1)
-                    .opacity(selectedIndex == achievements.count - 1 ? 0.5 : 1.0)
                 }
                 
                 // Navigation dots at bottom (separated from card)
@@ -360,21 +355,24 @@ struct ValuesSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                Image("title_logo3")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(height: 24)
-                
-                Text("Values")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(.white)
+                HStack(alignment: .center, spacing: 6) {
+                    Image("title_logo_3")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(height: 24)
+                    
+                    Text("Values")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(.white)
+                }
                 
                 Spacer()
             }
+            .padding(.horizontal, 16)
             
-            HStack(spacing: 20) {
+            HStack(spacing: 12) {
                 // Left side: Bar chart
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: 20) {
                     ForEach(valueAnalysis.topValues.prefix(3), id: \.id) { item in
                         VStack(alignment: .leading, spacing: 4) {
                             Text(item.name)
@@ -386,9 +384,11 @@ struct ValuesSection: View {
                                     RoundedRectangle(cornerRadius: 4)
                                         .fill(Color.white.opacity(0.1))
                                     
-                                    RoundedRectangle(cornerRadius: 4)
-                                        .fill(getColorForValue(item.score))
-                                        .frame(width: CGFloat(item.score) * 80)
+                                    GeometryReader { geometry in
+                                        RoundedRectangle(cornerRadius: 4)
+                                            .fill(getColorForValue(item.score))
+                                            .frame(width: geometry.size.width * item.score, alignment: .leading)
+                                    }
                                 }
                                 .frame(height: 8)
                                 
@@ -400,9 +400,7 @@ struct ValuesSection: View {
                         }
                     }
                 }
-                .frame(maxWidth: 120, alignment: .leading)
-                
-                Spacer()
+                .frame(maxWidth: .infinity, alignment: .leading)
                 
                 // Right side: Radar chart
                 let radarDataItems = valueAnalysis.topValues.map { item in
@@ -423,6 +421,7 @@ struct ValuesSection: View {
             .padding(12)
             .background(Color.white.opacity(0.06))
             .cornerRadius(12)
+            .padding(.horizontal, 16)
             
             // Comparison info
             if let comparison = valueAnalysis.comparisonData {
@@ -461,9 +460,9 @@ struct ValuesSection: View {
                 .padding(12)
                 .background(Color.white.opacity(0.04))
                 .cornerRadius(8)
+                .padding(.horizontal, 16)
             }
         }
-        .padding(.horizontal, 16)
     }
     
     private func getColorForValue(_ value: Double) -> Color {
