@@ -29,4 +29,13 @@ protocol DataServiceProtocol {
     // MARK: - UserStats
     func fetchUserStats() -> AnyPublisher<UserStats, Error>
     func updateUserStats(_ stats: UserStats) -> AnyPublisher<UserStats, Error>
+    
+    // MARK: - UserProfile
+    func fetchUserProfile() -> AnyPublisher<UserProfile, Error>
+    
+    // MARK: - Achievements
+    func fetchAchievements() -> AnyPublisher<[Achievement], Error>
+    
+    // MARK: - Value Analysis
+    func fetchValueAnalysis() -> AnyPublisher<ValueAnalysis, Error>
 }

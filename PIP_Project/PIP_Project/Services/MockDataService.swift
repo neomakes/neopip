@@ -18,6 +18,9 @@ class MockDataService: DataServiceProtocol {
     private var mockDailyGems: [DailyGem] = []
     private var mockDailyStats: [DailyStats] = []
     private var mockUserStats: UserStats?
+    private var mockUserProfile: UserProfile?
+    private var mockAchievements: [Achievement] = []
+    private var mockValueAnalysis: ValueAnalysis?
     
     // MARK: - Data Type Schema Registry
     /// 동적 데이터 타입 정의 레지스트리
@@ -398,6 +401,15 @@ class MockDataService: DataServiceProtocol {
         
         // UserStats 생성
         mockUserStats = createMockUserStats()
+        
+        // UserProfile 생성
+        mockUserProfile = createMockUserProfile()
+        
+        // Achievement 생성
+        mockAchievements = createMockAchievements()
+        
+        // ValueAnalysis 생성
+        mockValueAnalysis = createMockValueAnalysis()
     }
     
     // MARK: - Helper Methods
@@ -530,6 +542,104 @@ class MockDataService: DataServiceProtocol {
         )
     }
     
+    private func createMockUserProfile() -> UserProfile {
+        return UserProfile(
+            accountId: mockAccountId,
+            displayName: "NEO",
+            email: "neo@pip.app",
+            profileImageURL: "profile_example",
+            backgroundImageURL: nil,
+            createdAt: Date(timeIntervalSinceNow: -30 * 86400), // 30일 전
+            lastActiveAt: Date(),
+            preferences: UserPreferences(
+                theme: .dark,
+                notificationsEnabled: true,
+                language: "ko",
+                timeZone: "Asia/Seoul"
+            ),
+            onboardingState: OnboardingState(
+                isCompleted: true,
+                completedSteps: ["welcome", "goalSelection", "dataCollectionIntro"],
+                selectedGoals: ["wellness", "productivity"],
+                completedAt: Date(timeIntervalSinceNow: -25 * 86400),
+                skippedSteps: []
+            ),
+            initialGoals: [.wellness, .productivity],
+            firstJournalDate: Date(timeIntervalSinceNow: -25 * 86400)
+        )
+    }
+    
+    private func createMockAchievements() -> [Achievement] {
+        let achievementData = [
+            (title: "First Steps", category: AchievementCategory.consistency, colorScheme: ["#3B82F6", "#1E40AF"]),
+            (title: "Weekly Warrior", category: AchievementCategory.growth, colorScheme: ["#8B5CF6", "#6D28D9"]),
+            (title: "Mind Master", category: AchievementCategory.mastery, colorScheme: ["#EC4899", "#BE185D"]),
+            (title: "Insight Seeker", category: AchievementCategory.exploration, colorScheme: ["#F59E0B", "#B45309"]),
+            (title: "30 Days Strong", category: AchievementCategory.consistency, colorScheme: ["#10B981", "#047857"]),
+        ]
+        
+        return achievementData.enumerated().map { index, data in
+            Achievement(
+                id: UUID(),
+                accountId: mockAccountId,
+                programId: UUID(),
+                title: data.title,
+                description: "Unlocked on \(Date().formatted(date: .abbreviated, time: .omitted))",
+                category: data.category,
+                unlockedDate: Date(timeIntervalSinceNow: -Double(index * 3) * 86400),
+                isUnlocked: true,
+                illustration3D: AchievementIllustration3D(
+                    modelId: "achievement_model_\(index)",
+                    modelURL: nil,
+                    previewImageURL: "achievement_\(index)",
+                    colorScheme: data.colorScheme
+                ),
+                colorScheme: data.colorScheme,
+                iconName: "star.fill",
+                createdAt: Date(timeIntervalSinceNow: -Double(index * 3) * 86400)
+            )
+        }
+    }
+    
+    private func createMockValueAnalysis() -> ValueAnalysis {
+        let valueItems = [
+            ValueItem(id: UUID(), name: "Health", score: 0.85, description: "Physical and mental wellbeing", trend: .increasing),
+            ValueItem(id: UUID(), name: "Growth", score: 0.72, description: "Personal development", trend: .increasing),
+            ValueItem(id: UUID(), name: "Connection", score: 0.68, description: "Relationships and community", trend: .stable),
+            ValueItem(id: UUID(), name: "Achievement", score: 0.78, description: "Goals and accomplishments", trend: .increasing),
+            ValueItem(id: UUID(), name: "Balance", score: 0.65, description: "Work-life harmony", trend: .stable),
+            ValueItem(id: UUID(), name: "Creativity", score: 0.70, description: "Self-expression and innovation", trend: .increasing),
+        ]
+        
+        let valueDistribution: [String: Double] = [
+            "health": 0.85,
+            "growth": 0.72,
+            "connection": 0.68,
+            "achievement": 0.78,
+            "balance": 0.65,
+            "creativity": 0.70
+        ]
+        
+        return ValueAnalysis(
+            id: UUID(),
+            accountId: mockAccountId,
+            analysisDate: Date(),
+            topValues: valueItems,
+            valueDistribution: valueDistribution,
+            comparisonData: ComparisonData(
+                userPercentile: 75.5,
+                averageScore: 0.68,
+                uniqueAspects: ["Strong focus on health and wellbeing", "Consistent growth mindset", "Values balance in life"]
+            ),
+            insights: [
+                "You prioritize health more than average users",
+                "Your value scores are well-balanced across all dimensions",
+                "Growth is increasingly important to you"
+            ],
+            createdAt: Date()
+        )
+    }
+    
     // MARK: - DataServiceProtocol Implementation
     
     func fetchDataPoints(for date: Date) -> AnyPublisher<[TimeSeriesDataPoint], Error> {
@@ -648,6 +758,34 @@ class MockDataService: DataServiceProtocol {
     func updateUserStats(_ stats: UserStats) -> AnyPublisher<UserStats, Error> {
         mockUserStats = stats
         return Just(stats)
+            .setFailureType(to: Error.self)
+            .eraseToAnyPublisher()
+    }
+    
+    func fetchUserProfile() -> AnyPublisher<UserProfile, Error> {
+        guard let profile = mockUserProfile else {
+            return Fail(error: NSError(domain: "MockDataService", code: 404, userInfo: [NSLocalizedDescriptionKey: "UserProfile not found"]))
+                .eraseToAnyPublisher()
+        }
+        
+        return Just(profile)
+            .setFailureType(to: Error.self)
+            .eraseToAnyPublisher()
+    }
+    
+    func fetchAchievements() -> AnyPublisher<[Achievement], Error> {
+        return Just(mockAchievements)
+            .setFailureType(to: Error.self)
+            .eraseToAnyPublisher()
+    }
+    
+    func fetchValueAnalysis() -> AnyPublisher<ValueAnalysis, Error> {
+        guard let analysis = mockValueAnalysis else {
+            return Fail(error: NSError(domain: "MockDataService", code: 404, userInfo: [NSLocalizedDescriptionKey: "ValueAnalysis not found"]))
+                .eraseToAnyPublisher()
+        }
+        
+        return Just(analysis)
             .setFailureType(to: Error.self)
             .eraseToAnyPublisher()
     }

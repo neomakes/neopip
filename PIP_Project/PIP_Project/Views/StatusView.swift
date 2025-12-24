@@ -7,62 +7,64 @@ enum AppRoute: Hashable {
 }
 
 struct StatusView: View {
+    @StateObject private var viewModel = StatusViewModel()
     @State private var path = NavigationPath()
+    @State private var selectedAchievementIndex = 0
     
     var body: some View {
         NavigationStack(path: $path) {
-            VStack(spacing: 25) {
-                Spacer()
+            ZStack {
+                Color.clear
+                    .background(Color.clear)
+                    .scrollContentBackground(.hidden)
                 
-                Image(systemName: "bolt.circle.fill")
-                    .resizable()
-                    .frame(width: 100, height: 100)
-                    .foregroundColor(.yellow)
-                
-                Text("System Operational")
-                    .font(.pip.hero)
-                    .foregroundColor(.white)
-                
-                Spacer()
-                
-                // Clicking this will push SettingsView onto the stack
-                Button(action: {
-                    path.append(AppRoute.settings)
-                }) {
-                    HStack {
-                        Image(systemName: "gearshape.fill")
-                        Text("Open Settings")
+                ScrollView {
+                    VStack(spacing: 0) {
+                        // MARK: - Profile Section
+                        ProfileHeaderSection(
+                            viewModel: viewModel,
+                            path: $path
+                        )
+                        .padding(.bottom, 30)
+                        
+                        // MARK: - Stats Cards Section
+                        StatsCardsSection(viewModel: viewModel)
+                            .padding(.horizontal, 16)
+                            .padding(.bottom, 30)
+                        
+                        // MARK: - Achievements Section
+                        if !viewModel.achievements.isEmpty {
+                            AchievementsSection(
+                                achievements: viewModel.achievements,
+                                selectedIndex: $selectedAchievementIndex
+                            )
+                            .padding(.bottom, 30)
+                        }
+                        
+                        // MARK: - Values Section
+                        if let valueAnalysis = viewModel.valueAnalysis {
+                            ValuesSection(valueAnalysis: valueAnalysis)
+                                .padding(.horizontal, 16)
+                        }
+                        
+                        Spacer(minLength: 30)
                     }
-                    .font(.headline)
-                    .foregroundColor(.white)
-                    .padding()
-                    .frame(maxWidth: .infinity)
-                    .background(Color.blue.opacity(0.8))
-                    .cornerRadius(15)
                 }
-                .padding(.horizontal)
-            }
-            .padding()
-            .navigationTitle("Status")
-            .background(Color.clear) // Essential for transparency
-            .scrollContentBackground(.hidden)
-            // This handles the transition to sub-pages
-            .navigationDestination(for: AppRoute.self) { route in
-                switch route {
-                case .settings:
-                    SettingsView(path: $path)
-                case .licenses:
-                    LicenseView()
+                .navigationDestination(for: AppRoute.self) { route in
+                    switch route {
+                    case .settings:
+                        SettingsView(path: $path)
+                    case .licenses:
+                        LicenseView()
+                    }
                 }
             }
         }
-        .background(Color.clear)
         .onAppear {
             setNavigationTransparency()
         }
     }
     
-    // Forces the system NavigationBar to be transparent
     private func setNavigationTransparency() {
         let appearance = UINavigationBarAppearance()
         appearance.configureWithTransparentBackground()
@@ -72,6 +74,392 @@ struct StatusView: View {
         UINavigationBar.appearance().scrollEdgeAppearance = appearance
     }
 }
+
+// MARK: - Profile Header Section
+struct ProfileHeaderSection: View {
+    @ObservedObject var viewModel: StatusViewModel
+    @Binding var path: NavigationPath
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Background section with settings and greeting
+            VStack(spacing: 4) {
+                // Settings button in top-right
+                HStack {
+                    Spacer()
+                    Button(action: {
+                        path.append(AppRoute.settings)
+                    }) {
+                        Image("icon_setting")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 24, height: 24)
+                    }
+                    .padding(.trailing, 20)
+                }
+                .padding(.top, 16)
+                
+                // Greeting
+                Text("Hi \(viewModel.userProfile?.displayName ?? "NEO")!")
+                    .font(.system(size: 28, weight: .semibold))
+                    .foregroundColor(.white)
+                
+                Spacer()
+            }
+            .frame(height: 150)
+            .frame(maxWidth: .infinity)
+            .background(
+                LinearGradient(
+                    gradient: Gradient(colors: [
+                        Color.black,
+                        randomColor()
+                    ]),
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+            .ignoresSafeArea(edges: .horizontal)
+            
+            // Profile image
+            VStack(spacing: 0) {
+                if let profileImageName = viewModel.userProfile?.profileImageURL {
+                    Image(profileImageName)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 100, height: 100)
+                        .clipShape(Circle())
+                        .overlay(Circle().stroke(Color.white.opacity(0.3), lineWidth: 2))
+                } else {
+                    Circle()
+                        .fill(Color.white.opacity(0.1))
+                        .frame(width: 100, height: 100)
+                        .overlay(
+                            Image(systemName: "person.fill")
+                                .font(.system(size: 40))
+                                .foregroundColor(.white)
+                        )
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 20)
+            .padding(.top, -75)
+        }
+    }
+    
+    private func randomColor() -> Color {
+        let colors: [Color] = [
+            Color(red: 0.5, green: 0.85, blue: 0.85),
+            Color(red: 0.8, green: 0.4, blue: 0.6),
+            Color(red: 0.4, green: 0.7, blue: 0.9),
+            Color(red: 0.6, green: 0.5, blue: 0.8),
+            Color(red: 0.3, green: 0.8, blue: 0.6)
+        ]
+        return colors.randomElement() ?? Color(red: 0.5, green: 0.85, blue: 0.85)
+    }
+}
+
+// MARK: - Stats Cards Section
+struct StatsCardsSection: View {
+    @ObservedObject var viewModel: StatusViewModel
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            // Wins
+            StatsCard(
+                iconName: "icon_wins",
+                value: "\(viewModel.userStats?.totalProgramsCompleted ?? 0)"
+            )
+            
+            // Records
+            StatsCard(
+                iconName: "icon_records",
+                value: "\(viewModel.userStats?.totalDataPoints ?? 0)"
+            )
+            
+            // Streaks
+            StatsCard(
+                iconName: "icon_streaks",
+                value: "\(viewModel.userStats?.currentStreak ?? 0)"
+            )
+        }
+    }
+}
+
+struct StatsCard: View {
+    let iconName: String
+    let value: String
+    
+    var body: some View {
+        VStack(spacing: 12) {
+            Image(iconName)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 28, height: 28)
+            
+            Text(value)
+                .font(.system(size: 24, weight: .bold))
+                .foregroundColor(.white)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 16)
+        .background(Color.white.opacity(0.08))
+        .cornerRadius(12)
+    }
+}
+
+// MARK: - Achievements Section
+struct AchievementsSection: View {
+    let achievements: [Achievement]
+    @Binding var selectedIndex: Int
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Image(systemName: "star.square.fill")
+                    .font(.system(size: 20))
+                    .foregroundColor(Color(red: 0.8, green: 0.5, blue: 0.5))
+                
+                Text("Achievements")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(.white)
+                
+                Spacer()
+                
+                Text("\(selectedIndex + 1)/\(achievements.count)")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.gray)
+            }
+            .padding(.horizontal, 16)
+            
+            // Achievement carousel
+            VStack(spacing: 12) {
+                ZStack {
+                    // Achievement item
+                    if selectedIndex < achievements.count {
+                        let achievement = achievements[selectedIndex]
+                        
+                        VStack(spacing: 12) {
+                            // Preview image or gradient
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(
+                                        LinearGradient(
+                                            gradient: Gradient(colors: achievement.colorScheme.map { Color(hex: $0) }),
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                
+                                VStack(spacing: 8) {
+                                    Image(systemName: "cube.fill")
+                                        .font(.system(size: 40))
+                                        .foregroundColor(.white)
+                                    
+                                    Text("3D Model")
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundColor(.white.opacity(0.8))
+                                }
+                            }
+                            .frame(height: 140)
+                            
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(achievement.title)
+                                    .font(.system(size: 16, weight: .bold))
+                                    .foregroundColor(.white)
+                                
+                                Text(achievement.description)
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.gray)
+                                    .lineLimit(2)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .padding(12)
+                        .background(Color.white.opacity(0.06))
+                        .cornerRadius(12)
+                    }
+                }
+                
+                // Navigation dots
+                HStack(spacing: 8) {
+                    ForEach(0..<achievements.count, id: \.self) { index in
+                        Circle()
+                            .fill(index == selectedIndex ? Color.white : Color.white.opacity(0.3))
+                            .frame(width: 8, height: 8)
+                            .onTapGesture {
+                                withAnimation {
+                                    selectedIndex = index
+                                }
+                            }
+                    }
+                    Spacer()
+                }
+                .padding(.horizontal, 16)
+            }
+            
+            // Navigation buttons
+            HStack(spacing: 12) {
+                Button(action: {
+                    withAnimation {
+                        selectedIndex = max(0, selectedIndex - 1)
+                    }
+                }) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.white)
+                        .frame(width: 40, height: 40)
+                        .background(Color.white.opacity(0.1))
+                        .cornerRadius(8)
+                }
+                .disabled(selectedIndex == 0)
+                .opacity(selectedIndex == 0 ? 0.5 : 1.0)
+                
+                Spacer()
+                
+                Button(action: {
+                    withAnimation {
+                        selectedIndex = min(achievements.count - 1, selectedIndex + 1)
+                    }
+                }) {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.white)
+                        .frame(width: 40, height: 40)
+                        .background(Color.white.opacity(0.1))
+                        .cornerRadius(8)
+                }
+                .disabled(selectedIndex == achievements.count - 1)
+                .opacity(selectedIndex == achievements.count - 1 ? 0.5 : 1.0)
+            }
+            .padding(.horizontal, 16)
+        }
+    }
+}
+
+// MARK: - Values Section
+struct ValuesSection: View {
+    let valueAnalysis: ValueAnalysis
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Image(systemName: "chart.bar.fill")
+                    .font(.system(size: 20))
+                    .foregroundColor(Color(red: 0.5, green: 0.7, blue: 0.8))
+                
+                Text("Values")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(.white)
+                
+                Spacer()
+            }
+            
+            HStack(spacing: 20) {
+                // Left side: Bar chart
+                VStack(alignment: .leading, spacing: 12) {
+                    ForEach(valueAnalysis.topValues.prefix(3), id: \.id) { item in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(item.name)
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(.gray)
+                            
+                            HStack(spacing: 8) {
+                                ZStack(alignment: .leading) {
+                                    RoundedRectangle(cornerRadius: 4)
+                                        .fill(Color.white.opacity(0.1))
+                                    
+                                    RoundedRectangle(cornerRadius: 4)
+                                        .fill(getColorForValue(item.score))
+                                        .frame(width: CGFloat(item.score) * 80)
+                                }
+                                .frame(height: 8)
+                                
+                                Text(String(format: "%.0f%%", item.score * 100))
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundColor(.gray)
+                                    .frame(width: 30)
+                            }
+                        }
+                    }
+                }
+                .frame(maxWidth: 120, alignment: .leading)
+                
+                Spacer()
+                
+                // Right side: Radar chart
+                let radarDataItems = valueAnalysis.topValues.map { item in
+                    RadarChartDataItem(
+                        iconName: item.name.lowercased(),
+                        value: item.score,
+                        displayValue: String(format: "%.0f%%", item.score * 100)
+                    )
+                }
+                let radarDataSet = RadarChartDataSet(
+                    title: "Values",
+                    data: radarDataItems,
+                    dataColor: Color(red: 0.5, green: 0.7, blue: 0.8)
+                )
+                RadarChartView(dataSet: radarDataSet)
+                    .frame(width: 140, height: 140)
+            }
+            .padding(12)
+            .background(Color.white.opacity(0.06))
+            .cornerRadius(12)
+            
+            // Comparison info
+            if let comparison = valueAnalysis.comparisonData {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Compared to others")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.gray)
+                    
+                    HStack(spacing: 16) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Your Percentile")
+                                .font(.system(size: 11))
+                                .foregroundColor(.gray)
+                            
+                            Text(String(format: "%.1f%%", comparison.userPercentile))
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundColor(.white)
+                        }
+                        
+                        Divider()
+                            .foregroundColor(.white.opacity(0.2))
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Average Score")
+                                .font(.system(size: 11))
+                                .foregroundColor(.gray)
+                            
+                            Text(String(format: "%.2f", comparison.averageScore))
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundColor(.white)
+                        }
+                        
+                        Spacer()
+                    }
+                }
+                .padding(12)
+                .background(Color.white.opacity(0.04))
+                .cornerRadius(8)
+            }
+        }
+    }
+    
+    private func getColorForValue(_ value: Double) -> Color {
+        switch value {
+        case 0.8...:
+            return Color(red: 0.3, green: 0.8, blue: 0.6)
+        case 0.6...:
+            return Color(red: 0.8, green: 0.7, blue: 0.3)
+        default:
+            return Color(red: 0.8, green: 0.4, blue: 0.3)
+        }
+    }
+}
+
+// MARK: - Settings and License Views
 struct SettingsView: View {
     @Binding var path: NavigationPath
     
@@ -83,7 +471,7 @@ struct SettingsView: View {
                 }) {
                     Label("Open Source Licenses", systemImage: "text.book.closed.fill")
                 }
-                .listRowBackground(Color.white.opacity(0.05)) // Subtle row tint
+                .listRowBackground(Color.white.opacity(0.05))
             }
             
             Section(header: Text("Device Info").foregroundColor(.gray)) {
@@ -92,7 +480,7 @@ struct SettingsView: View {
             }
         }
         .navigationTitle("Settings")
-        .scrollContentBackground(.hidden) // Critical for transparency
+        .scrollContentBackground(.hidden)
         .background(Color.clear)
     }
 }
@@ -129,8 +517,22 @@ struct LicenseView: View {
             .listRowBackground(Color.white.opacity(0.05))
         }
         .navigationTitle("Licenses")
-        .scrollContentBackground(.hidden) // Critical for transparency
+        .scrollContentBackground(.hidden)
         .background(Color.clear)
+    }
+}
+
+// MARK: - Color Extension
+extension Color {
+    init(hex: String) {
+        let hex = hex.trimmingCharacters(in: CharacterSet(charactersIn: "#"))
+        let rgb = Int(hex, radix: 16) ?? 0
+        
+        let red = Double((rgb >> 16) & 0xFF) / 255.0
+        let green = Double((rgb >> 8) & 0xFF) / 255.0
+        let blue = Double(rgb & 0xFF) / 255.0
+        
+        self.init(red: red, green: green, blue: blue)
     }
 }
 
