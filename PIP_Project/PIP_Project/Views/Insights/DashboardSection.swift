@@ -1,4 +1,5 @@
 import SwiftUI
+import Foundation
 
 // MARK: - Dashboard Section
 /// Dashboard 섹션 - 3개 카테고리 (Mind, Behavior, Physical)를 가로 슬라이딩으로 표시
@@ -8,7 +9,6 @@ struct DashboardSection: View {
     @State private var selectedCategoryIndex = 0
     
     let categories = ["Mind", "Behavior", "Physical"]
-    let categoryIcons = ["title_logo_1", "title_logo_2", "title_logo_3"]
     
     // 각 카테고리별 데이터 매핑
     let categoryData: [String: [(icon: String, label: String)]] = [
@@ -46,7 +46,6 @@ struct DashboardSection: View {
     private var carouselView: some View {
         DashboardCarouselView(
             categories: categories,
-            categoryIcons: categoryIcons,
             categoryData: categoryData,
             selectedCategoryIndex: $selectedCategoryIndex,
             viewModel: viewModel
@@ -78,7 +77,6 @@ struct DashboardTitleView: View {
 // MARK: - Dashboard Carousel
 struct DashboardCarouselView: View {
     let categories: [String]
-    let categoryIcons: [String]
     let categoryData: [String: [(icon: String, label: String)]]
     @Binding var selectedCategoryIndex: Int
     let viewModel: InsightViewModel
@@ -92,7 +90,6 @@ struct DashboardCarouselView: View {
                 
                 DashboardCardView(
                     categories: categories,
-                    categoryIcons: categoryIcons,
                     categoryData: categoryData,
                     selectedCategoryIndex: $selectedCategoryIndex,
                     viewModel: viewModel
@@ -142,7 +139,6 @@ struct NavigationButton: View {
 // MARK: - Dashboard Card View
 struct DashboardCardView: View {
     let categories: [String]
-    let categoryIcons: [String]
     let categoryData: [String: [(icon: String, label: String)]]
     @Binding var selectedCategoryIndex: Int
     let viewModel: InsightViewModel
@@ -151,12 +147,10 @@ struct DashboardCardView: View {
         ZStack {
             if selectedCategoryIndex < categories.count {
                 let categoryName = categories[selectedCategoryIndex]
-                let categoryIcon = categoryIcons[selectedCategoryIndex]
                 let items = categoryData[categoryName] ?? []
                 
                 DashboardCategoryCard(
                     categoryName: categoryName,
-                    categoryIcon: categoryIcon,
                     items: items,
                     selectedCategoryIndex: $selectedCategoryIndex,
                     categories: categories,
@@ -171,7 +165,6 @@ struct DashboardCardView: View {
 // MARK: - Category Card
 struct DashboardCategoryCard: View {
     let categoryName: String
-    let categoryIcon: String
     let items: [(icon: String, label: String)]
     @Binding var selectedCategoryIndex: Int
     let categories: [String]
@@ -180,13 +173,14 @@ struct DashboardCategoryCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(spacing: 8) {
-                Image(categoryIcon)
+                Image(systemName: iconNameForCategory(categoryName))
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 24, height: 24)
+                    .frame(width: 20, height: 20)
+                    .foregroundColor(.white.opacity(0.8))
                 
                 Text(categoryName)
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.PIPFont.title2)
                     .foregroundColor(.white)
                 
                 Spacer()
@@ -222,6 +216,19 @@ struct DashboardCategoryCard: View {
     }
     
     // MARK: - Helper Functions
+    private func iconNameForCategory(_ category: String) -> String {
+        switch category {
+        case "Mind":
+            return "brain"
+        case "Behavior":
+            return "hand.raised"
+        case "Physical":
+            return "heart"
+        default:
+            return "circle"
+        }
+    }
+    
     private func neonColorForCategory(_ category: String) -> Color {
         switch category {
         case "Mind":

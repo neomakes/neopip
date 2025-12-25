@@ -33,8 +33,13 @@ class MockDataService: DataServiceProtocol {
     private let mockAnonymousUserId = UUID()
     
     private init() {
-        initializeDataTypeSchemas()
-        generateMockData()
+        if let savedCards = loadAnalysisCards() {
+            mockAnalysisCards = savedCards
+        } else {
+            initializeDataTypeSchemas()
+            generateMockData()
+            saveAnalysisCards()
+        }
     }
     
     // MARK: - Data Type Schema Initialization
@@ -1339,5 +1344,17 @@ class MockDataService: DataServiceProtocol {
                 createdAt: Date()
             )
         ]
+    }
+    
+    // MARK: - Persistence
+    private func loadAnalysisCards() -> [InsightAnalysisCard]? {
+        guard let data = UserDefaults.standard.data(forKey: "mockAnalysisCards") else { return nil }
+        return try? JSONDecoder().decode([InsightAnalysisCard].self, from: data)
+    }
+    
+    private func saveAnalysisCards() {
+        if let data = try? JSONEncoder().encode(mockAnalysisCards) {
+            UserDefaults.standard.set(data, forKey: "mockAnalysisCards")
+        }
     }
 }
