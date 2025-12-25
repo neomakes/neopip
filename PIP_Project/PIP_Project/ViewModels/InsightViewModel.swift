@@ -15,6 +15,7 @@ class InsightViewModel: ObservableObject {
     @Published var orbVisualization: OrbVisualization?
     @Published var predictions: [PredictionData] = []
     @Published var analysisCards: [InsightAnalysisCard] = []
+    @Published var dashboardData: [String: [DashboardItem]] = [:]
     @Published var isLoading = false
     @Published var errorMessage: String?
     
@@ -23,8 +24,8 @@ class InsightViewModel: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     
     // MARK: - Initialization
-    init(dataService: DataServiceProtocol = MockDataService.shared) {
-        self.dataService = dataService
+    init(dataService: DataServiceProtocol? = nil) {
+        self.dataService = dataService ?? MockDataService.shared
         loadInitialData()
     }
     
@@ -51,9 +52,24 @@ class InsightViewModel: ObservableObject {
                 case .failure(let error):
                     self?.errorMessage = error.localizedDescription
                 }
-                self?.isLoading = false
             } receiveValue: { [weak self] cards in
                 self?.analysisCards = cards
+            }
+            .store(in: &cancellables)
+        
+        // Dashboard Data 로드
+        dataService.fetchDashboardData()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] completion in
+                switch completion {
+                case .finished:
+                    self?.isLoading = false
+                case .failure(let error):
+                    self?.errorMessage = error.localizedDescription
+                    self?.isLoading = false
+                }
+            } receiveValue: { [weak self] data in
+                self?.dashboardData = data
             }
             .store(in: &cancellables)
     }

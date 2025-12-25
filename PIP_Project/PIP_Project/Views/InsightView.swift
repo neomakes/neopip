@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct InsightView: View {
-    @StateObject private var viewModel = InsightViewModel()
+    @ObservedObject var viewModel: InsightViewModel
     
     var body: some View {
         ZStack {
@@ -13,7 +13,7 @@ struct InsightView: View {
                     // MARK: - Orb Visualization Section
                     OrbVizSection(viewModel: viewModel)
                         .padding(.horizontal, 16)
-                        .padding(.bottom, 30)
+                        .padding(.bottom, 80)
                     
                     // MARK: - Dashboard Section
                     DashboardSection(viewModel: viewModel)
@@ -35,5 +35,5 @@ struct InsightView: View {
 }
 
 #Preview {
-    InsightView()
+    InsightView(viewModel: InsightViewModel())
 }

@@ -1,5 +1,4 @@
 import SwiftUI
-import Foundation
 
 // MARK: - Dashboard Section
 /// Dashboard 섹션 - 3개 카테고리 (Mind, Behavior, Physical)를 가로 슬라이딩으로 표시
@@ -10,27 +9,7 @@ struct DashboardSection: View {
     
     let categories = ["Mind", "Behavior", "Physical"]
     
-    // 각 카테고리별 데이터 매핑
-    let categoryData: [String: [(icon: String, label: String)]] = [
-        "Mind": [
-            (icon: "Icon_mood", label: "Mood"),
-            (icon: "Icon_stress", label: "Stress"),
-            (icon: "Icon_energy", label: "Energy"),
-            (icon: "Icon_focus", label: "Focus")
-        ],
-        "Behavior": [
-            (icon: "Icon_productivity", label: "Productivity"),
-            (icon: "Icon_social_activity", label: "Social"),
-            (icon: "Icon_digital_distraction", label: "Digital"),
-            (icon: "Icon_exploration", label: "Explore")
-        ],
-        "Physical": [
-            (icon: "Icon_sleep", label: "Sleep"),
-            (icon: "Icon_fatigue", label: "Fatigue"),
-            (icon: "Icon_activity", label: "Activity"),
-            (icon: "Icon_nutrition", label: "Nutrition")
-        ]
-    ]
+    // 각 카테고리별 데이터 매핑 - 이제 viewModel에서 로드
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -46,7 +25,6 @@ struct DashboardSection: View {
     private var carouselView: some View {
         DashboardCarouselView(
             categories: categories,
-            categoryData: categoryData,
             selectedCategoryIndex: $selectedCategoryIndex,
             viewModel: viewModel
         )
@@ -77,7 +55,6 @@ struct DashboardTitleView: View {
 // MARK: - Dashboard Carousel
 struct DashboardCarouselView: View {
     let categories: [String]
-    let categoryData: [String: [(icon: String, label: String)]]
     @Binding var selectedCategoryIndex: Int
     let viewModel: InsightViewModel
     
@@ -90,7 +67,6 @@ struct DashboardCarouselView: View {
                 
                 DashboardCardView(
                     categories: categories,
-                    categoryData: categoryData,
                     selectedCategoryIndex: $selectedCategoryIndex,
                     viewModel: viewModel
                 )
@@ -139,7 +115,6 @@ struct NavigationButton: View {
 // MARK: - Dashboard Card View
 struct DashboardCardView: View {
     let categories: [String]
-    let categoryData: [String: [(icon: String, label: String)]]
     @Binding var selectedCategoryIndex: Int
     let viewModel: InsightViewModel
     
@@ -147,7 +122,7 @@ struct DashboardCardView: View {
         ZStack {
             if selectedCategoryIndex < categories.count {
                 let categoryName = categories[selectedCategoryIndex]
-                let items = categoryData[categoryName] ?? []
+                let items = viewModel.dashboardData[categoryName.lowercased()] ?? []
                 
                 DashboardCategoryCard(
                     categoryName: categoryName,
@@ -165,7 +140,7 @@ struct DashboardCardView: View {
 // MARK: - Category Card
 struct DashboardCategoryCard: View {
     let categoryName: String
-    let items: [(icon: String, label: String)]
+    let items: [DashboardItem]
     @Binding var selectedCategoryIndex: Int
     let categories: [String]
     let viewModel: InsightViewModel
@@ -245,7 +220,7 @@ struct DashboardCategoryCard: View {
 
 // MARK: - Grid View
 struct DashboardGridView: View {
-    let items: [(icon: String, label: String)]
+    let items: [DashboardItem]
     let viewModel: InsightViewModel
     
     var body: some View {
@@ -255,12 +230,13 @@ struct DashboardGridView: View {
                     ForEach(Array(0..<2), id: \.self) { col in
                         let index = row * 2 + col
                         if index < items.count {
+                            let item = items[index]
                             DashboardItemCard(
-                                icon: items[index].icon,
-                                label: items[index].label,
-                                score: Double.random(in: 40...100),
-                                percentage: Bool.random() ? Double.random(in: 1...10) : -Double.random(in: 1...10),
-                                uncertainty: Double.random(in: 0...100)
+                                icon: item.icon,
+                                label: item.label,
+                                score: item.score,
+                                percentage: item.percentage,
+                                uncertainty: item.uncertainty
                             )
                         }
                     }
@@ -303,8 +279,8 @@ struct DashboardItemCard: View {
     
     var body: some View {
         HStack(spacing: 8) {
-            // 아이콘
-            Image(icon)
+            // 아이콘 (tolerant asset lookup)
+            Image(assetOrFallback: icon)
                 .resizable()
                 .scaledToFit()
                 .frame(width: 32, height: 32)

@@ -1,0 +1,63 @@
+{
+  "id": "BF336B37-A4CC-498B-AE9B-97709318953A",
+  "insightId": "00000000-0000-0000-0000-000000000005",
+  "anonymousUserId": "00000000-0000-0000-0000-000000000001",
+  "title": "Future Health Prediction",
+  "subtitle": "Your health is projected to reach 85+ within 3 months",
+  "cardType": "prediction",
+  "pages": [
+    {
+      "id": "55555555-5555-5555-5555-555555555501",
+      "pageNumber": 1,
+      "contentType": "text",
+      "content": {
+        "text": "3-Month Health Projection\n\nIf you maintain current positive trends, your health score will reach 82 in 4 weeks, 85 in 8 weeks, and 88 by week 12.",
+        "headline": "Your Health Future",
+        "body": "Positive news: your current trajectory is sustainable and promising. If you maintain your recent improvements in exercise and nutrition, your health score will steadily climb to 88 within 3 months.",
+        "mantra": "The best time to start is now"
+      },
+      "visualizations": null
+    },
+    {
+      "id": "55555555-5555-5555-5555-555555555502",
+      "pageNumber": 2,
+      "contentType": "text",
+      "content": {
+        "text": "Month-by-Month Breakdown\n\nMonth 1: 72 → 78 (Sleep & Exercise improvements)\nMonth 2: 78 → 83 (Consolidated habits)\nMonth 3: 83 → 88 (Full transformation)",
+        "headline": "Health Projection Timeline",
+        "body": "Month 1 focuses on establishing sleep and exercise routines (72→78). Month 2 consolidates these habits while improving nutrition (78→83). Month 3 completes the transformation as all factors optimize (83→88).",
+        "mantra": null
+      },
+      "visualizations": null
+    },
+    {
+      "id": "55555555-5555-5555-5555-555555555503",
+      "pageNumber": 3,
+      "contentType": "text",
+      "content": {
+        "text": "Success Factors\n\n1. Consistency: 85% adherence needed\n2. Progression: Gradual increases in intensity\n3. Recovery: 1 rest day per week",
+        "headline": "Keys to Success",
+        "body": "Reaching 88 requires 85% adherence to your plan, gradual intensity increases (not sudden jumps), and adequate recovery with at least 1 rest day weekly. This balanced approach ensures both gains and sustainability.",
+        "mantra": null
+      },
+      "visualizations": null
+    },
+    {
+      "id": "55555555-5555-5555-5555-555555555504",
+      "pageNumber": 4,
+      "contentType": "text",
+      "content": {
+        "text": "Beyond 3 Months\n\nBy maintaining these habits, your health score can reach 90+ and stay there. This creates a foundation for lifelong wellness.",
+        "headline": "Long-term Vision",
+        "body": "The habits you build in these 3 months become your foundation. Reaching 90+ health and maintaining it opens doors to sustained energy, better mood, stronger immunity, and increased longevity.",
+        "mantra": "Great health is a lifelong investment"
+      },
+      "visualizations": null
+    }
+  ],
+  "actionProposals": [],
+  "isLiked": false,
+  "likedAt": null,
+  "acceptedActions": [],
+  "createdAt": "2025-12-25T00:00:00Z"
+}

@@ -28,9 +28,38 @@ class HomeViewModel: ObservableObject {
         self.dataService = dataService ?? MockDataService.shared
         self.userName = "Neo"  // Mock 사용자명 (실제로는 Firebase Auth에서 가져옴)
         loadInitialData()
+        
+        // 매일 자정에 데이터 새로고침 (Streak 업데이트를 위함)
+        setupDailyRefresh()
     }
     
     // MARK: - Public Methods
+    
+    /// 자정마다 데이터 새로고침 설정
+    private func setupDailyRefresh() {
+        let calendar = Calendar.current
+        var components = calendar.dateComponents([.year, .month, .day], from: Date())
+        components.hour = 0
+        components.minute = 0
+        components.second = 1
+        
+        guard let midnightToday = calendar.date(from: components),
+              let midnightTomorrow = calendar.date(byAdding: .day, value: 1, to: midnightToday) else {
+            return
+        }
+        
+        let timeUntilMidnight = midnightTomorrow.timeIntervalSince(Date())
+        
+        // 자정 시점에 첫 번째 새로고침 실행
+        DispatchQueue.main.asyncAfter(deadline: .now() + timeUntilMidnight) { [weak self] in
+            self?.loadInitialData()
+            
+            // 이후 매일 자정마다 새로고침 (24시간 간격)
+            Timer.scheduledTimer(withTimeInterval: 86400, repeats: true) { [weak self] _ in
+                self?.loadInitialData()
+            }
+        }
+    }
     
     /// 초기 데이터 로드 (최근 30일)
     func loadInitialData() {
@@ -266,6 +295,27 @@ class HomeViewModel: ObservableObject {
                 }
             )
             .store(in: &self.cancellables)
+    }
+
+    /// 현재 스트릭 계산 (연속된 완성된 날짜 수, 반드시 오늘부터 시작)
+    var currentStreak: Int {
+        // 오늘이 완성되지 않으면 스트릭은 0
+        guard !last7Days.isEmpty else { return 0 }
+        
+        // last7Days는 6일전부터 오늘 순서로 정렬되어 있으므로, 마지막 요소가 오늘
+        let today = last7Days.last
+        guard today?.isCompleted == true else { return 0 }
+        
+        // 오늘부터 과거로 거슬러 올라가며 연속된 완성 기록 세기
+        var streak = 0
+        for gem in last7Days.reversed() { // 오늘부터 과거로
+            if gem.isCompleted {
+                streak += 1
+            } else {
+                break // 연속이 끊기면 중단
+            }
+        }
+        return streak
     }
 
 }

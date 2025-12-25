@@ -7,27 +7,37 @@
 
 import Foundation
 import Combine
+import UIKit
 
 /// MockData service for UI verification before Firebase integration
-@MainActor
 class MockDataService: DataServiceProtocol {
+    @MainActor
     static let shared = MockDataService()
     
     // MARK: - File Management
     private let fileManager = FileManager.default
-    private lazy var mockDataDirectory: URL = {
-        // 프로젝트 루트의 MockData 폴더 사용
-        let projectRoot = URL(fileURLWithPath: #file)
-            .deletingLastPathComponent() // Services
-            .deletingLastPathComponent() // PIP_Project
-            .deletingLastPathComponent() // PIP_Project
-        return projectRoot.appendingPathComponent("MockData")
-    }()
+    
+    /// 앱의 Documents 디렉토리 내 MockData 폴더 경로
+    /// Bundle의 MockData는 읽기 전용이므로, 런타임 데이터 저장용으로 Documents 사용
+    private var mockDataDirectory: URL {
+        if let documentsDir = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first {
+            let mockDataDir = documentsDir.appendingPathComponent("MockData")
+            // 폴더가 없으면 생성
+            try? fileManager.createDirectory(at: mockDataDir, withIntermediateDirectories: true)
+            return mockDataDir
+        }
+        
+        return FileManager.default.temporaryDirectory
+    }
+
+
     
     // MARK: - JSON File Names (Subdirectory Structure)
     private enum FileName {
         // Insight 페이지 데이터
         static let analysisCards = "Insight/analysisCards.json"
+        static let dashboardData = "Insight/dashboardData.json"
+        static let orbVisualization = "Insight/orbVisualization.json"
         
         // Home 페이지 데이터
         static let dailyGems = "Home/dailyGems.json"
@@ -69,6 +79,8 @@ class MockDataService: DataServiceProtocol {
     private var mockAchievements: [Achievement] = []
     private var mockValueAnalysis: ValueAnalysis?
     private var mockAnalysisCards: [InsightAnalysisCard] = []
+    private var mockDashboardData: [String: [DashboardItem]] = [:]
+    private var mockOrbVisualization: OrbVisualization?
     
     // MARK: - Data Type Schema Registry
     /// Dynamic data type definition registry
@@ -81,6 +93,7 @@ class MockDataService: DataServiceProtocol {
     
     private init() {
         setupDataDirectory()
+        copyInsightStoryJSONFilesIfNeeded()
         loadAllData()
     }
     
@@ -90,6 +103,127 @@ class MockDataService: DataServiceProtocol {
             try fileManager.createDirectory(at: mockDataDirectory, withIntermediateDirectories: true, attributes: nil)
         } catch {
             print("Failed to create mock data directory: \(error)")
+        }
+    }
+    
+    /// InsightStory JSON 파일들을 앱의 Documents 디렉토리로 복사하고 형식 검증/자동 수정
+    private func copyInsightStoryJSONFilesIfNeeded() {
+        let cardIds = [
+            "332A2000-CCC0-4B01-8B02-0B3EBA7152A0",
+            "492AED2A-7C96-439A-B6F3-B9C3F9E3A843",
+            "8C525668-20D7-4499-A4AC-7942B07996F9",
+            "EE2BF404-8BF7-4950-A5AE-97FB23972728",
+            "BF336B37-A4CC-498B-AE9B-97709318953A",
+            "14854C55-B2B4-481D-AF40-3E6B3886F111",
+            "1B3788C6-D81B-4813-BF15-A2BF53D58C36"
+        ]
+        
+        // 분석 카드 폴더 생성
+        let analysisFolderURL = mockDataDirectory.appendingPathComponent("Insight/analysis")
+        try? fileManager.createDirectory(at: analysisFolderURL, withIntermediateDirectories: true)
+        
+        print("📁 MockData Directory: \(mockDataDirectory.path)")
+        
+        for cardId in cardIds {
+            let destinationPath = analysisFolderURL.appendingPathComponent("\(cardId).json")
+            
+            // 이미 유효한 형식으로 존재하면 스킵
+            if fileManager.fileExists(atPath: destinationPath.path) {
+                // 형식 검증
+                if validateInsightStoryJSON(at: destinationPath) {
+                    print("✅ Already valid: \(cardId).json")
+                    continue
+                }
+                // 형식이 잘못되었으면 재생성
+            }
+            
+            // Bundle에서 원본 JSON 파일 찾기
+            if let bundleUrl = Bundle.main.url(forResource: cardId, withExtension: "json") {
+                do {
+                    // 원본 파일 로드
+                    let bundleData = try Data(contentsOf: bundleUrl)
+                    
+                    // 원본 형식 파싱 시도
+                    if let correctedData = convertToInsightStoryFormat(bundleData, cardId: cardId) {
+                        // 변환된 데이터 저장
+                        try correctedData.write(to: destinationPath, options: .atomic)
+                        print("✅ Saved \(cardId).json to: \(destinationPath.path)")
+                    } else {
+                        print("⚠️ Could not convert \(cardId).json to InsightStory format")
+                    }
+                } catch {
+                    print("⚠️ Failed to process \(cardId).json: \(error)")
+                }
+            }
+        }
+    }
+    
+    /// JSON이 유효한 InsightStory 형식인지 검증
+    private func validateInsightStoryJSON(at url: URL) -> Bool {
+        do {
+            let data = try Data(contentsOf: url)
+            let _ = try jsonDecoder.decode(InsightStory.self, from: data)
+            return true
+        } catch {
+            return false
+        }
+    }
+    
+    /// 원본 JSON 형식을 InsightStory 형식으로 변환
+    private func convertToInsightStoryFormat(_ data: Data, cardId: String) -> Data? {
+        do {
+            // 먼저 Dictionary로 파싱
+            guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                return nil
+            }
+            
+            // InsightStory 형식으로 변환
+            let id = (json["id"] as? String) ?? cardId
+            let title = (json["title"] as? String) ?? "Untitled Story"
+            let subtitle = (json["subtitle"] as? String) ?? ""
+            let isLiked = (json["isLiked"] as? Bool) ?? false
+            
+            // pages 배열 처리
+            var pages: [[String: Any]] = []
+            if let rawPages = json["pages"] as? [[String: Any]] {
+                pages = rawPages.map { page in
+                    var processedPage = page
+                    // pageNumber가 없으면 인덱스 기반으로 생성
+                    if processedPage["pageNumber"] == nil, let index = rawPages.firstIndex(where: { $0["pageNumber"] as? Int ?? -1 == page["pageNumber"] as? Int ?? -1 }) {
+                        processedPage["pageNumber"] = index + 1
+                    }
+                    return processedPage
+                }
+                // pageNumber 순서로 정렬
+                pages.sort { 
+                    let p1 = ($0["pageNumber"] as? Int) ?? 0
+                    let p2 = ($1["pageNumber"] as? Int) ?? 0
+                    return p1 < p2
+                }
+            }
+            
+            // 새로운 InsightStory 형식의 Dictionary 구성
+            let correctedStory: [String: Any] = [
+                "id": id,
+                "title": title,
+                "subtitle": subtitle,
+                "pages": pages,
+                "isLiked": isLiked
+            ]
+            
+            // 다시 JSON 데이터로 인코딩
+            let correctedData = try JSONSerialization.data(withJSONObject: correctedStory, options: [.prettyPrinted, .sortedKeys])
+            
+            // 최종 검증
+            if let _ = try? jsonDecoder.decode(InsightStory.self, from: correctedData) {
+                print("✅ Successfully converted \(cardId) to InsightStory format")
+                return correctedData
+            }
+            
+            return nil
+        } catch {
+            print("⚠️ Conversion error for \(cardId): \(error)")
+            return nil
         }
     }
     
@@ -120,17 +254,100 @@ class MockDataService: DataServiceProtocol {
         }
     }
     
-    private func loadJSON<T: Decodable>(_ type: T.Type, from fileName: String) -> T? {
-        let fileURL = fileURL(for: fileName)
+    private func loadJSON<T: Decodable>(_ type: T.Type, from fileName: String, isSilent: Bool = false) -> T? {
+        // 파일명만 추출 (예: "332A2000-CCC0-4B01-8B02-0B3EBA7152A0.json")
+        let components = fileName.split(separator: "/")
+        let resourceName = String(components.last?.split(separator: ".").first ?? "")
+        let resourceExtension = String(components.last?.split(separator: ".").last ?? "json")
+        
+        if !isSilent {
+            print("📂 Trying to load from Bundle: \(resourceName).\(resourceExtension)")
+        }
+        
+        // Bundle root에서 직접 찾기
+        if let bundleUrl = Bundle.main.url(forResource: resourceName, withExtension: resourceExtension) {
+            do {
+                let data = try Data(contentsOf: bundleUrl)
+                let object = try jsonDecoder.decode(type, from: data)
+                if !isSilent {
+                    print("✅ Loaded \(fileName) from Bundle root: \(bundleUrl.path)")
+                }
+                return object
+            } catch {
+                if !isSilent {
+                    print("⚠️ Failed to decode from Bundle: \(error.localizedDescription)")
+                }
+                return nil
+            }
+        }
+        
+        if !isSilent {
+            print("⚠️ File not found in Bundle: \(resourceName).\(resourceExtension)")
+        }
+        
+        // 2차 시도: mockDataDirectory 경로에서 로드 (Legacy support)
+        let filePath = mockDataDirectory.appendingPathComponent(fileName)
+        
         do {
-            let data = try Data(contentsOf: fileURL)
+            let data = try Data(contentsOf: filePath)
             let object = try jsonDecoder.decode(type, from: data)
-            print("✅ Loaded \(fileName)")
+            if !isSilent {
+                print("✅ Loaded \(fileName) from mockDataDirectory: \(filePath.path)")
+            }
             return object
         } catch {
-            print("❌ Failed to load \(fileName): \(error)")
-            return nil
+            if !isSilent {
+                print("⚠️ Failed to load from mockDataDirectory: \(error.localizedDescription)")
+            }
         }
+        
+        if !isSilent {
+            print("❌ Failed to load \(fileName) from any source")
+        }
+        return nil
+    }
+    
+    /// InsightStory JSON 파일을 특별 처리하는 함수
+    private func loadInsightStoryJSON(_ cardId: String) -> InsightStory? {
+        // 우선 Bundle 리소스에서 찾기 (MockData/Insight/analysis 서브디렉토리)
+        if let bundleUrl = Bundle.main.url(forResource: cardId, withExtension: "json", subdirectory: "MockData/Insight/analysis") {
+            do {
+                let data = try Data(contentsOf: bundleUrl)
+                let story = try jsonDecoder.decode(InsightStory.self, from: data)
+                print("✅ Loaded InsightStory from Bundle: \(bundleUrl.path)")
+                return story
+            } catch {
+                print("⚠️ Failed to decode from Bundle: \(bundleUrl.path) - \(error.localizedDescription)")
+            }
+        } else {
+            print("⚠️ InsightStory JSON not found in Bundle at: MockData/Insight/analysis/\(cardId).json")
+        }
+        
+        // Fallback 1: Bundle root에서 찾기
+        if let bundleUrl = Bundle.main.url(forResource: cardId, withExtension: "json") {
+            do {
+                let data = try Data(contentsOf: bundleUrl)
+                let story = try jsonDecoder.decode(InsightStory.self, from: data)
+                print("✅ Loaded InsightStory from Bundle root: \(bundleUrl.path)")
+                return story
+            } catch {
+                print("⚠️ Failed to decode from Bundle root: \(bundleUrl.path) - \(error.localizedDescription)")
+            }
+        }
+        
+        // Fallback 2: Documents 디렉토리에서 찾기
+        let fileName = "\(cardId).json"
+        let documentsPath = mockDataDirectory.appendingPathComponent("Insight/analysis/\(fileName)").path
+        do {
+            let data = try Data(contentsOf: URL(fileURLWithPath: documentsPath))
+            let story = try jsonDecoder.decode(InsightStory.self, from: data)
+            print("✅ Loaded InsightStory from Documents: \(documentsPath)")
+            return story
+        } catch {
+            print("⚠️ Failed to load from Documents: \(documentsPath) - \(error.localizedDescription)")
+        }
+        
+        return nil
     }
     
     private func loadAllData() {
@@ -142,8 +359,30 @@ class MockDataService: DataServiceProtocol {
             saveJSON(dataTypeSchemas, to: FileName.dataTypeSchemas)
         }
         
-        // Load mock data
-        mockAnalysisCards = loadJSON([InsightAnalysisCard].self, from: FileName.analysisCards) ?? []
+        // Load individual analysis card JSON files
+        mockAnalysisCards = loadAnalysisCardsFromIndividualFiles()
+        
+        // If no cards loaded, create default mock cards as fallback
+        if mockAnalysisCards.isEmpty {
+            print("⚠️ No analysis cards found in files, creating default mock cards...")
+            mockAnalysisCards = createDefaultMockAnalysisCards()
+            print("✅ Created \(mockAnalysisCards.count) default mock analysis cards")
+        } else {
+            print("✅ Loaded \(mockAnalysisCards.count) analysis cards")
+        }
+        
+        mockDashboardData = loadJSON([String: [DashboardItem]].self, from: FileName.dashboardData) ?? createMockDashboardData()
+
+        // Normalize dashboard icons so runtime asset lookups are consistent
+        for (category, items) in mockDashboardData {
+            mockDashboardData[category] = items.map { item in
+                var copy = item
+                copy.icon = normalizeAssetName(copy.icon)
+                return copy
+            }
+        }
+
+        mockOrbVisualization = loadJSON(OrbVisualization.self, from: FileName.orbVisualization, isSilent: true)
         mockUserStats = loadJSON(UserStats.self, from: FileName.userStats)
         mockUserProfile = loadJSON(UserProfile.self, from: FileName.userProfile)
         mockAchievements = loadJSON([Achievement].self, from: FileName.achievements) ?? []
@@ -152,8 +391,8 @@ class MockDataService: DataServiceProtocol {
         mockDataPoints = loadJSON([TimeSeriesDataPoint].self, from: FileName.timeSeriesData) ?? []
         mockDailyStats = loadJSON([DailyStats].self, from: FileName.dailyStats) ?? []
         
-        // Generate missing data
-        if mockAnalysisCards.isEmpty || mockUserStats == nil || mockUserProfile == nil {
+        // Generate missing data (only if essential data is missing)
+        if mockUserStats == nil || mockUserProfile == nil {
             generateMockData()
             saveAllData()
         }
@@ -161,6 +400,7 @@ class MockDataService: DataServiceProtocol {
     
     private func saveAllData() {
         saveJSON(mockAnalysisCards, to: FileName.analysisCards)
+        saveJSON(mockDashboardData, to: FileName.dashboardData)
         if let stats = mockUserStats { saveJSON(stats, to: FileName.userStats) }
         if let profile = mockUserProfile { saveJSON(profile, to: FileName.userProfile) }
         saveJSON(mockAchievements, to: FileName.achievements)
@@ -546,8 +786,7 @@ class MockDataService: DataServiceProtocol {
         // ValueAnalysis 생성
         mockValueAnalysis = createMockValueAnalysis()
         
-        // AnalysisCards 생성
-        mockAnalysisCards = createMockAnalysisCards()
+        // Note: AnalysisCards는 JSON 파일에서만 로드됨 (generateMockData에서 생성하지 않음)
     }
     
     // MARK: - Helper Methods
@@ -953,11 +1192,293 @@ class MockDataService: DataServiceProtocol {
         saveJSON(mockDataPoints, to: FileName.timeSeriesData)
     }
     
+    // MARK: - Load Analysis Cards from Individual JSON Files
+    private func loadAnalysisCardsFromIndividualFiles() -> [InsightAnalysisCard] {
+        let cardIds = [
+            "332A2000-CCC0-4B01-8B02-0B3EBA7152A0",
+            "492AED2A-7C96-439A-B6F3-B9C3F9E3A843",
+            "8C525668-20D7-4499-A4AC-7942B07996F9",
+            "EE2BF404-8BF7-4950-A5AE-97FB23972728",
+            "BF336B37-A4CC-498B-AE9B-97709318953A",
+            "14854C55-B2B4-481D-AF40-3E6B3886F111",
+            "1B3788C6-D81B-4813-BF15-A2BF53D58C36"
+        ]
+        
+        var cards: [InsightAnalysisCard] = []
+        
+        for cardId in cardIds {
+            var loaded = false
+            
+            // 방법 1: Bundle에서 MockData/Insight/analysis 서브디렉토리에서 찾기
+            if let bundleUrl = Bundle.main.url(forResource: cardId, withExtension: "json", subdirectory: "MockData/Insight/analysis") {
+                if let card = loadCardFromUrl(bundleUrl, cardId: cardId) {
+                    cards.append(card)
+                    loaded = true
+                }
+            }
+            
+            // 방법 2: 실패하면 Bundle root에서 찾기
+            if !loaded, let bundleUrl = Bundle.main.url(forResource: cardId, withExtension: "json") {
+                if let card = loadCardFromUrl(bundleUrl, cardId: cardId) {
+                    cards.append(card)
+                    loaded = true
+                }
+            }
+            
+            // 방법 3: 실패하면 Documents 디렉토리에서 찾기 (런타임 캐시)
+            if !loaded {
+                let docPath = mockDataDirectory.appendingPathComponent("Insight/analysis/\(cardId).json")
+                if fileManager.fileExists(atPath: docPath.path) {
+                    if let card = loadCardFromUrl(docPath, cardId: cardId) {
+                        cards.append(card)
+                        loaded = true
+                    }
+                }
+            }
+            
+            if !loaded {
+                print("⚠️ Card file not found: \(cardId).json")
+            }
+        }
+        
+        print("📊 Successfully loaded \(cards.count) / \(cardIds.count) analysis cards")
+        return cards
+    }
+    
+    private func loadCardFromUrl(_ url: URL, cardId: String) -> InsightAnalysisCard? {
+        do {
+            let data = try Data(contentsOf: url)
+            let card = try jsonDecoder.decode(InsightAnalysisCard.self, from: data)
+            print("✅ Loaded card: \(card.title)")
+            return card
+        } catch {
+            print("⚠️ Failed to load card \(cardId) from \(url.path): \(error.localizedDescription)")
+            return nil
+        }
+    }
+    
+    private func createDefaultMockAnalysisCards() -> [InsightAnalysisCard] {
+        let cardData = [
+            (id: "332A2000-CCC0-4B01-8B02-0B3EBA7152A0", title: "Weekly Mood Pattern Analysis", subtitle: "Your mood patterns over the past week", type: AnalysisCardType.explanation),
+            (id: "492AED2A-7C96-439A-B6F3-B9C3F9E3A843", title: "Behavior Pattern Prediction", subtitle: "Your behavior is projected to improve", type: AnalysisCardType.prediction),
+            (id: "8C525668-20D7-4499-A4AC-7942B07996F9", title: "Stress Management Strategies", subtitle: "Your stress level is higher than optimal", type: AnalysisCardType.control),
+            (id: "EE2BF404-8BF7-4950-A5AE-97FB23972728", title: "Physical Health Control", subtitle: "Take control of your physical health", type: AnalysisCardType.control),
+            (id: "BF336B37-A4CC-498B-AE9B-97709318953A", title: "Future Health Prediction", subtitle: "Your health is projected to reach 85+", type: AnalysisCardType.prediction),
+            (id: "14854C55-B2B4-481D-AF40-3E6B3886F111", title: "Weekly Activity Summary", subtitle: "You completed 85% of your goals", type: AnalysisCardType.explanation),
+            (id: "1B3788C6-D81B-4813-BF15-A2BF53D58C36", title: "Correlation Between Mood and Sleep", subtitle: "When you sleep well, mood improves", type: AnalysisCardType.correlation)
+        ]
+        
+        return cardData.map { data in
+            let pages = (1...4).map { pageNum in
+                AnalysisCardPage(
+                    id: UUID(),
+                    pageNumber: pageNum,
+                    contentType: .text,
+                    content: PageContent(
+                        text: "Page \(pageNum) of \(data.title)",
+                        headline: "\(data.title) - Page \(pageNum)",
+                        body: "Content for page \(pageNum). This is a default mock card because JSON files weren't found. Please add the actual JSON files to the project.",
+                        mantra: "Data-driven insights"
+                    ),
+                    visualizations: nil
+                )
+            }
+            
+            return InsightAnalysisCard(
+                id: UUID(uuidString: data.id) ?? UUID(),
+                insightId: UUID(),
+                anonymousUserId: UUID(),
+                title: data.title,
+                subtitle: data.subtitle,
+                cardType: data.type,
+                pages: pages,
+                actionProposals: [],
+                isLiked: false,
+                likedAt: nil,
+                acceptedActions: [],
+                createdAt: Date()
+            )
+        }
+    }
+    
+    // MARK: - Generate Analysis Cards from InsightStories
+    private func generateAnalysisCardsFromInsightStories() -> [InsightAnalysisCard] {
+        let cardIds = [
+            "332A2000-CCC0-4B01-8B02-0B3EBA7152A0",
+            "492AED2A-7C96-439A-B6F3-B9C3F9E3A843",
+            "8C525668-20D7-4499-A4AC-7942B07996F9",
+            "EE2BF404-8BF7-4950-A5AE-97FB23972728",
+            "BF336B37-A4CC-498B-AE9B-97709318953A",
+            "14854C55-B2B4-481D-AF40-3E6B3886F111",
+            "1B3788C6-D81B-4813-BF15-A2BF53D58C36"
+        ]
+        
+        var cards: [InsightAnalysisCard] = []
+        let cardTypes: [AnalysisCardType] = [.explanation, .prediction, .control, .correlation, .prediction, .explanation, .correlation]
+        
+        for (index, cardId) in cardIds.enumerated() {
+            // Load InsightStory from JSON to extract metadata and pages
+            if let story = loadInsightStoryJSON(cardId) {
+                let cardType = cardTypes[index % cardTypes.count]
+                
+                // StoryPage를 AnalysisCardPage로 변환
+                let analysisPages: [AnalysisCardPage] = story.pages.map { storyPage in
+                    // StoryPage의 내용을 PageContent로 변환
+                    let pageContent = PageContent(
+                        text: "\(storyPage.headline)\n\n\(storyPage.body)",
+                        headline: storyPage.headline,
+                        body: storyPage.body,
+                        mantra: nil
+                    )
+                    
+                    return AnalysisCardPage(
+                        id: storyPage.id,
+                        pageNumber: storyPage.pageNumber,
+                        contentType: .text,
+                        content: pageContent,
+                        visualizations: nil
+                    )
+                }
+                
+                // Create InsightAnalysisCard from InsightStory with full pages
+                let card = InsightAnalysisCard(
+                    id: UUID(uuidString: cardId) ?? UUID(),
+                    insightId: UUID(),
+                    anonymousUserId: UUID(),
+                    title: story.title,
+                    subtitle: story.subtitle,
+                    cardType: cardType,
+                    pages: analysisPages, // 4개 페이지 모두 포함
+                    actionProposals: [],
+                    isLiked: story.isLiked,
+                    likedAt: nil,
+                    acceptedActions: [],
+                    createdAt: Date()
+                )
+                cards.append(card)
+                print("✅ Card \(cardId): title='\(story.title)', pages=\(analysisPages.count)")
+            }
+        }
+        
+        print("✅ Generated \(cards.count) analysis cards with full pages from InsightStory files")
+        return cards
+    }
+    
+    // MARK: - Insight Story
+    func fetchInsightStory(for cardId: String) -> AnyPublisher<InsightStory, Error> {
+        // mockAnalysisCards에서 cardId로 찾기 (메모리에 로드된 데이터)
+        if let card = mockAnalysisCards.first(where: { $0.id.uuidString == cardId }) {
+            // AnalysisCardPage를 StoryPage로 변환
+            let storyPages: [StoryPage] = card.pages.map { analysisPage in
+                StoryPage(
+                    pageNumber: analysisPage.pageNumber,
+                    headline: analysisPage.content.headline ?? "",
+                    body: analysisPage.content.body ?? "",
+                    imageName: ""
+                )
+            }
+            
+            let story = InsightStory(
+                id: cardId,
+                title: card.title,
+                subtitle: card.subtitle ?? "",
+                pages: storyPages,
+                isLiked: card.isLiked
+            )
+            
+            print("✅ [fetchInsightStory] Loaded from mockAnalysisCards: \(card.title), pages=\(storyPages.count)")
+            return Just(story)
+                .setFailureType(to: Error.self)
+                .eraseToAnyPublisher()
+        }
+        
+        // 실패 처리
+        print("❌ [fetchInsightStory] Failed: cardId \(cardId) not found in mockAnalysisCards")
+        let errorMsg = "InsightStory not found for cardId: \(cardId)"
+        
+        return Fail(error: NSError(domain: "MockDataService", code: 404, userInfo: [NSLocalizedDescriptionKey: errorMsg]))
+            .eraseToAnyPublisher()
+    }
+
     // MARK: - Analysis Cards
     func fetchAnalysisCards() -> AnyPublisher<[InsightAnalysisCard], Error> {
         return Just(mockAnalysisCards)
             .setFailureType(to: Error.self)
             .eraseToAnyPublisher()
+    }
+    
+    // MARK: - Dashboard Data
+    func fetchDashboardData() -> AnyPublisher<[String: [DashboardItem]], Error> {
+        return Just(mockDashboardData)
+            .setFailureType(to: Error.self)
+            .eraseToAnyPublisher()
+    }
+    
+    // MARK: - Orb Visualization
+    func fetchOrbVisualization() -> AnyPublisher<OrbVisualization?, Error> {
+        return Just(mockOrbVisualization)
+            .setFailureType(to: Error.self)
+            .eraseToAnyPublisher()
+    }
+    
+    private func createMockDashboardData() -> [String: [DashboardItem]] {
+        return [
+            "mind": [
+                DashboardItem(icon: "Icon_mood", label: "Mood", score: 72.5, percentage: 5.2, uncertainty: 12.3),
+                DashboardItem(icon: "Icon_stress", label: "Stress", score: 45.8, percentage: -8.1, uncertainty: 18.7),
+                DashboardItem(icon: "Icon_energy", label: "Energy", score: 68.3, percentage: 12.4, uncertainty: 9.5),
+                DashboardItem(icon: "Icon_focus", label: "Focus", score: 61.9, percentage: 3.7, uncertainty: 15.2)
+            ],
+            "behavior": [
+                DashboardItem(icon: "Icon_productivity", label: "Productivity", score: 78.4, percentage: 9.3, uncertainty: 11.8),
+                DashboardItem(icon: "Icon_social_activity", label: "Social", score: 55.6, percentage: -4.2, uncertainty: 22.1),
+                DashboardItem(icon: "Icon_digital_distraction", label: "Digital", score: 42.1, percentage: -15.8, uncertainty: 25.4),
+                DashboardItem(icon: "Icon_exploration", label: "Explore", score: 83.7, percentage: 18.6, uncertainty: 8.9)
+            ],
+            "physical": [
+                DashboardItem(icon: "Icon_sleep", label: "Sleep", score: 67.2, percentage: 7.1, uncertainty: 14.6),
+                DashboardItem(icon: "Icon_fatigue", label: "Fatigue", score: 38.9, percentage: -11.3, uncertainty: 19.8),
+                DashboardItem(icon: "Icon_activity", label: "Activity", score: 74.5, percentage: 14.2, uncertainty: 10.7),
+                DashboardItem(icon: "Icon_nutrition", label: "Nutrition", score: 59.8, percentage: 2.9, uncertainty: 16.4)
+            ]
+        ]
+    }
+    
+    /// Normalize an asset name to an actual asset present in the app bundle.
+    /// Tries several common variants (capitalization, stripped prefixes) and returns
+    /// the first matching asset name. If none found, returns the original name.
+    private func normalizeAssetName(_ name: String) -> String {
+        // Exact match
+        if UIImage(named: name) != nil { return name }
+
+        // Capitalize first character: icon_mood -> Icon_mood
+        if name.count > 0 {
+            let alt = name.prefix(1).uppercased() + name.dropFirst()
+            if UIImage(named: String(alt)) != nil { return String(alt) }
+        }
+
+        // Lower/upper variants
+        let lower = name.lowercased()
+        if UIImage(named: lower) != nil { return lower }
+        let upper = name.uppercased()
+        if UIImage(named: upper) != nil { return upper }
+
+        // Try stripping common prefixes like 'icon_'
+        if lower.hasPrefix("icon_") {
+            let stripped = String(lower.dropFirst("icon_".count))
+            if UIImage(named: stripped) != nil { return stripped }
+            let strippedCapital = stripped.prefix(1).uppercased() + stripped.dropFirst()
+            if UIImage(named: strippedCapital) != nil { return String(strippedCapital) }
+            // Try with Icon_ + strippedCapital
+            let withIconCap = "Icon_" + strippedCapital
+            if UIImage(named: withIconCap) != nil { return withIconCap }
+        }
+
+        #if DEBUG
+        print("⚠️ normalizeAssetName: no matching asset for \(name), returning original")
+        #endif
+
+        return name
     }
     
     private func createMockAnalysisCards() -> [InsightAnalysisCard] {

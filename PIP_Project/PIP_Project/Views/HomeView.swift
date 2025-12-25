@@ -29,7 +29,7 @@ struct HomeView: View {
                         selectedGem = gem
                     },
                     onWriteRequested: onWriteRequested ?? {},
-                    currentStreak: viewModel.userStats?.currentStreak ?? 0  // DB 설계에 따라 UserStats에서 가져옴
+                    currentStreak: viewModel.currentStreak  // 계산된 스트릭 사용
                 )
                 
                 Spacer()  // TabBar 위까지 확장

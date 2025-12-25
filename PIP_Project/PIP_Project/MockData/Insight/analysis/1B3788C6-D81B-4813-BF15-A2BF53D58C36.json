@@ -1,0 +1,63 @@
+{
+  "id": "1B3788C6-D81B-4813-BF15-A2BF53D58C36",
+  "insightId": "00000000-0000-0000-0000-000000000007",
+  "anonymousUserId": "00000000-0000-0000-0000-000000000001",
+  "title": "Correlation Between Mood and Sleep",
+  "subtitle": "When you sleep well, your mood improves by 18%",
+  "cardType": "correlation",
+  "pages": [
+    {
+      "id": "77777777-7777-7777-7777-777777777701",
+      "pageNumber": 1,
+      "contentType": "text",
+      "content": {
+        "text": "Sleep-Mood Connection\n\nAnalysis shows a strong positive correlation: better sleep leads to better mood the next day.",
+        "headline": "The Sleep-Mood Link",
+        "body": "Your data reveals a powerful truth: when you get 7-8 hours of quality sleep, your mood score increases by 18% the following day. This is one of the strongest correlations in your data.",
+        "mantra": "Sleep is medicine for your mood"
+      },
+      "visualizations": null
+    },
+    {
+      "id": "77777777-7777-7777-7777-777777777702",
+      "pageNumber": 2,
+      "contentType": "text",
+      "content": {
+        "text": "Statistical Evidence\n\nDays after 7+ hours sleep: Mood avg 78/100\nDays after 6-7 hours sleep: Mood avg 68/100\nDays after <6 hours sleep: Mood avg 52/100",
+        "headline": "The Data Speaks",
+        "body": "Your historical data is clear: 7+ hours of sleep → 78/100 mood average. 6-7 hours → 68/100. Less than 6 hours → 52/100. Each additional hour of sleep adds roughly 10 points to your mood score.",
+        "mantra": null
+      },
+      "visualizations": null
+    },
+    {
+      "id": "77777777-7777-7777-7777-777777777703",
+      "pageNumber": 3,
+      "contentType": "text",
+      "content": {
+        "text": "Sleep Quality Factors\n\nBedtime consistency: +8% mood impact\nDark room: +5% mood impact\nNo screens 30 min before bed: +4% mood impact",
+        "headline": "What Improves Sleep Quality",
+        "body": "To maximize this correlation: maintain consistent bedtime (8% boost), ensure a dark sleeping environment (5% boost), and eliminate screens 30 minutes before sleep (4% boost). Combined, these triple your sleep quality benefits.",
+        "mantra": null
+      },
+      "visualizations": null
+    },
+    {
+      "id": "77777777-7777-7777-7777-777777777704",
+      "pageNumber": 4,
+      "contentType": "text",
+      "content": {
+        "text": "Action: Optimize Your Sleep\n\n1. Set consistent bedtime: 10:30 PM\n2. Prepare dark, cool room (65-68°F)\n3. No screens after 10:00 PM\n4. Track mood improvement (expect +18% this month)",
+        "headline": "Your Sleep-Mood Optimization Plan",
+        "body": "Implement these three changes: consistent 10:30 PM bedtime, dark/cool bedroom at 65-68°F, and phone/screens away by 10:00 PM. Track your mood for 30 days and expect to see approximately 18% improvement.",
+        "mantra": "Good sleep = Good mood"
+      },
+      "visualizations": null
+    }
+  ],
+  "actionProposals": [],
+  "isLiked": false,
+  "likedAt": null,
+  "acceptedActions": [],
+  "createdAt": "2025-12-25T00:00:00Z"
+}

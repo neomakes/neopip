@@ -20,7 +20,10 @@ struct AnalysisSection: View {
     let viewModel: InsightViewModel
     @State private var currentIndex = 0
     @State private var isAdjustingScroll = false
-    
+    @State private var showStoryView = false
+    @State private var selectedCardId: String?
+    @State private var selectedCardType: AnalysisCardType?
+
     private let cardSpacing: CGFloat = 8
     private let maxCardSize: CGFloat = 120
     private let minCardSize: CGFloat = 80
@@ -66,11 +69,17 @@ struct AnalysisSection: View {
                                 let repeatedCards = viewModel.analysisCards + viewModel.analysisCards + viewModel.analysisCards
                                 ForEach(repeatedCards.indices, id: \.self) { index in
                                     let actualIndex = index % viewModel.analysisCards.count
+                                    let card = viewModel.analysisCards[actualIndex]
                                     AnalysisCard(
-                                        card: viewModel.analysisCards[actualIndex],
+                                        card: card,
                                         size: cardSize(for: actualIndex, currentIndex: currentIndex),
                                         opacity: cardOpacity(for: actualIndex, currentIndex: currentIndex)
                                     )
+                                    .onTapGesture {
+                                        self.selectedCardId = card.id.uuidString
+                                        self.selectedCardType = card.cardType
+                                        self.showStoryView = true
+                                    }
                                     .frame(width: cardSize(for: actualIndex, currentIndex: currentIndex))
                                     .id(index)
                                     .background(
@@ -127,6 +136,11 @@ struct AnalysisSection: View {
                     }
                 }
                 .padding(.horizontal, 8)
+            }
+        }
+        .sheet(isPresented: $showStoryView) {
+            if let cardId = selectedCardId, let cardType = selectedCardType {
+                InsightStoryView(cardId: cardId, cardType: cardType)
             }
         }
     }

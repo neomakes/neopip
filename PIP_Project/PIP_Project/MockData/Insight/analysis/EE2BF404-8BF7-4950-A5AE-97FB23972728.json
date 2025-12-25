@@ -1,0 +1,63 @@
+{
+  "id": "EE2BF404-8BF7-4950-A5AE-97FB23972728",
+  "insightId": "00000000-0000-0000-0000-000000000004",
+  "anonymousUserId": "00000000-0000-0000-0000-000000000001",
+  "title": "Physical Health Control",
+  "subtitle": "Take control of your physical health with these interventions",
+  "cardType": "control",
+  "pages": [
+    {
+      "id": "44444444-4444-4444-4444-444444444401",
+      "pageNumber": 1,
+      "contentType": "text",
+      "content": {
+        "text": "Physical Health Status\n\nYour physical health score is 68/100. With targeted interventions, you can reach 85+ within 8 weeks.",
+        "headline": "Health Score Assessment",
+        "body": "Current score of 68 indicates good baseline health but with room for improvement. Main areas: sleep quality (65), exercise consistency (60), and nutrition (75). Improving these three areas can boost overall health to 85+.",
+        "mantra": "Health is wealth"
+      },
+      "visualizations": null
+    },
+    {
+      "id": "44444444-4444-4444-4444-444444444402",
+      "pageNumber": 2,
+      "contentType": "text",
+      "content": {
+        "text": "Current Health Metrics\n\nSleep Quality: 65/100 - Need 1.5 more hours\nExercise: 60/100 - Add 2 sessions weekly\nNutrition: 75/100 - Increase vegetables",
+        "headline": "Key Health Metrics",
+        "body": "Sleep is your biggest opportunity for improvement (currently 1.5 hours short of optimal). Exercise consistency needs 2 additional sessions per week. Nutrition is good but lacks vegetable variety.",
+        "mantra": null
+      },
+      "visualizations": null
+    },
+    {
+      "id": "44444444-4444-4444-4444-444444444403",
+      "pageNumber": 3,
+      "contentType": "text",
+      "content": {
+        "text": "Specific Interventions\n\n1. Sleep: Establish 10:30 PM bedtime (+20% improvement)\n2. Exercise: Add Tuesday & Thursday sessions (+18%)\n3. Nutrition: Add 2 veggie servings daily (+12%)",
+        "headline": "Health Improvement Plan",
+        "body": "Sleep intervention: Go to bed at 10:30 PM consistently (adds 1.5 hours). Add Tuesday and Thursday 30-minute exercise sessions. Include 2 additional vegetable servings daily in meals.",
+        "mantra": null
+      },
+      "visualizations": null
+    },
+    {
+      "id": "44444444-4444-4444-4444-444444444404",
+      "pageNumber": 4,
+      "contentType": "text",
+      "content": {
+        "text": "8-Week Health Transformation\n\nWeek 1-2: Sleep routine adjustment\nWeek 3-4: Add exercise sessions\nWeek 5-8: Consolidate nutrition changes",
+        "headline": "8-Week Health Journey",
+        "body": "Phase 1 (Weeks 1-2): Establish sleep routine. Phase 2 (Weeks 3-4): Add exercise sessions and see energy improvements. Phase 3 (Weeks 5-8): Solidify nutrition habits. Expected result: 85+ health score.",
+        "mantra": "Transformation takes time and consistency"
+      },
+      "visualizations": null
+    }
+  ],
+  "actionProposals": [],
+  "isLiked": false,
+  "likedAt": null,
+  "acceptedActions": [],
+  "createdAt": "2025-12-25T00:00:00Z"
+}

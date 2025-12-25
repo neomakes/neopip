@@ -96,3 +96,13 @@ struct GemRecord: Identifiable, Codable {
         isCompleted ? 1.0 : 0.4         // 미완성: 40%, 완성: 100%
     }
 }
+
+// MARK: - Dashboard Item
+/// Dashboard 카드의 개별 항목 데이터
+struct DashboardItem: Codable {
+    var icon: String
+    let label: String
+    let score: Double       // 0-100 점수
+    let percentage: Double  // 변화율 (%)
+    let uncertainty: Double // 불확실성 (0-100)
+}

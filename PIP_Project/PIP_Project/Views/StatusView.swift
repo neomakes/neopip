@@ -369,54 +369,35 @@ struct ValuesSection: View {
             }
             .padding(.horizontal, 16)
             
-            HStack(spacing: 12) {
-                // Left side: Bar chart
-                VStack(alignment: .leading, spacing: 20) {
-                    ForEach(valueAnalysis.topValues.prefix(3), id: \.id) { item in
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(item.name)
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundColor(.gray)
-                            
-                            HStack(spacing: 8) {
-                                ZStack(alignment: .leading) {
-                                    RoundedRectangle(cornerRadius: 4)
-                                        .fill(Color.white.opacity(0.1))
-                                    
-                                    GeometryReader { geometry in
-                                        RoundedRectangle(cornerRadius: 4)
-                                            .fill(getColorForValue(item.score))
-                                            .frame(width: geometry.size.width * item.score, alignment: .leading)
-                                    }
-                                }
-                                .frame(height: 8)
+            VStack(alignment: .leading, spacing: 20) {
+                ForEach(valueAnalysis.topValues.prefix(3), id: \.id) { item in
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(item.name)
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(.gray)
+                        
+                        HStack(spacing: 8) {
+                            ZStack(alignment: .leading) {
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(Color.white.opacity(0.1))
                                 
-                                Text(String(format: "%.0f%%", item.score * 100))
-                                    .font(.system(size: 10, weight: .semibold))
-                                    .foregroundColor(.gray)
-                                    .frame(width: 30)
+                                GeometryReader { geometry in
+                                    RoundedRectangle(cornerRadius: 4)
+                                        .fill(getColorForValue(item.score))
+                                        .frame(width: geometry.size.width * item.score, alignment: .leading)
+                                }
                             }
+                            .frame(height: 8)
+                            
+                            Text(String(format: "%.0f%%", item.score * 100))
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundColor(.gray)
+                                .frame(width: 30)
                         }
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                
-                // Right side: Radar chart
-                let radarDataItems = valueAnalysis.topValues.map { item in
-                    RadarChartDataItem(
-                        iconName: item.name.lowercased(),
-                        value: item.score,
-                        displayValue: String(format: "%.0f%%", item.score * 100)
-                    )
-                }
-                let radarDataSet = RadarChartDataSet(
-                    title: "Values",
-                    data: radarDataItems,
-                    dataColor: Color(red: 0.5, green: 0.7, blue: 0.8)
-                )
-                RadarChartView(dataSet: radarDataSet)
-                    .frame(width: 140, height: 140)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(12)
             .background(Color.white.opacity(0.06))
             .cornerRadius(12)

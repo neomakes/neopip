@@ -1,0 +1,63 @@
+{
+  "id": "8C525668-20D7-4499-A4AC-7942B07996F9",
+  "insightId": "00000000-0000-0000-0000-000000000003",
+  "anonymousUserId": "00000000-0000-0000-0000-000000000001",
+  "title": "Stress Management Strategies",
+  "subtitle": "Your stress level is higher than optimal. Here's how to manage it",
+  "cardType": "control",
+  "pages": [
+    {
+      "id": "33333333-3333-3333-3333-333333333301",
+      "pageNumber": 1,
+      "contentType": "text",
+      "content": {
+        "text": "Stress Management Strategies\n\nYour current stress level is 58/100, which is above the optimal range of 30-40. Implementing these strategies can help reduce stress.",
+        "headline": "Current Stress Assessment",
+        "body": "Analysis shows your stress level has gradually increased over the past week. The primary sources are work-related (45%) and insufficient rest (35%). Implementing targeted stress management can reduce this by 15-20%.",
+        "mantra": "Stress is manageable with right tools"
+      },
+      "visualizations": null
+    },
+    {
+      "id": "33333333-3333-3333-3333-333333333302",
+      "pageNumber": 2,
+      "contentType": "text",
+      "content": {
+        "text": "Top Stress Triggers\n\n1. Work deadlines: 45% impact\n2. Lack of breaks: 35% impact\n3. Sleep deprivation: 20% impact",
+        "headline": "Identify Your Stress Triggers",
+        "body": "Your data reveals clear patterns. Work deadlines cause the most stress (45%), followed by not taking adequate breaks (35%). Addressing these two areas could reduce overall stress by 20%.",
+        "mantra": null
+      },
+      "visualizations": null
+    },
+    {
+      "id": "33333333-3333-3333-3333-333333333303",
+      "pageNumber": 3,
+      "contentType": "text",
+      "content": {
+        "text": "Proven Stress Reduction Techniques\n\n1. Meditation: 15-20 min daily (-12% stress)\n2. Exercise: 30 min daily (-10% stress)\n3. Breathing exercises: 5 min hourly (-8% stress)",
+        "headline": "Effective Techniques",
+        "body": "Based on your profile and patterns, meditation (15-20 min daily) can reduce stress by 12%, exercise by 10%, and simple breathing exercises by 8%. Combined, these could bring you back to optimal levels.",
+        "mantra": null
+      },
+      "visualizations": null
+    },
+    {
+      "id": "33333333-3333-3333-3333-333333333304",
+      "pageNumber": 4,
+      "contentType": "text",
+      "content": {
+        "text": "Your Action Plan\n\nWeek 1: Add 10 min meditation daily\nWeek 2: Add 20 min exercise 4x/week\nWeek 3: Practice breathing exercises hourly",
+        "headline": "Personalized Action Plan",
+        "body": "Start with meditation this week (10 minutes daily). Week 2, add 20-minute exercise sessions 4 times per week. Week 3, incorporate 2-minute breathing breaks every hour. This gradual approach ensures sustainability.",
+        "mantra": "Every small step matters"
+      },
+      "visualizations": null
+    }
+  ],
+  "actionProposals": [],
+  "isLiked": false,
+  "likedAt": null,
+  "acceptedActions": [],
+  "createdAt": "2025-12-25T00:00:00Z"
+}

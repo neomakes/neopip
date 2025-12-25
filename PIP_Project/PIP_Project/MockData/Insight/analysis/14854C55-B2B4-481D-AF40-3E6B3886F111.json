@@ -1,0 +1,63 @@
+{
+  "id": "14854C55-B2B4-481D-AF40-3E6B3886F111",
+  "insightId": "00000000-0000-0000-0000-000000000006",
+  "anonymousUserId": "00000000-0000-0000-0000-000000000001",
+  "title": "Weekly Activity Summary",
+  "subtitle": "You completed 85% of your activity goals this week",
+  "cardType": "explanation",
+  "pages": [
+    {
+      "id": "66666666-6666-6666-6666-666666666601",
+      "pageNumber": 1,
+      "contentType": "text",
+      "content": {
+        "text": "Weekly Activity Summary\n\nThis week: 24.5 hours of tracked activity\nGoal: 28 hours\nCompletion: 85%",
+        "headline": "Weekly Overview",
+        "body": "Great effort this week! You logged 24.5 hours of activity against your 28-hour goal, achieving 85% completion. This is a solid performance that shows consistent engagement.",
+        "mantra": "Every activity counts"
+      },
+      "visualizations": null
+    },
+    {
+      "id": "66666666-6666-6666-6666-666666666602",
+      "pageNumber": 2,
+      "contentType": "text",
+      "content": {
+        "text": "Activity Breakdown\n\nExercise: 12 hours (Goal: 12)\nWork: 8 hours (Goal: 9)\nLeisure: 4.5 hours (Goal: 5)",
+        "headline": "Activity Categories",
+        "body": "You exceeded your exercise goal (12/12 hours). Work activities came close (8/9 hours). Leisure time was slightly below (4.5/5 hours). Small adjustments next week can hit all targets.",
+        "mantra": null
+      },
+      "visualizations": null
+    },
+    {
+      "id": "66666666-6666-6666-6666-666666666603",
+      "pageNumber": 3,
+      "contentType": "text",
+      "content": {
+        "text": "Best Days: Wednesday & Saturday\n\nWednesday: 4.2 hours (Peak productivity)\nSaturday: 3.8 hours (Great balance)",
+        "headline": "Your Best Days",
+        "body": "You performed best on Wednesday and Saturday. These days had the best balance of activities and consistent energy. Notice what was different about these days and replicate the conditions.",
+        "mantra": null
+      },
+      "visualizations": null
+    },
+    {
+      "id": "66666666-6666-6666-6666-666666666604",
+      "pageNumber": 4,
+      "contentType": "text",
+      "content": {
+        "text": "Next Week Goal: 90% Completion\n\nAdd 30 min of leisure activity\nMaintain current exercise level\nSchedule 1 hour of work buffer time",
+        "headline": "Next Week Plan",
+        "body": "To reach 90% completion: add just 30 minutes of leisure activity (walks, hobbies), maintain your strong exercise routine, and schedule 1 extra hour of work time as a buffer.",
+        "mantra": "Small improvements lead to big results"
+      },
+      "visualizations": null
+    }
+  ],
+  "actionProposals": [],
+  "isLiked": false,
+  "likedAt": null,
+  "acceptedActions": [],
+  "createdAt": "2025-12-25T00:00:00Z"
+}

@@ -130,6 +130,55 @@ extension Color {
     static let gemDetail = GemDetailColors()
 }
 
+// MARK: - Gradient Utilities
+struct GradientUtils {
+    /// Creates a diagonal wave gradient for InsightStoryView animations
+    /// - Parameters:
+    ///   - themeColor: The theme color to create gradient with
+    ///   - progress: Animation progress value (0.0 - 1.0)
+    /// - Returns: LinearGradient from black to theme color, with progress-based endpoint movement
+    static func createWaveGradient(themeColor: Color, progress: Double) -> LinearGradient {
+        // Calculate dynamic startPoint based on progress
+        // Wave moves from top-left to bottom-right
+        let startX = 0.0 + (progress * 0.3)  // Moves right gradually
+        let startY = 0.0 + (progress * 0.3)  // Moves down gradually
+        
+        // Calculate dynamic endPoint
+        let endX = 1.0 - (progress * 0.3)    // Moves left gradually
+        let endY = 1.0 - (progress * 0.3)    // Moves up gradually
+        
+        return LinearGradient(
+            gradient: Gradient(colors: [
+                Color.black,
+                themeColor.opacity(0.15)
+            ]),
+            startPoint: .init(x: startX, y: startY),
+            endPoint: .init(x: endX, y: endY)
+        )
+    }
+    
+    /// Creates a static diagonal gradient for card backgrounds (matching AnalysisCard design)
+    static func createCardGradient(themeColor: Color) -> LinearGradient {
+        LinearGradient(
+            gradient: Gradient(colors: [
+                Color.black,
+                themeColor.opacity(0.15)
+            ]),
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+    
+    /// Creates a neon glow effect for cards
+    static func createNeonGlow(themeColor: Color, scale: CGFloat = 1.0) -> some View {
+        Circle()
+            .fill(themeColor.opacity(0.4))
+            .frame(width: 120 * scale, height: 120 * scale)
+            .blur(radius: 25 * scale)
+            .offset(x: 40 * scale, y: 40 * scale)
+    }
+}
+
 // MARK: - 03. Layout Constants
 extension CGFloat {
     enum PIPLayout {

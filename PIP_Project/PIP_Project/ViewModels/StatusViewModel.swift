@@ -24,8 +24,8 @@ class StatusViewModel: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     
     // MARK: - Initialization
-    init(dataService: DataServiceProtocol = MockDataService.shared) {
-        self.dataService = dataService
+    init(dataService: DataServiceProtocol? = nil) {
+        self.dataService = dataService ?? MockDataService.shared
         loadInitialData()
     }
     

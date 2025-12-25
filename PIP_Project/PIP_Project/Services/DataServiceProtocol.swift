@@ -41,4 +41,10 @@ protocol DataServiceProtocol {
     
     // MARK: - Analysis Cards
     func fetchAnalysisCards() -> AnyPublisher<[InsightAnalysisCard], Error>
+    
+    // MARK: - Insight Story
+    func fetchInsightStory(for cardId: String) -> AnyPublisher<InsightStory, Error>
+    
+    // MARK: - Dashboard Data
+    func fetchDashboardData() -> AnyPublisher<[String: [DashboardItem]], Error>
 }

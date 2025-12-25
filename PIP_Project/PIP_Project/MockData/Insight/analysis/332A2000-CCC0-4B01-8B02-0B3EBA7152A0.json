@@ -1,0 +1,63 @@
+{
+  "id": "332A2000-CCC0-4B01-8B02-0B3EBA7152A0",
+  "insightId": "00000000-0000-0000-0000-000000000001",
+  "anonymousUserId": "00000000-0000-0000-0000-000000000001",
+  "title": "Weekly Mood Pattern Analysis",
+  "subtitle": "Your mood patterns over the past week show positive trends",
+  "cardType": "explanation",
+  "pages": [
+    {
+      "id": "11111111-1111-1111-1111-111111111101",
+      "pageNumber": 1,
+      "contentType": "text",
+      "content": {
+        "text": "Weekly Mood Pattern Analysis\n\nYour mood scores this week averaged 72 out of 100, showing a 5% improvement from last week.",
+        "headline": "Weekly Mood Pattern Analysis",
+        "body": "Your mood scores this week averaged 72 out of 100, showing a 5% improvement from last week. The data suggests consistent emotional stability with positive peaks on weekends.",
+        "mantra": "Emotional consistency is key to well-being"
+      },
+      "visualizations": null
+    },
+    {
+      "id": "11111111-1111-1111-1111-111111111102",
+      "pageNumber": 2,
+      "contentType": "text",
+      "content": {
+        "text": "Daily Breakdown\n\nMonday (68): Started the week with moderate mood\nWednesday (75): Mid-week peak\nFriday (78): Strong end-of-week mood",
+        "headline": "Daily Breakdown",
+        "body": "Your mood fluctuated throughout the week with a clear pattern. Mondays tend to be lower (68), but you achieve peak levels by Friday (78). This suggests you thrive towards the end of the work week.",
+        "mantra": null
+      },
+      "visualizations": null
+    },
+    {
+      "id": "11111111-1111-1111-1111-111111111103",
+      "pageNumber": 3,
+      "contentType": "text",
+      "content": {
+        "text": "Mood Influencers\n\nSleep Quality: +15% impact on mood\nSocial Interaction: +12% impact\nWork Stress: -18% impact",
+        "headline": "Key Mood Influencers",
+        "body": "Analysis reveals that sleep quality has the strongest positive impact on your mood (15% correlation). Social interactions also boost mood by 12%, while work-related stress has an 18% negative impact.",
+        "mantra": "Prioritize sleep and social connections"
+      },
+      "visualizations": null
+    },
+    {
+      "id": "11111111-1111-1111-1111-111111111104",
+      "pageNumber": 4,
+      "contentType": "text",
+      "content": {
+        "text": "Recommendations\n\n1. Maintain consistent sleep schedule\n2. Plan weekly social activities\n3. Take regular breaks from work",
+        "headline": "Actionable Recommendations",
+        "body": "Based on this analysis, we recommend: maintaining a consistent sleep schedule (7-9 hours), planning at least 3 social activities per week, and taking 5-minute breaks every hour during work.",
+        "mantra": "Small consistent habits create big changes"
+      },
+      "visualizations": null
+    }
+  ],
+  "actionProposals": [],
+  "isLiked": false,
+  "likedAt": null,
+  "acceptedActions": [],
+  "createdAt": "2025-12-25T00:00:00Z"
+}

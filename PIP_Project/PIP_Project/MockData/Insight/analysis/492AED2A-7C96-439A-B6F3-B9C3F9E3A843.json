@@ -1,0 +1,63 @@
+{
+  "id": "492AED2A-7C96-439A-B6F3-B9C3F9E3A843",
+  "insightId": "00000000-0000-0000-0000-000000000002",
+  "anonymousUserId": "00000000-0000-0000-0000-000000000001",
+  "title": "Behavior Pattern Prediction",
+  "subtitle": "Your behavior is projected to improve by 8% next week",
+  "cardType": "prediction",
+  "pages": [
+    {
+      "id": "22222222-2222-2222-2222-222222222201",
+      "pageNumber": 1,
+      "contentType": "text",
+      "content": {
+        "text": "Behavior Pattern Prediction\n\nBased on current trends, your behavior score is predicted to reach 78 next week, an increase from this week's 72.",
+        "headline": "Next Week's Projection",
+        "body": "Machine learning analysis of your 30-day behavior data predicts a positive trajectory. Your productivity patterns suggest you'll achieve higher consistency next week, with fewer disruptions.",
+        "mantra": "Positive momentum builds success"
+      },
+      "visualizations": null
+    },
+    {
+      "id": "22222222-2222-2222-2222-222222222202",
+      "pageNumber": 2,
+      "contentType": "text",
+      "content": {
+        "text": "Prediction Confidence: 82%\n\nThis prediction is based on:\n- 30-day historical data\n- Seasonal patterns (December trends)\n- Your established behavior cycles",
+        "headline": "Prediction Confidence Score",
+        "body": "Our model has 82% confidence in this prediction. This is based on analyzing your 30-day behavior history and identifying recurring patterns. December data shows typical positive behavior improvements.",
+        "mantra": null
+      },
+      "visualizations": null
+    },
+    {
+      "id": "22222222-2222-2222-2222-222222222203",
+      "pageNumber": 3,
+      "contentType": "text",
+      "content": {
+        "text": "Key Growth Areas\n\n1. Productivity: +10% improvement expected\n2. Social Activity: +6% improvement\n3. Focus Duration: +8% improvement",
+        "headline": "Expected Improvements",
+        "body": "Your greatest growth is expected in productivity (10%), where you've shown consistent improvement. Social activity and focus duration are also predicted to increase by 6-8%.",
+        "mantra": null
+      },
+      "visualizations": null
+    },
+    {
+      "id": "22222222-2222-2222-2222-222222222204",
+      "pageNumber": 4,
+      "contentType": "text",
+      "content": {
+        "text": "How to Achieve This\n\n1. Maintain current sleep routine\n2. Build on this week's social wins\n3. Extend focus sessions by 5 minutes daily",
+        "headline": "Achieve This Prediction",
+        "body": "To reach this predicted level: continue your sleep routine, build on the social interactions you've started, and gradually extend your focus sessions by 5-minute increments each day.",
+        "mantra": "Consistency beats intensity"
+      },
+      "visualizations": null
+    }
+  ],
+  "actionProposals": [],
+  "isLiked": false,
+  "likedAt": null,
+  "acceptedActions": [],
+  "createdAt": "2025-12-25T00:00:00Z"
+}

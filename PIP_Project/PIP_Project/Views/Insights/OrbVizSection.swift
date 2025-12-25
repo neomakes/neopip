@@ -82,7 +82,8 @@ struct OrbVizSection: View {
                     .rotationEffect(.degrees(rotation))
                     .blur(radius: orbViz.uncertainty * 15)
                 }
-                .frame(width: 280, height: 280)
+                .frame(width: 168, height: 168)
+                .scaleEffect(0.85)
                 .onAppear {
                     // 회전 애니메이션
                     withAnimation(.linear(duration: 8).repeatForever(autoreverses: false)) {
@@ -96,10 +97,9 @@ struct OrbVizSection: View {
                 }
             } else {
                 ProgressView()
-                    .frame(width: 300, height: 300)
+                    .frame(width: 168, height: 168)
             }
         }
-        .frame(width: 300, height: 300)
     }
     
     // MARK: - Color Parsing
