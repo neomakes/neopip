@@ -2,13 +2,13 @@
 //  MockDataService.swift
 //  PIP_Project
 //
-//  MockData Service: Firebase 없이 UI 검증을 위한 Mock 데이터 제공
+//  MockData Service: Provides mock data for UI verification without Firebase
 //
 
 import Foundation
 import Combine
 
-/// MockData 서비스 (Firebase 연동 전 UI 검증용)
+/// MockData service for UI verification before Firebase integration
 @MainActor
 class MockDataService: DataServiceProtocol {
     static let shared = MockDataService()
@@ -21,10 +21,11 @@ class MockDataService: DataServiceProtocol {
     private var mockUserProfile: UserProfile?
     private var mockAchievements: [Achievement] = []
     private var mockValueAnalysis: ValueAnalysis?
+    private var mockAnalysisCards: [InsightAnalysisCard] = []
     
     // MARK: - Data Type Schema Registry
-    /// 동적 데이터 타입 정의 레지스트리
-    /// 실제 앱에서는 Firebase에서 로드하거나 사용자 설정에 따라 결정됨
+    /// Dynamic data type definition registry
+    /// In the actual app, loaded from Firebase or determined by user settings
     private var dataTypeSchemas: [DataTypeSchema] = []
     
     // Mock User IDs
@@ -37,12 +38,12 @@ class MockDataService: DataServiceProtocol {
     }
     
     // MARK: - Data Type Schema Initialization
-    /// 기본 데이터 타입 스키마 초기화
-    /// 필요에 따라 동적으로 추가/제거 가능
+    /// Initialize basic data type schemas
+    /// Can be dynamically added/removed as needed
     private func initializeDataTypeSchemas() {
         let now = Date()
         
-        // Mind Category (마음)
+        // Mind Category
         // - mood: Overall emotional state
         // - stress: Stress level
         // - energy: Energy level
@@ -115,7 +116,7 @@ class MockDataService: DataServiceProtocol {
             updatedAt: now
         ))
         
-        // Behavior Category (행동)
+        // Behavior Category
         // - productivity: Work/task productivity
         // - socialActivity: Social interaction level
         // - digitalDistraction: Digital device distraction
@@ -188,7 +189,7 @@ class MockDataService: DataServiceProtocol {
             updatedAt: now
         ))
         
-        // Physical Category (신체)
+        // Physical Category
         // - sleepScore: Sleep quality score
         // - fatigue: Fatigue level
         // - activityLevel: Physical activity level
@@ -410,6 +411,9 @@ class MockDataService: DataServiceProtocol {
         
         // ValueAnalysis 생성
         mockValueAnalysis = createMockValueAnalysis()
+        
+        // AnalysisCards 생성
+        mockAnalysisCards = createMockAnalysisCards()
     }
     
     // MARK: - Helper Methods
@@ -800,5 +804,540 @@ class MockDataService: DataServiceProtocol {
         } else {
             mockDataPoints.append(updatedDataPoint)
         }
+    }
+    
+    // MARK: - Analysis Cards
+    func fetchAnalysisCards() -> AnyPublisher<[InsightAnalysisCard], Error> {
+        return Just(mockAnalysisCards)
+            .setFailureType(to: Error.self)
+            .eraseToAnyPublisher()
+    }
+    
+    private func createMockAnalysisCards() -> [InsightAnalysisCard] {
+        let mockInsightId = UUID()
+        let mockUserId = UUID()
+        
+        return [
+            InsightAnalysisCard(
+                id: UUID(),
+                insightId: mockInsightId,
+                anonymousUserId: mockUserId,
+                title: "Weekly Mood Pattern Analysis",
+                subtitle: "Your mood score averaged 0.72, up 5% from last week",
+                cardType: .explanation,
+                pages: [
+                    AnalysisCardPage(
+                        id: UUID(),
+                        pageNumber: 1,
+                        contentType: .text,
+                        content: PageContent(
+                            text: "Weekly Mood Pattern Analysis",
+                            headline: "Positive changes are visible",
+                            body: "Analysis of the last 7 days of data shows your mood score steadily increasing.",
+                            mantra: nil
+                        ),
+                        visualizations: nil
+                    )
+                ],
+                actionProposals: [
+                    ActionProposal(
+                        id: UUID(),
+                        title: "Increase Meditation Time",
+                        description: "Try 10 minutes of daily meditation to improve emotional stability",
+                        actionType: .reminder,
+                        targetDate: Date().addingTimeInterval(86400),
+                        calendarEvent: nil,
+                        alarm: nil,
+                        isAccepted: false,
+                        acceptedAt: nil
+                    ),
+                    ActionProposal(
+                        id: UUID(),
+                        title: "Add Walking Routine",
+                        description: "Increase physical activity with 30-minute walks 3 times a week",
+                        actionType: .calendar,
+                        targetDate: Date().addingTimeInterval(172800),
+                        calendarEvent: CalendarEvent(
+                            title: "Walking",
+                            description: "Walking for emotional health",
+                            startDate: Date().addingTimeInterval(172800),
+                            endDate: Date().addingTimeInterval(172800 + 1800),
+                            location: "Nearby park",
+                            notes: nil
+                        ),
+                        alarm: nil,
+                        isAccepted: false,
+                        acceptedAt: nil
+                    ),
+                    ActionProposal(
+                        id: UUID(),
+                        title: "Improve Sleep Pattern",
+                        description: "Aim for 11 PM bedtime to improve sleep quality",
+                        actionType: .alarm,
+                        targetDate: nil,
+                        calendarEvent: nil,
+                        alarm: AlarmEvent(
+                            title: "Bedtime Reminder",
+                            time: Calendar.current.date(bySettingHour: 23, minute: 0, second: 0, of: Date())!,
+                            repeatDays: [1,2,3,4,5,6,7],
+                            sound: "default"
+                        ),
+                        isAccepted: false,
+                        acceptedAt: nil
+                    )
+                ],
+                isLiked: false,
+                likedAt: nil,
+                acceptedActions: [],
+                createdAt: Date()
+            ),
+            InsightAnalysisCard(
+                id: UUID(),
+                insightId: mockInsightId,
+                anonymousUserId: mockUserId,
+                title: "Behavior Pattern Prediction",
+                subtitle: "Next week behavior score expected at 0.78 with increased consistency",
+                cardType: .prediction,
+                pages: [
+                    AnalysisCardPage(
+                        id: UUID(),
+                        pageNumber: 1,
+                        contentType: .graph,
+                        content: PageContent(
+                            text: "Behavior Pattern Prediction",
+                            headline: "Stable upward trend",
+                            body: "AI model predicts behavior scores will rise next week.",
+                            mantra: nil
+                        ),
+                        visualizations: [
+                            PageVisualization(
+                                type: .lineChart,
+                                data: ["points": AnyCodable(["0.65", "0.68", "0.72", "0.75", "0.78"])],
+                                chartType: .line
+                            )
+                        ]
+                    )
+                ],
+                actionProposals: [
+                    ActionProposal(
+                        id: UUID(),
+                        title: "Use Habit Tracking App",
+                        description: "Record and analyze your behavior patterns",
+                        actionType: .habit,
+                        targetDate: Date().addingTimeInterval(86400),
+                        calendarEvent: nil,
+                        alarm: nil,
+                        isAccepted: false,
+                        acceptedAt: nil
+                    ),
+                    ActionProposal(
+                        id: UUID(),
+                        title: "Set Weekly Goals",
+                        description: "Set specific goals for next week",
+                        actionType: .reminder,
+                        targetDate: Date().addingTimeInterval(604800),
+                        calendarEvent: nil,
+                        alarm: nil,
+                        isAccepted: false,
+                        acceptedAt: nil
+                    ),
+                    ActionProposal(
+                        id: UUID(),
+                        title: "Performance Review Time",
+                        description: "Take time on weekends to review this week's achievements",
+                        actionType: .calendar,
+                        targetDate: Date().addingTimeInterval(518400),
+                        calendarEvent: CalendarEvent(
+                            title: "Weekly Review",
+                            description: "Review this week's performance and plan for next week",
+                            startDate: Date().addingTimeInterval(518400),
+                            endDate: Date().addingTimeInterval(518400 + 3600),
+                            location: nil,
+                            notes: "Performance review and goal setting"
+                        ),
+                        alarm: nil,
+                        isAccepted: false,
+                        acceptedAt: nil
+                    )
+                ],
+                isLiked: false,
+                likedAt: nil,
+                acceptedActions: [],
+                createdAt: Date()
+            ),
+            InsightAnalysisCard(
+                id: UUID(),
+                insightId: mockInsightId,
+                anonymousUserId: mockUserId,
+                title: "Physical Health Control",
+                subtitle: "Physical score is 0.70, exercise increase needed",
+                cardType: .control,
+                pages: [
+                    AnalysisCardPage(
+                        id: UUID(),
+                        pageNumber: 1,
+                        contentType: .statistics,
+                        content: PageContent(
+                            text: "Physical Health Control",
+                            headline: "Exercise increase needed",
+                            body: "Current physical score is below target. Regular exercise is recommended.",
+                            mantra: nil
+                        ),
+                        visualizations: [
+                            PageVisualization(
+                                type: .gauge,
+                                data: ["current": AnyCodable("0.70"), "target": AnyCodable("0.85")],
+                                chartType: nil
+                            )
+                        ]
+                    )
+                ],
+                actionProposals: [
+                    ActionProposal(
+                        id: UUID(),
+                        title: "Gym Registration",
+                        description: "Improve physical health with 3 gym visits per week",
+                        actionType: .calendar,
+                        targetDate: Date().addingTimeInterval(86400),
+                        calendarEvent: CalendarEvent(
+                            title: "Gym Workout",
+                            description: "Strength training and cardio exercise",
+                            startDate: Date().addingTimeInterval(86400),
+                            endDate: Date().addingTimeInterval(86400 + 3600),
+                            location: "Gym",
+                            notes: "45 minutes strength + 15 minutes cardio"
+                        ),
+                        alarm: nil,
+                        isAccepted: false,
+                        acceptedAt: nil
+                    ),
+                    ActionProposal(
+                        id: UUID(),
+                        title: "Daily Step Goal",
+                        description: "Set a goal of 10,000 steps per day",
+                        actionType: .reminder,
+                        targetDate: Date(),
+                        calendarEvent: nil,
+                        alarm: nil,
+                        isAccepted: false,
+                        acceptedAt: nil
+                    ),
+                    ActionProposal(
+                        id: UUID(),
+                        title: "Nutrition Supplement",
+                        description: "Increase protein intake and maintain a healthy diet",
+                        actionType: .habit,
+                        targetDate: Date().addingTimeInterval(172800),
+                        calendarEvent: nil,
+                        alarm: nil,
+                        isAccepted: false,
+                        acceptedAt: nil
+                    )
+                ],
+                isLiked: false,
+                likedAt: nil,
+                acceptedActions: [],
+                createdAt: Date()
+            ),
+            InsightAnalysisCard(
+                id: UUID(),
+                insightId: mockInsightId,
+                anonymousUserId: mockUserId,
+                title: "Correlation Between Mood and Sleep",
+                subtitle: "Mood scores increase by 15% when sleep quality is good",
+                cardType: .correlation,
+                pages: [
+                    AnalysisCardPage(
+                        id: UUID(),
+                        pageNumber: 1,
+                        contentType: .graph,
+                        content: PageContent(
+                            text: "Correlation Between Mood and Sleep",
+                            headline: "Impact of Sleep on Mood",
+                            body: "Data analysis shows a strong correlation between sleep quality and mood scores.",
+                            mantra: nil
+                        ),
+                        visualizations: [
+                            PageVisualization(
+                                type: .radarChart,
+                                data: ["sleep_quality": AnyCodable("0.8"), "mood_score": AnyCodable("0.75"), "correlation": AnyCodable("0.85")],
+                                chartType: .radar
+                            )
+                        ]
+                    )
+                ],
+                actionProposals: [
+                    ActionProposal(
+                        id: UUID(),
+                        title: "Create Bedtime Routine",
+                        description: "Start bedtime preparation at the same time every day",
+                        actionType: .alarm,
+                        targetDate: nil,
+                        calendarEvent: nil,
+                        alarm: AlarmEvent(
+                            title: "Bedtime Preparation",
+                            time: Calendar.current.date(bySettingHour: 22, minute: 30, second: 0, of: Date())!,
+                            repeatDays: [1,2,3,4,5,6,7],
+                            sound: "gentle"
+                        ),
+                        isAccepted: false,
+                        acceptedAt: nil
+                    ),
+                    ActionProposal(
+                        id: UUID(),
+                        title: "Limit Caffeine Intake",
+                        description: "Avoid caffeine after 2 PM",
+                        actionType: .reminder,
+                        targetDate: Date(),
+                        calendarEvent: nil,
+                        alarm: nil,
+                        isAccepted: false,
+                        acceptedAt: nil
+                    ),
+                    ActionProposal(
+                        id: UUID(),
+                        title: "Improve Sleep Environment",
+                        description: "Make your room dark and quiet to improve sleep quality",
+                        actionType: .habit,
+                        targetDate: Date().addingTimeInterval(86400),
+                        calendarEvent: nil,
+                        alarm: nil,
+                        isAccepted: false,
+                        acceptedAt: nil
+                    )
+                ],
+                isLiked: false,
+                likedAt: nil,
+                acceptedActions: [],
+                createdAt: Date()
+            ),
+            InsightAnalysisCard(
+                id: UUID(),
+                insightId: mockInsightId,
+                anonymousUserId: mockUserId,
+                title: "Weekly Activity Summary",
+                subtitle: "This week total activity time was 25 hours, achieving 80% of goal",
+                cardType: .explanation,
+                pages: [
+                    AnalysisCardPage(
+                        id: UUID(),
+                        pageNumber: 1,
+                        contentType: .statistics,
+                        content: PageContent(
+                            text: "Weekly Activity Summary",
+                            headline: "Good Performance",
+                            body: "You achieved 80% of your weekly activity goal this week. Your consistent efforts are paying off.",
+                            mantra: nil
+                        ),
+                        visualizations: [
+                            PageVisualization(
+                                type: .barChart,
+                                data: ["mon": AnyCodable("4"), "tue": AnyCodable("3.5"), "wed": AnyCodable("5"), "thu": AnyCodable("4.5"), "fri": AnyCodable("3"), "sat": AnyCodable("2.5"), "sun": AnyCodable("2.5")],
+                                chartType: .bar
+                            )
+                        ]
+                    )
+                ],
+                actionProposals: [
+                    ActionProposal(
+                        id: UUID(),
+                        title: "Increase Activity Time",
+                        description: "Set next week goal to 30 hours",
+                        actionType: .reminder,
+                        targetDate: Date().addingTimeInterval(604800),
+                        calendarEvent: nil,
+                        alarm: nil,
+                        isAccepted: false,
+                        acceptedAt: nil
+                    ),
+                    ActionProposal(
+                        id: UUID(),
+                        title: "Ensure Rest Time",
+                        description: "Take adequate rest time between activities",
+                        actionType: .calendar,
+                        targetDate: Date().addingTimeInterval(86400),
+                        calendarEvent: CalendarEvent(
+                            title: "Rest Time",
+                            description: "Rest after activity",
+                            startDate: Date().addingTimeInterval(86400 + 1800),
+                            endDate: Date().addingTimeInterval(86400 + 3600),
+                            location: nil,
+                            notes: "Meditation or light walk"
+                        ),
+                        alarm: nil,
+                        isAccepted: false,
+                        acceptedAt: nil
+                    ),
+                    ActionProposal(
+                        id: UUID(),
+                        title: "Share Achievements",
+                        description: "Share this week's achievements with people around you",
+                        actionType: .habit,
+                        targetDate: Date().addingTimeInterval(172800),
+                        calendarEvent: nil,
+                        alarm: nil,
+                        isAccepted: false,
+                        acceptedAt: nil
+                    )
+                ],
+                isLiked: false,
+                likedAt: nil,
+                acceptedActions: [],
+                createdAt: Date()
+            ),
+            InsightAnalysisCard(
+                id: UUID(),
+                insightId: mockInsightId,
+                anonymousUserId: mockUserId,
+                title: "Future Health Prediction",
+                subtitle: "Health score expected to rise to 0.82 in 3 months",
+                cardType: .prediction,
+                pages: [
+                    AnalysisCardPage(
+                        id: UUID(),
+                        pageNumber: 1,
+                        contentType: .graph,
+                        content: PageContent(
+                            text: "Future Health Prediction",
+                            headline: "Positive Outlook",
+                            body: "If current trends continue, health scores will steadily increase.",
+                            mantra: nil
+                        ),
+                        visualizations: [
+                            PageVisualization(
+                                type: .lineChart,
+                                data: ["week1": AnyCodable("0.72"), "week2": AnyCodable("0.74"), "week3": AnyCodable("0.76"), "month2": AnyCodable("0.78"), "month3": AnyCodable("0.82")],
+                                chartType: .line
+                            )
+                        ]
+                    )
+                ],
+                actionProposals: [
+                    ActionProposal(
+                        id: UUID(),
+                        title: "Set Long-term Goals",
+                        description: "Set specific health goals for 3 months from now",
+                        actionType: .calendar,
+                        targetDate: Date().addingTimeInterval(604800),
+                        calendarEvent: CalendarEvent(
+                            title: "Set Long-term Goals",
+                            description: "Establish 3-month health goals",
+                            startDate: Date().addingTimeInterval(604800),
+                            endDate: Date().addingTimeInterval(604800 + 3600),
+                            location: nil,
+                            notes: "Aim to achieve health score of 0.85"
+                        ),
+                        alarm: nil,
+                        isAccepted: false,
+                        acceptedAt: nil
+                    ),
+                    ActionProposal(
+                        id: UUID(),
+                        title: "Regular Health Checkups",
+                        description: "Get health checkups once every 3 months",
+                        actionType: .reminder,
+                        targetDate: Date().addingTimeInterval(2592000 * 3),
+                        calendarEvent: nil,
+                        alarm: nil,
+                        isAccepted: false,
+                        acceptedAt: nil
+                    ),
+                    ActionProposal(
+                        id: UUID(),
+                        title: "Monitor Health Data",
+                        description: "Regularly check and record health data",
+                        actionType: .habit,
+                        targetDate: Date().addingTimeInterval(86400),
+                        calendarEvent: nil,
+                        alarm: nil,
+                        isAccepted: false,
+                        acceptedAt: nil
+                    )
+                ],
+                isLiked: false,
+                likedAt: nil,
+                acceptedActions: [],
+                createdAt: Date()
+            ),
+            InsightAnalysisCard(
+                id: UUID(),
+                insightId: mockInsightId,
+                anonymousUserId: mockUserId,
+                title: "Stress Management",
+                subtitle: "Stress index is 0.65, meditation and rest needed",
+                cardType: .control,
+                pages: [
+                    AnalysisCardPage(
+                        id: UUID(),
+                        pageNumber: 1,
+                        contentType: .statistics,
+                        content: PageContent(
+                            text: "Stress Management",
+                            headline: "Rest Needed",
+                            body: "Current stress index is high. Find ways to relieve stress.",
+                            mantra: nil
+                        ),
+                        visualizations: [
+                            PageVisualization(
+                                type: .gauge,
+                                data: ["current": AnyCodable("0.65"), "target": AnyCodable("0.4")],
+                                chartType: nil
+                            )
+                        ]
+                    )
+                ],
+                actionProposals: [
+                    ActionProposal(
+                        id: UUID(),
+                        title: "Stress Relief Meditation",
+                        description: "Practice 15 minutes of stress relief meditation daily",
+                        actionType: .alarm,
+                        targetDate: nil,
+                        calendarEvent: nil,
+                        alarm: AlarmEvent(
+                            title: "Meditation Time",
+                            time: Calendar.current.date(bySettingHour: 20, minute: 0, second: 0, of: Date())!,
+                            repeatDays: [1,2,3,4,5,6,7],
+                            sound: "calm"
+                        ),
+                        isAccepted: false,
+                        acceptedAt: nil
+                    ),
+                    ActionProposal(
+                        id: UUID(),
+                        title: "Hobby Activity Time",
+                        description: "Reduce stress with 2 hobby activities per week",
+                        actionType: .calendar,
+                        targetDate: Date().addingTimeInterval(172800),
+                        calendarEvent: CalendarEvent(
+                            title: "Hobby Activity",
+                            description: "Hobby for stress relief",
+                            startDate: Date().addingTimeInterval(172800),
+                            endDate: Date().addingTimeInterval(172800 + 3600),
+                            location: nil,
+                            notes: "Drawing, listening to music, etc."
+                        ),
+                        alarm: nil,
+                        isAccepted: false,
+                        acceptedAt: nil
+                    ),
+                    ActionProposal(
+                        id: UUID(),
+                        title: "Forest Walk",
+                        description: "Relieve stress by walking in nature",
+                        actionType: .reminder,
+                        targetDate: Date().addingTimeInterval(345600),
+                        calendarEvent: nil,
+                        alarm: nil,
+                        isAccepted: false,
+                        acceptedAt: nil
+                    )
+                ],
+                isLiked: false,
+                likedAt: nil,
+                acceptedActions: [],
+                createdAt: Date()
+            )
+        ]
     }
 }

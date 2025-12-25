@@ -11,32 +11,21 @@ struct InsightView: View {
             ScrollView {
                 VStack(spacing: 0) {
                     // MARK: - Orb Visualization Section
-                    VStack(spacing: 16) {
-                        if let orbViz = viewModel.orbVisualization {
-                            OrbView(
-                                brightness: orbViz.brightness,
-                                borderBrightness: orbViz.borderBrightness,
-                                complexity: orbViz.complexity,
-                                uncertainty: orbViz.uncertainty,
-                                colorGradient: orbViz.colorGradient
-                            )
-                        } else {
-                            ProgressView()
-                                .frame(height: 240)
-                        }
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.top, 20)
-                    .padding(.bottom, 30)
+                    OrbVizSection(viewModel: viewModel)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 30)
                     
                     // MARK: - Dashboard Section
                     DashboardSection(viewModel: viewModel)
-                        .padding(.bottom, 15)
+                        .padding(.horizontal, 0)
+                        .padding(.bottom, 20)
                     
                     // MARK: - Analysis Section
                     AnalysisSection(viewModel: viewModel)
-                        .padding(.bottom, 100)
+                        .padding(.horizontal, 0)
+                        .padding(.bottom, 110) // TabBar 높이 고려 + 여유 공간
                 }
+                .padding(.top, 16)
             }
         }
         .onAppear {

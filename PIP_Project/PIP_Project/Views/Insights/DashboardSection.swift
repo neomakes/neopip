@@ -2,6 +2,7 @@ import SwiftUI
 
 // MARK: - Dashboard Section
 /// Dashboard 섹션 - 3개 카테고리 (Mind, Behavior, Physical)를 가로 슬라이딩으로 표시
+/// Orb 시각화는 별도의 OrbVizSection 컴포넌트에서 처리
 struct DashboardSection: View {
     @ObservedObject var viewModel: InsightViewModel
     @State private var selectedCategoryIndex = 0
@@ -108,7 +109,6 @@ struct DashboardCarouselView: View {
                 selectedIndex: $selectedCategoryIndex
             )
         }
-        .padding(.horizontal, 8)
     }
 }
 

@@ -41,10 +41,21 @@ class InsightViewModel: ObservableObject {
         // Mock Predictions 생성
         createMockPredictions()
         
-        // Mock Analysis Cards 생성
-        createMockAnalysisCards()
-        
-        isLoading = false
+        // Mock Analysis Cards 로드
+        dataService.fetchAnalysisCards()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] completion in
+                switch completion {
+                case .finished:
+                    break
+                case .failure(let error):
+                    self?.errorMessage = error.localizedDescription
+                }
+                self?.isLoading = false
+            } receiveValue: { [weak self] cards in
+                self?.analysisCards = cards
+            }
+            .store(in: &cancellables)
     }
     
     // MARK: - Private Methods
@@ -105,38 +116,5 @@ class InsightViewModel: ObservableObject {
         
         self.predictions = predictions
     }
-    
-    private func createMockAnalysisCards() {
-        let mockInsightId = UUID()
-        
-        analysisCards = [
-            InsightAnalysisCard(
-                id: UUID(),
-                insightId: mockInsightId,
-                anonymousUserId: UUID(),
-                title: "이번 주 감정 패턴 분석",
-                subtitle: "당신의 감정 점수가 평균 0.72로, 이전 주 대비 5% 상승했습니다",
-                cardType: .explanation,
-                pages: [
-                    AnalysisCardPage(
-                        id: UUID(),
-                        pageNumber: 1,
-                        contentType: .text,
-                        content: PageContent(
-                            text: "이번 주 감정 패턴 분석",
-                            headline: "긍정적인 변화가 보입니다",
-                            body: "최근 7일간의 데이터를 분석한 결과, 당신의 감정 점수가 꾸준히 상승하고 있습니다.",
-                            mantra: nil
-                        ),
-                        visualizations: nil
-                    )
-                ],
-                actionProposals: [],
-                isLiked: false,
-                likedAt: nil,
-                acceptedActions: [],
-                createdAt: Date()
-            )
-        ]
-    }
+
 }

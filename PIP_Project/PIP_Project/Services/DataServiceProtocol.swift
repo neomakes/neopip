@@ -38,4 +38,7 @@ protocol DataServiceProtocol {
     
     // MARK: - Value Analysis
     func fetchValueAnalysis() -> AnyPublisher<ValueAnalysis, Error>
+    
+    // MARK: - Analysis Cards
+    func fetchAnalysisCards() -> AnyPublisher<[InsightAnalysisCard], Error>
 }
