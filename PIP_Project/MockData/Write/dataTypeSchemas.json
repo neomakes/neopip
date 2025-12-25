@@ -1,0 +1,242 @@
+[
+  {
+    "name" : "mood",
+    "id" : "99D365A9-2C2B-42EF-9200-6ED85916FCC4",
+    "isEnabled" : true,
+    "updatedAt" : "2025-12-25T11:30:07Z",
+    "dataType" : "double",
+    "range" : {
+      "min" : 0,
+      "max" : 100,
+      "step" : 1
+    },
+    "description" : "Overall mood state (0-100)",
+    "displayName" : "Mood",
+    "isRequired" : true,
+    "unit" : "pts",
+    "createdAt" : "2025-12-25T11:30:07Z",
+    "sensitivity" : "medium",
+    "collectionMethod" : "manual",
+    "category" : "mind"
+  },
+  {
+    "name" : "stress",
+    "id" : "1EFD0A1B-DAD8-4914-83D0-33D7BF512A6B",
+    "isEnabled" : true,
+    "updatedAt" : "2025-12-25T11:30:07Z",
+    "range" : {
+      "min" : 0,
+      "max" : 100,
+      "step" : 1
+    },
+    "dataType" : "double",
+    "description" : "Stress level (0-100)",
+    "displayName" : "Stress",
+    "isRequired" : false,
+    "unit" : "pts",
+    "createdAt" : "2025-12-25T11:30:07Z",
+    "sensitivity" : "medium",
+    "collectionMethod" : "manual",
+    "category" : "mind"
+  },
+  {
+    "id" : "87CD6FAF-FC81-4B8D-BCF6-1B3EF2E1E099",
+    "name" : "energy",
+    "isEnabled" : true,
+    "updatedAt" : "2025-12-25T11:30:07Z",
+    "range" : {
+      "min" : 0,
+      "max" : 100,
+      "step" : 1
+    },
+    "dataType" : "double",
+    "description" : "Energy level (0-100)",
+    "displayName" : "Energy",
+    "isRequired" : false,
+    "unit" : "pts",
+    "createdAt" : "2025-12-25T11:30:07Z",
+    "sensitivity" : "low",
+    "collectionMethod" : "manual",
+    "category" : "mind"
+  },
+  {
+    "name" : "focus",
+    "id" : "7C0AF011-11FF-463D-908F-9648315C8EF3",
+    "isEnabled" : true,
+    "updatedAt" : "2025-12-25T11:30:07Z",
+    "range" : {
+      "min" : 0,
+      "max" : 100,
+      "step" : 1
+    },
+    "dataType" : "double",
+    "description" : "Focus\/concentration level (0-100)",
+    "displayName" : "Focus",
+    "isRequired" : false,
+    "unit" : "pts",
+    "createdAt" : "2025-12-25T11:30:07Z",
+    "sensitivity" : "low",
+    "collectionMethod" : "manual",
+    "category" : "mind"
+  },
+  {
+    "name" : "productivity",
+    "id" : "32AD366D-B08A-4231-8D47-0851C7D4D7AD",
+    "isEnabled" : true,
+    "updatedAt" : "2025-12-25T11:30:07Z",
+    "dataType" : "double",
+    "range" : {
+      "min" : 0,
+      "max" : 100,
+      "step" : 1
+    },
+    "description" : "Productivity level (0-100)",
+    "displayName" : "Productivity",
+    "isRequired" : false,
+    "unit" : "pts",
+    "createdAt" : "2025-12-25T11:30:07Z",
+    "sensitivity" : "low",
+    "collectionMethod" : "manual",
+    "category" : "behavior"
+  },
+  {
+    "id" : "F976829B-4FB9-4DAD-A4AB-5E3790645D37",
+    "name" : "socialActivity",
+    "isEnabled" : true,
+    "updatedAt" : "2025-12-25T11:30:07Z",
+    "dataType" : "double",
+    "range" : {
+      "min" : 0,
+      "max" : 100,
+      "step" : 1
+    },
+    "description" : "Social activity level (0-100)",
+    "displayName" : "Social Activity",
+    "isRequired" : false,
+    "unit" : "pts",
+    "createdAt" : "2025-12-25T11:30:07Z",
+    "sensitivity" : "medium",
+    "collectionMethod" : "manual",
+    "category" : "behavior"
+  },
+  {
+    "id" : "FE608067-7564-4D76-BE9D-44186340D388",
+    "name" : "digitalDistraction",
+    "isEnabled" : true,
+    "updatedAt" : "2025-12-25T11:30:07Z",
+    "range" : {
+      "min" : 0,
+      "max" : 100,
+      "step" : 1
+    },
+    "dataType" : "double",
+    "description" : "Digital device distraction level (0-100)",
+    "displayName" : "Digital Distraction",
+    "isRequired" : false,
+    "unit" : "pts",
+    "createdAt" : "2025-12-25T11:30:07Z",
+    "sensitivity" : "medium",
+    "collectionMethod" : "screenTime",
+    "category" : "behavior"
+  },
+  {
+    "name" : "exploration",
+    "id" : "203F9E38-5E75-4421-B4B7-6DC551B2CD30",
+    "isEnabled" : true,
+    "updatedAt" : "2025-12-25T11:30:07Z",
+    "range" : {
+      "min" : 0,
+      "max" : 100,
+      "step" : 1
+    },
+    "dataType" : "double",
+    "description" : "New experience exploration level (0-100)",
+    "displayName" : "Exploration",
+    "isRequired" : false,
+    "unit" : "pts",
+    "createdAt" : "2025-12-25T11:30:07Z",
+    "sensitivity" : "low",
+    "collectionMethod" : "manual",
+    "category" : "behavior"
+  },
+  {
+    "id" : "A528AA8F-76A2-405C-B411-0A8F1C9ABD51",
+    "name" : "sleepScore",
+    "isEnabled" : true,
+    "updatedAt" : "2025-12-25T11:30:07Z",
+    "dataType" : "double",
+    "range" : {
+      "min" : 0,
+      "max" : 100,
+      "step" : 1
+    },
+    "description" : "Sleep quality score (0-100)",
+    "displayName" : "Sleep Score",
+    "isRequired" : false,
+    "unit" : "pts",
+    "createdAt" : "2025-12-25T11:30:07Z",
+    "sensitivity" : "medium",
+    "collectionMethod" : "healthKit",
+    "category" : "physical"
+  },
+  {
+    "name" : "fatigue",
+    "id" : "3C608188-3EAD-4773-A8FE-43D544D6394D",
+    "isEnabled" : true,
+    "updatedAt" : "2025-12-25T11:30:07Z",
+    "dataType" : "double",
+    "range" : {
+      "min" : 0,
+      "max" : 100,
+      "step" : 1
+    },
+    "description" : "Fatigue level (0-100)",
+    "displayName" : "Fatigue",
+    "isRequired" : false,
+    "unit" : "pts",
+    "createdAt" : "2025-12-25T11:30:07Z",
+    "sensitivity" : "low",
+    "collectionMethod" : "manual",
+    "category" : "physical"
+  },
+  {
+    "id" : "BA648B91-95AE-4229-BFFD-8052A9AEA4A1",
+    "name" : "activityLevel",
+    "isEnabled" : true,
+    "updatedAt" : "2025-12-25T11:30:07Z",
+    "range" : {
+      "min" : 0,
+      "max" : 100,
+      "step" : 1
+    },
+    "dataType" : "double",
+    "description" : "Physical activity level (0-100)",
+    "displayName" : "Activity Level",
+    "isRequired" : false,
+    "unit" : "pts",
+    "createdAt" : "2025-12-25T11:30:07Z",
+    "sensitivity" : "low",
+    "collectionMethod" : "healthKit",
+    "category" : "physical"
+  },
+  {
+    "id" : "7382F13C-EEED-4D8C-94B5-14236867DD54",
+    "name" : "nutrition",
+    "isEnabled" : true,
+    "updatedAt" : "2025-12-25T11:30:07Z",
+    "range" : {
+      "step" : 1,
+      "min" : 0,
+      "max" : 100
+    },
+    "dataType" : "double",
+    "description" : "Nutrition quality score (0-100)",
+    "displayName" : "Nutrition",
+    "isRequired" : false,
+    "unit" : "pts",
+    "createdAt" : "2025-12-25T11:30:07Z",
+    "sensitivity" : "medium",
+    "collectionMethod" : "manual",
+    "category" : "physical"
+  }
+]

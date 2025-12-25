@@ -1,0 +1,35 @@
+{
+  "profileImageURL" : "profile_example",
+  "firstJournalDate" : "2025-11-30T11:30:07Z",
+  "displayName" : "NEO",
+  "accountId" : "1DA79DE8-54EB-4B7F-9F12-CE26EB0AFC49",
+  "createdAt" : "2025-11-25T11:30:07Z",
+  "preferences" : {
+    "notificationsEnabled" : true,
+    "theme" : "dark",
+    "language" : "ko",
+    "timeZone" : "Asia\/Seoul"
+  },
+  "lastActiveAt" : "2025-12-25T11:30:07Z",
+  "email" : "neo@pip.app",
+  "onboardingState" : {
+    "isCompleted" : true,
+    "selectedGoals" : [
+      "wellness",
+      "productivity"
+    ],
+    "completedSteps" : [
+      "welcome",
+      "goalSelection",
+      "dataCollectionIntro"
+    ],
+    "completedAt" : "2025-11-30T11:30:07Z",
+    "skippedSteps" : [
+
+    ]
+  },
+  "initialGoals" : [
+    "wellness",
+    "productivity"
+  ]
+}

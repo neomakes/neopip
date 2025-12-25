@@ -1,0 +1,122 @@
+[
+  {
+    "accountId" : "1DA79DE8-54EB-4B7F-9F12-CE26EB0AFC49",
+    "isUnlocked" : true,
+    "description" : "Unlocked on Dec 25, 2025",
+    "title" : "First Steps",
+    "id" : "BB11A58B-2AA6-4C29-9292-E201A710A2EA",
+    "unlockedDate" : "2025-12-25T11:30:07Z",
+    "illustration3D" : {
+      "colorScheme" : [
+        "#3B82F6",
+        "#1E40AF"
+      ],
+      "previewImageURL" : "achievement_0",
+      "modelId" : "achievement_model_0"
+    },
+    "programId" : "2AAFED64-5AEF-49C2-92BD-23372F0A6611",
+    "colorScheme" : [
+      "#3B82F6",
+      "#1E40AF"
+    ],
+    "category" : "consistency",
+    "iconName" : "star.fill",
+    "createdAt" : "2025-12-25T11:30:07Z"
+  },
+  {
+    "accountId" : "1DA79DE8-54EB-4B7F-9F12-CE26EB0AFC49",
+    "isUnlocked" : true,
+    "description" : "Unlocked on Dec 25, 2025",
+    "title" : "Weekly Warrior",
+    "id" : "0F02C161-2825-48BA-AEC4-B0A088F840F5",
+    "unlockedDate" : "2025-12-22T11:30:07Z",
+    "illustration3D" : {
+      "colorScheme" : [
+        "#8B5CF6",
+        "#6D28D9"
+      ],
+      "previewImageURL" : "achievement_1",
+      "modelId" : "achievement_model_1"
+    },
+    "programId" : "6BEADB67-E0F4-4D0F-9596-D9A4F358E0B9",
+    "colorScheme" : [
+      "#8B5CF6",
+      "#6D28D9"
+    ],
+    "category" : "growth",
+    "iconName" : "star.fill",
+    "createdAt" : "2025-12-22T11:30:07Z"
+  },
+  {
+    "accountId" : "1DA79DE8-54EB-4B7F-9F12-CE26EB0AFC49",
+    "isUnlocked" : true,
+    "description" : "Unlocked on Dec 25, 2025",
+    "title" : "Mind Master",
+    "id" : "6C972C3D-6ACB-4D08-844F-7ED0C73C333A",
+    "unlockedDate" : "2025-12-19T11:30:07Z",
+    "illustration3D" : {
+      "colorScheme" : [
+        "#EC4899",
+        "#BE185D"
+      ],
+      "previewImageURL" : "achievement_2",
+      "modelId" : "achievement_model_2"
+    },
+    "programId" : "4093DA25-0907-4830-825D-CEA956C61F08",
+    "colorScheme" : [
+      "#EC4899",
+      "#BE185D"
+    ],
+    "category" : "mastery",
+    "iconName" : "star.fill",
+    "createdAt" : "2025-12-19T11:30:07Z"
+  },
+  {
+    "accountId" : "1DA79DE8-54EB-4B7F-9F12-CE26EB0AFC49",
+    "isUnlocked" : true,
+    "description" : "Unlocked on Dec 25, 2025",
+    "title" : "Insight Seeker",
+    "id" : "4549AA71-3779-4968-A949-0F683170A5C2",
+    "unlockedDate" : "2025-12-16T11:30:07Z",
+    "illustration3D" : {
+      "colorScheme" : [
+        "#F59E0B",
+        "#B45309"
+      ],
+      "previewImageURL" : "achievement_3",
+      "modelId" : "achievement_model_3"
+    },
+    "programId" : "3F4EE4A0-E417-4361-9777-D853BD4B89E5",
+    "colorScheme" : [
+      "#F59E0B",
+      "#B45309"
+    ],
+    "category" : "exploration",
+    "iconName" : "star.fill",
+    "createdAt" : "2025-12-16T11:30:07Z"
+  },
+  {
+    "accountId" : "1DA79DE8-54EB-4B7F-9F12-CE26EB0AFC49",
+    "isUnlocked" : true,
+    "description" : "Unlocked on Dec 25, 2025",
+    "title" : "30 Days Strong",
+    "id" : "C43F96DC-2D3D-4844-BC30-A3CBB025F78C",
+    "unlockedDate" : "2025-12-13T11:30:07Z",
+    "illustration3D" : {
+      "colorScheme" : [
+        "#10B981",
+        "#047857"
+      ],
+      "previewImageURL" : "achievement_4",
+      "modelId" : "achievement_model_4"
+    },
+    "programId" : "6D193FB1-7E9A-4E1F-8A38-D4707A430E97",
+    "colorScheme" : [
+      "#10B981",
+      "#047857"
+    ],
+    "category" : "consistency",
+    "iconName" : "star.fill",
+    "createdAt" : "2025-12-13T11:30:07Z"
+  }
+]

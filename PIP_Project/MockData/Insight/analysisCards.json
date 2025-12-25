@@ -1,0 +1,513 @@
+[
+  {
+    "anonymousUserId" : "DDECFDA1-34EE-4D10-9B8B-3DEFCE00C76D",
+    "isLiked" : false,
+    "createdAt" : "2025-12-25T11:30:07Z",
+    "cardType" : "explanation",
+    "actionProposals" : [
+      {
+        "targetDate" : "2025-12-26T11:30:07Z",
+        "id" : "E618C160-D3DC-4562-A626-0DCAFF43719B",
+        "description" : "Try 10 minutes of daily meditation to improve emotional stability",
+        "title" : "Increase Meditation Time",
+        "isAccepted" : false,
+        "actionType" : "reminder"
+      },
+      {
+        "description" : "Increase physical activity with 30-minute walks 3 times a week",
+        "title" : "Add Walking Routine",
+        "calendarEvent" : {
+          "description" : "Walking for emotional health",
+          "endDate" : "2025-12-27T12:00:07Z",
+          "startDate" : "2025-12-27T11:30:07Z",
+          "location" : "Nearby park",
+          "title" : "Walking"
+        },
+        "isAccepted" : false,
+        "actionType" : "calendar",
+        "targetDate" : "2025-12-27T11:30:07Z",
+        "id" : "A74A1645-5D18-44CA-9706-78B94471352F"
+      },
+      {
+        "alarm" : {
+          "repeatDays" : [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "sound" : "default",
+          "time" : "2025-12-25T16:00:00Z",
+          "title" : "Bedtime Reminder"
+        },
+        "id" : "1960EEAF-77C3-4AFD-B3DE-524E1E3EA44F",
+        "description" : "Aim for 11 PM bedtime to improve sleep quality",
+        "title" : "Improve Sleep Pattern",
+        "isAccepted" : false,
+        "actionType" : "alarm"
+      }
+    ],
+    "title" : "Weekly Mood Pattern Analysis",
+    "acceptedActions" : [
+
+    ],
+    "subtitle" : "Your mood score averaged 0.72, up 5% from last week",
+    "insightId" : "BA80B61F-2814-4412-81C7-BE3731D675CF",
+    "pages" : [
+      {
+        "id" : "DD7DB612-C7E2-43B2-8308-C904FF7329F8",
+        "contentType" : "text",
+        "pageNumber" : 1,
+        "content" : {
+          "headline" : "Positive changes are visible",
+          "body" : "Analysis of the last 7 days of data shows your mood score steadily increasing.",
+          "text" : "Weekly Mood Pattern Analysis"
+        }
+      }
+    ],
+    "id" : "332A2000-CCC0-4B01-8B02-0B3EBA7152A0"
+  },
+  {
+    "anonymousUserId" : "DDECFDA1-34EE-4D10-9B8B-3DEFCE00C76D",
+    "isLiked" : false,
+    "createdAt" : "2025-12-25T11:30:07Z",
+    "cardType" : "prediction",
+    "actionProposals" : [
+      {
+        "title" : "Use Habit Tracking App",
+        "id" : "8759AC5C-B49F-4BE5-A254-188A831A97AB",
+        "description" : "Record and analyze your behavior patterns",
+        "actionType" : "habit",
+        "isAccepted" : false,
+        "targetDate" : "2025-12-26T11:30:07Z"
+      },
+      {
+        "title" : "Set Weekly Goals",
+        "id" : "9FDFB555-F4BA-4012-BA96-0D97CB2D09D1",
+        "description" : "Set specific goals for next week",
+        "actionType" : "reminder",
+        "isAccepted" : false,
+        "targetDate" : "2026-01-01T11:30:07Z"
+      },
+      {
+        "actionType" : "calendar",
+        "id" : "6AF46424-2A98-40DD-95B8-5792E3DC1FD3",
+        "title" : "Performance Review Time",
+        "description" : "Take time on weekends to review this week's achievements",
+        "targetDate" : "2025-12-31T11:30:07Z",
+        "isAccepted" : false,
+        "calendarEvent" : {
+          "title" : "Weekly Review",
+          "description" : "Review this week's performance and plan for next week",
+          "startDate" : "2025-12-31T11:30:07Z",
+          "notes" : "Performance review and goal setting",
+          "endDate" : "2025-12-31T12:30:07Z"
+        }
+      }
+    ],
+    "title" : "Behavior Pattern Prediction",
+    "acceptedActions" : [
+
+    ],
+    "subtitle" : "Next week behavior score expected at 0.78 with increased consistency",
+    "insightId" : "BA80B61F-2814-4412-81C7-BE3731D675CF",
+    "pages" : [
+      {
+        "pageNumber" : 1,
+        "content" : {
+          "headline" : "Stable upward trend",
+          "body" : "AI model predicts behavior scores will rise next week.",
+          "text" : "Behavior Pattern Prediction"
+        },
+        "contentType" : "graph",
+        "visualizations" : [
+          {
+            "data" : {
+              "points" : [
+                "0.65",
+                "0.68",
+                "0.72",
+                "0.75",
+                "0.78"
+              ]
+            },
+            "type" : "lineChart",
+            "chartType" : "line"
+          }
+        ],
+        "id" : "A4A69C1A-3CC7-4A7D-9825-3E273DCA8E3E"
+      }
+    ],
+    "id" : "492AED2A-7C96-439A-B6F3-B9C3F9E3A843"
+  },
+  {
+    "createdAt" : "2025-12-25T11:30:07Z",
+    "subtitle" : "Physical score is 0.70, exercise increase needed",
+    "pages" : [
+      {
+        "pageNumber" : 1,
+        "content" : {
+          "body" : "Current physical score is below target. Regular exercise is recommended.",
+          "text" : "Physical Health Control",
+          "headline" : "Exercise increase needed"
+        },
+        "id" : "6AA2DF56-0270-4C6C-B68D-29EB2B5DCA76",
+        "contentType" : "statistics",
+        "visualizations" : [
+          {
+            "type" : "gauge",
+            "data" : {
+              "current" : "0.70",
+              "target" : "0.85"
+            }
+          }
+        ]
+      }
+    ],
+    "acceptedActions" : [
+
+    ],
+    "anonymousUserId" : "DDECFDA1-34EE-4D10-9B8B-3DEFCE00C76D",
+    "id" : "EE2BF404-8BF7-4950-A5AE-97FB23972728",
+    "cardType" : "control",
+    "insightId" : "BA80B61F-2814-4412-81C7-BE3731D675CF",
+    "isLiked" : false,
+    "title" : "Physical Health Control",
+    "actionProposals" : [
+      {
+        "targetDate" : "2025-12-26T11:30:07Z",
+        "title" : "Gym Registration",
+        "description" : "Improve physical health with 3 gym visits per week",
+        "isAccepted" : false,
+        "calendarEvent" : {
+          "location" : "Gym",
+          "notes" : "45 minutes strength + 15 minutes cardio",
+          "title" : "Gym Workout",
+          "description" : "Strength training and cardio exercise",
+          "endDate" : "2025-12-26T12:30:07Z",
+          "startDate" : "2025-12-26T11:30:07Z"
+        },
+        "id" : "908A3D96-973B-4B62-B07C-EEC1D91A1772",
+        "actionType" : "calendar"
+      },
+      {
+        "title" : "Daily Step Goal",
+        "description" : "Set a goal of 10,000 steps per day",
+        "targetDate" : "2025-12-25T11:30:07Z",
+        "id" : "75A71313-2C93-4CBA-8742-631DEB7834DA",
+        "isAccepted" : false,
+        "actionType" : "reminder"
+      },
+      {
+        "title" : "Nutrition Supplement",
+        "description" : "Increase protein intake and maintain a healthy diet",
+        "targetDate" : "2025-12-27T11:30:07Z",
+        "id" : "FA17AA90-E287-4124-91FC-DC8B09B37BC9",
+        "isAccepted" : false,
+        "actionType" : "habit"
+      }
+    ]
+  },
+  {
+    "createdAt" : "2025-12-25T11:30:07Z",
+    "subtitle" : "Mood scores increase by 15% when sleep quality is good",
+    "pages" : [
+      {
+        "contentType" : "graph",
+        "content" : {
+          "text" : "Correlation Between Mood and Sleep",
+          "headline" : "Impact of Sleep on Mood",
+          "body" : "Data analysis shows a strong correlation between sleep quality and mood scores."
+        },
+        "visualizations" : [
+          {
+            "type" : "radarChart",
+            "data" : {
+              "mood_score" : "0.75",
+              "correlation" : "0.85",
+              "sleep_quality" : "0.8"
+            },
+            "chartType" : "radar"
+          }
+        ],
+        "id" : "FB2D7C83-EBEF-466B-850A-B51845460D59",
+        "pageNumber" : 1
+      }
+    ],
+    "acceptedActions" : [
+
+    ],
+    "anonymousUserId" : "DDECFDA1-34EE-4D10-9B8B-3DEFCE00C76D",
+    "id" : "1B3788C6-D81B-4813-BF15-A2BF53D58C36",
+    "cardType" : "correlation",
+    "insightId" : "BA80B61F-2814-4412-81C7-BE3731D675CF",
+    "isLiked" : false,
+    "title" : "Correlation Between Mood and Sleep",
+    "actionProposals" : [
+      {
+        "title" : "Create Bedtime Routine",
+        "description" : "Start bedtime preparation at the same time every day",
+        "alarm" : {
+          "time" : "2025-12-25T15:30:00Z",
+          "sound" : "gentle",
+          "title" : "Bedtime Preparation",
+          "repeatDays" : [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ]
+        },
+        "id" : "2B0FF012-5FC5-4A9E-9D18-583EA8D2F190",
+        "isAccepted" : false,
+        "actionType" : "alarm"
+      },
+      {
+        "title" : "Limit Caffeine Intake",
+        "description" : "Avoid caffeine after 2 PM",
+        "targetDate" : "2025-12-25T11:30:07Z",
+        "id" : "04FFE110-796F-4587-BBD6-0663A8673ADB",
+        "isAccepted" : false,
+        "actionType" : "reminder"
+      },
+      {
+        "title" : "Improve Sleep Environment",
+        "description" : "Make your room dark and quiet to improve sleep quality",
+        "targetDate" : "2025-12-26T11:30:07Z",
+        "id" : "B7DBC110-D8DA-40BE-8B1C-DB9EBA9BAE5C",
+        "isAccepted" : false,
+        "actionType" : "habit"
+      }
+    ]
+  },
+  {
+    "createdAt" : "2025-12-25T11:30:07Z",
+    "subtitle" : "This week total activity time was 25 hours, achieving 80% of goal",
+    "pages" : [
+      {
+        "contentType" : "statistics",
+        "content" : {
+          "headline" : "Good Performance",
+          "body" : "You achieved 80% of your weekly activity goal this week. Your consistent efforts are paying off.",
+          "text" : "Weekly Activity Summary"
+        },
+        "visualizations" : [
+          {
+            "chartType" : "bar",
+            "data" : {
+              "tue" : "3.5",
+              "fri" : "3",
+              "sun" : "2.5",
+              "thu" : "4.5",
+              "mon" : "4",
+              "sat" : "2.5",
+              "wed" : "5"
+            },
+            "type" : "barChart"
+          }
+        ],
+        "id" : "0A403037-FB58-455B-B3FD-C2A7AB7D47E9",
+        "pageNumber" : 1
+      }
+    ],
+    "acceptedActions" : [
+
+    ],
+    "anonymousUserId" : "DDECFDA1-34EE-4D10-9B8B-3DEFCE00C76D",
+    "id" : "14854C55-B2B4-481D-AF40-3E6B3886F111",
+    "cardType" : "explanation",
+    "insightId" : "BA80B61F-2814-4412-81C7-BE3731D675CF",
+    "isLiked" : false,
+    "title" : "Weekly Activity Summary",
+    "actionProposals" : [
+      {
+        "title" : "Increase Activity Time",
+        "description" : "Set next week goal to 30 hours",
+        "targetDate" : "2026-01-01T11:30:07Z",
+        "id" : "BB8EF1AC-D57B-4A88-8C86-F52EEDC8841B",
+        "isAccepted" : false,
+        "actionType" : "reminder"
+      },
+      {
+        "description" : "Take adequate rest time between activities",
+        "id" : "8B79A1C9-DF40-4EB9-8BF8-0FBE1AF01215",
+        "targetDate" : "2025-12-26T11:30:07Z",
+        "title" : "Ensure Rest Time",
+        "calendarEvent" : {
+          "startDate" : "2025-12-26T12:00:07Z",
+          "title" : "Rest Time",
+          "endDate" : "2025-12-26T12:30:07Z",
+          "notes" : "Meditation or light walk",
+          "description" : "Rest after activity"
+        },
+        "actionType" : "calendar",
+        "isAccepted" : false
+      },
+      {
+        "title" : "Share Achievements",
+        "description" : "Share this week's achievements with people around you",
+        "targetDate" : "2025-12-27T11:30:07Z",
+        "id" : "2154A378-7F80-4F5F-A16C-5D53E8FF0DF6",
+        "isAccepted" : false,
+        "actionType" : "habit"
+      }
+    ]
+  },
+  {
+    "createdAt" : "2025-12-25T11:30:07Z",
+    "subtitle" : "Health score expected to rise to 0.82 in 3 months",
+    "pages" : [
+      {
+        "contentType" : "graph",
+        "content" : {
+          "text" : "Future Health Prediction",
+          "body" : "If current trends continue, health scores will steadily increase.",
+          "headline" : "Positive Outlook"
+        },
+        "visualizations" : [
+          {
+            "type" : "lineChart",
+            "chartType" : "line",
+            "data" : {
+              "week3" : "0.76",
+              "week2" : "0.74",
+              "month3" : "0.82",
+              "month2" : "0.78",
+              "week1" : "0.72"
+            }
+          }
+        ],
+        "id" : "D5C650E7-64D0-4D64-A2F9-4D5587317382",
+        "pageNumber" : 1
+      }
+    ],
+    "acceptedActions" : [
+
+    ],
+    "anonymousUserId" : "DDECFDA1-34EE-4D10-9B8B-3DEFCE00C76D",
+    "id" : "BF336B37-A4CC-498B-AE9B-97709318953A",
+    "cardType" : "prediction",
+    "insightId" : "BA80B61F-2814-4412-81C7-BE3731D675CF",
+    "isLiked" : false,
+    "title" : "Future Health Prediction",
+    "actionProposals" : [
+      {
+        "id" : "08AF8C00-120E-4A5B-AEA2-3E673901AFE7",
+        "isAccepted" : false,
+        "description" : "Set specific health goals for 3 months from now",
+        "targetDate" : "2026-01-01T11:30:07Z",
+        "title" : "Set Long-term Goals",
+        "calendarEvent" : {
+          "title" : "Set Long-term Goals",
+          "endDate" : "2026-01-01T12:30:07Z",
+          "description" : "Establish 3-month health goals",
+          "startDate" : "2026-01-01T11:30:07Z",
+          "notes" : "Aim to achieve health score of 0.85"
+        },
+        "actionType" : "calendar"
+      },
+      {
+        "title" : "Regular Health Checkups",
+        "description" : "Get health checkups once every 3 months",
+        "targetDate" : "2026-03-25T11:30:07Z",
+        "id" : "6AEE498D-697D-4EA3-A33A-3D4C91F37F58",
+        "isAccepted" : false,
+        "actionType" : "reminder"
+      },
+      {
+        "title" : "Monitor Health Data",
+        "description" : "Regularly check and record health data",
+        "targetDate" : "2025-12-26T11:30:07Z",
+        "id" : "FBE98E25-5FDA-466A-865C-BCE762B7FE30",
+        "isAccepted" : false,
+        "actionType" : "habit"
+      }
+    ]
+  },
+  {
+    "createdAt" : "2025-12-25T11:30:07Z",
+    "subtitle" : "Stress index is 0.65, meditation and rest needed",
+    "pages" : [
+      {
+        "contentType" : "statistics",
+        "content" : {
+          "headline" : "Rest Needed",
+          "body" : "Current stress index is high. Find ways to relieve stress.",
+          "text" : "Stress Management"
+        },
+        "visualizations" : [
+          {
+            "data" : {
+              "current" : "0.65",
+              "target" : "0.4"
+            },
+            "type" : "gauge"
+          }
+        ],
+        "id" : "87CB284F-ECA8-4678-B65A-A82C3AA5A8E2",
+        "pageNumber" : 1
+      }
+    ],
+    "acceptedActions" : [
+
+    ],
+    "anonymousUserId" : "DDECFDA1-34EE-4D10-9B8B-3DEFCE00C76D",
+    "id" : "8C525668-20D7-4499-A4AC-7942B07996F9",
+    "cardType" : "control",
+    "insightId" : "BA80B61F-2814-4412-81C7-BE3731D675CF",
+    "isLiked" : false,
+    "title" : "Stress Management",
+    "actionProposals" : [
+      {
+        "title" : "Stress Relief Meditation",
+        "description" : "Practice 15 minutes of stress relief meditation daily",
+        "alarm" : {
+          "repeatDays" : [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "time" : "2025-12-25T13:00:00Z",
+          "title" : "Meditation Time",
+          "sound" : "calm"
+        },
+        "id" : "3986A1BE-1789-4F92-9CE5-84C280862AE7",
+        "isAccepted" : false,
+        "actionType" : "alarm"
+      },
+      {
+        "description" : "Reduce stress with 2 hobby activities per week",
+        "actionType" : "calendar",
+        "calendarEvent" : {
+          "endDate" : "2025-12-27T12:30:07Z",
+          "description" : "Hobby for stress relief",
+          "startDate" : "2025-12-27T11:30:07Z",
+          "title" : "Hobby Activity",
+          "notes" : "Drawing, listening to music, etc."
+        },
+        "isAccepted" : false,
+        "targetDate" : "2025-12-27T11:30:07Z",
+        "title" : "Hobby Activity Time",
+        "id" : "81F1422B-3B2E-4E57-AC42-992C7F596FA4"
+      },
+      {
+        "title" : "Forest Walk",
+        "description" : "Relieve stress by walking in nature",
+        "targetDate" : "2025-12-29T11:30:07Z",
+        "id" : "A42B8E8F-D9D7-4034-AB16-CCC47C5348A5",
+        "isAccepted" : false,
+        "actionType" : "reminder"
+      }
+    ]
+  }
+]

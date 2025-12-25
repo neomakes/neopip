@@ -1,0 +1,582 @@
+[
+  {
+    "totalDataPoints" : 1,
+    "behaviorCompleteness" : 0.7822653139358078,
+    "date" : "2025-12-24T11:30:07Z",
+    "notesByCategory" : {
+      "mind" : 0
+    },
+    "physicalScore" : 0.8100216176981618,
+    "mindCompleteness" : 0.7938759544075565,
+    "overallCompleteness" : 0.7626981827311984,
+    "overallScore" : 0.5968764720694764,
+    "accountId" : "1DA79DE8-54EB-4B7F-9F12-CE26EB0AFC49",
+    "behaviorScore" : 0.585720236792237,
+    "notesCount" : 1,
+    "dataSourceCounts" : {
+      "manual" : 1
+    },
+    "physicalCompleteness" : 0.5411376006063211,
+    "mindScore" : 0.3948875617180303
+  },
+  {
+    "totalDataPoints" : 1,
+    "behaviorCompleteness" : 0.6414563463528753,
+    "date" : "2025-12-23T11:30:07Z",
+    "notesByCategory" : {
+      "mind" : 0
+    },
+    "physicalScore" : 0.4193259425985274,
+    "mindCompleteness" : 0.8589004783892374,
+    "overallCompleteness" : 0.6420717996347628,
+    "overallScore" : 0.5127299105688984,
+    "accountId" : "1DA79DE8-54EB-4B7F-9F12-CE26EB0AFC49",
+    "behaviorScore" : 0.5072752965523152,
+    "notesCount" : 1,
+    "dataSourceCounts" : {
+      "manual" : 1
+    },
+    "physicalCompleteness" : 0.9138969862676498,
+    "mindScore" : 0.6115884925558525
+  },
+  {
+    "totalDataPoints" : 1,
+    "behaviorCompleteness" : 0.9329514250867361,
+    "date" : "2025-12-22T11:30:07Z",
+    "notesByCategory" : {
+      "mind" : 0
+    },
+    "physicalScore" : 0.5779520404102199,
+    "mindCompleteness" : 0.9051769060317505,
+    "overallCompleteness" : 0.6851681281211908,
+    "overallScore" : 0.43830430622736266,
+    "accountId" : "1DA79DE8-54EB-4B7F-9F12-CE26EB0AFC49",
+    "behaviorScore" : 0.4898843058746732,
+    "notesCount" : 1,
+    "dataSourceCounts" : {
+      "manual" : 1
+    },
+    "physicalCompleteness" : 0.7452531744363862,
+    "mindScore" : 0.24707657239719505
+  },
+  {
+    "totalDataPoints" : 1,
+    "behaviorCompleteness" : 0.8901677795819016,
+    "date" : "2025-12-21T11:30:07Z",
+    "notesByCategory" : {
+      "mind" : 0
+    },
+    "physicalScore" : 0.32117720671737976,
+    "mindCompleteness" : 0.7950318511872816,
+    "overallCompleteness" : 0.6707180242975467,
+    "overallScore" : 0.42966986284970937,
+    "accountId" : "1DA79DE8-54EB-4B7F-9F12-CE26EB0AFC49",
+    "behaviorScore" : 0.6481735580124088,
+    "notesCount" : 1,
+    "dataSourceCounts" : {
+      "manual" : 1
+    },
+    "physicalCompleteness" : 0.8606131588137981,
+    "mindScore" : 0.3196588238193395
+  },
+  {
+    "totalDataPoints" : 1,
+    "behaviorCompleteness" : 0.6679082767153356,
+    "date" : "2025-12-20T11:30:07Z",
+    "notesByCategory" : {
+      "mind" : 0
+    },
+    "physicalScore" : 0.5708138294610482,
+    "mindCompleteness" : 0.7297524984432778,
+    "overallCompleteness" : 0.9577952972275852,
+    "overallScore" : 0.5856777886338967,
+    "accountId" : "1DA79DE8-54EB-4B7F-9F12-CE26EB0AFC49",
+    "behaviorScore" : 0.6678333991876296,
+    "notesCount" : 1,
+    "dataSourceCounts" : {
+      "manual" : 1
+    },
+    "physicalCompleteness" : 0.9999516668358248,
+    "mindScore" : 0.5183861372530123
+  },
+  {
+    "totalDataPoints" : 1,
+    "behaviorCompleteness" : 0.6006519046327767,
+    "date" : "2025-12-19T11:30:07Z",
+    "notesByCategory" : {
+      "mind" : 0
+    },
+    "physicalScore" : 0.6879258231000811,
+    "mindCompleteness" : 0.8244650777385553,
+    "overallCompleteness" : 0.8778081669970774,
+    "overallScore" : 0.5403686422162542,
+    "accountId" : "1DA79DE8-54EB-4B7F-9F12-CE26EB0AFC49",
+    "behaviorScore" : 0.5180604844314721,
+    "notesCount" : 1,
+    "dataSourceCounts" : {
+      "manual" : 1
+    },
+    "physicalCompleteness" : 0.8117208494637171,
+    "mindScore" : 0.41511961911720946
+  },
+  {
+    "totalDataPoints" : 1,
+    "behaviorCompleteness" : 0.7881234751087862,
+    "date" : "2025-12-18T11:30:07Z",
+    "notesByCategory" : {
+      "mind" : 0
+    },
+    "physicalScore" : 0.4505304326067281,
+    "mindCompleteness" : 0.8068933541466496,
+    "overallCompleteness" : 0.6732830918106857,
+    "overallScore" : 0.570341647759333,
+    "accountId" : "1DA79DE8-54EB-4B7F-9F12-CE26EB0AFC49",
+    "behaviorScore" : 0.5900941305033378,
+    "notesCount" : 1,
+    "dataSourceCounts" : {
+      "manual" : 1
+    },
+    "physicalCompleteness" : 0.738741124254856,
+    "mindScore" : 0.6704003801679331
+  },
+  {
+    "totalDataPoints" : 1,
+    "behaviorCompleteness" : 0.7692957734521555,
+    "date" : "2025-12-17T11:30:07Z",
+    "notesByCategory" : {
+      "mind" : 0
+    },
+    "physicalScore" : 0.25347701323367,
+    "mindCompleteness" : 0.9439740034156456,
+    "overallCompleteness" : 0.9009762419902111,
+    "overallScore" : 0.49573046930942316,
+    "accountId" : "1DA79DE8-54EB-4B7F-9F12-CE26EB0AFC49",
+    "behaviorScore" : 0.5501619220791499,
+    "notesCount" : 1,
+    "dataSourceCounts" : {
+      "manual" : 1
+    },
+    "physicalCompleteness" : 0.9703219836657779,
+    "mindScore" : 0.6835524726154496
+  },
+  {
+    "totalDataPoints" : 1,
+    "behaviorCompleteness" : 0.9645435220422003,
+    "date" : "2025-12-16T11:30:07Z",
+    "notesByCategory" : {
+      "mind" : 0
+    },
+    "physicalScore" : 0.32584748222974513,
+    "mindCompleteness" : 0.8162169066704053,
+    "overallCompleteness" : 0.8129470572090819,
+    "overallScore" : 0.270155848671443,
+    "accountId" : "1DA79DE8-54EB-4B7F-9F12-CE26EB0AFC49",
+    "behaviorScore" : 0.22745227046366562,
+    "notesCount" : 1,
+    "dataSourceCounts" : {
+      "manual" : 1
+    },
+    "physicalCompleteness" : 0.8164398271708382,
+    "mindScore" : 0.2571677933209181
+  },
+  {
+    "totalDataPoints" : 1,
+    "behaviorCompleteness" : 0.7240672515150623,
+    "date" : "2025-12-15T11:30:07Z",
+    "notesByCategory" : {
+      "mind" : 0
+    },
+    "physicalScore" : 0.33422623922462935,
+    "mindCompleteness" : 0.9653438328425883,
+    "overallCompleteness" : 0.9883858011331574,
+    "overallScore" : 0.43651861193617153,
+    "accountId" : "1DA79DE8-54EB-4B7F-9F12-CE26EB0AFC49",
+    "behaviorScore" : 0.5763957425748492,
+    "notesCount" : 1,
+    "dataSourceCounts" : {
+      "manual" : 1
+    },
+    "physicalCompleteness" : 0.8987280231904615,
+    "mindScore" : 0.3989338540090362
+  },
+  {
+    "totalDataPoints" : 1,
+    "behaviorCompleteness" : 0.9096638156697108,
+    "date" : "2025-12-14T11:30:07Z",
+    "notesByCategory" : {
+      "mind" : 0
+    },
+    "physicalScore" : 0.26805865035612725,
+    "mindCompleteness" : 0.9003388177834012,
+    "overallCompleteness" : 0.8415380062848402,
+    "overallScore" : 0.4299054601605346,
+    "accountId" : "1DA79DE8-54EB-4B7F-9F12-CE26EB0AFC49",
+    "behaviorScore" : 0.5683122106113782,
+    "notesCount" : 1,
+    "dataSourceCounts" : {
+      "manual" : 1
+    },
+    "physicalCompleteness" : 0.625738650452941,
+    "mindScore" : 0.4533455195140984
+  },
+  {
+    "behaviorCompleteness" : 0.9667148083094451,
+    "totalDataPoints" : 1,
+    "date" : "2025-12-13T11:30:07Z",
+    "notesByCategory" : {
+      "mind" : 0
+    },
+    "physicalScore" : 0.7997759759253206,
+    "mindCompleteness" : 0.9089411760034574,
+    "overallScore" : 0.6936931601940214,
+    "overallCompleteness" : 0.7829607780216927,
+    "accountId" : "1DA79DE8-54EB-4B7F-9F12-CE26EB0AFC49",
+    "behaviorScore" : 0.5621258319068547,
+    "notesCount" : 1,
+    "dataSourceCounts" : {
+      "manual" : 1
+    },
+    "physicalCompleteness" : 0.5112101071063797,
+    "mindScore" : 0.7191776727498892
+  },
+  {
+    "behaviorCompleteness" : 0.6897504287519898,
+    "totalDataPoints" : 1,
+    "date" : "2025-12-12T11:30:07Z",
+    "notesByCategory" : {
+      "mind" : 0
+    },
+    "physicalScore" : 0.3877700153123526,
+    "mindCompleteness" : 0.9585227114218087,
+    "overallScore" : 0.6350164502594395,
+    "overallCompleteness" : 0.6271053719935463,
+    "accountId" : "1DA79DE8-54EB-4B7F-9F12-CE26EB0AFC49",
+    "behaviorScore" : 0.710872848692677,
+    "notesCount" : 1,
+    "dataSourceCounts" : {
+      "manual" : 1
+    },
+    "physicalCompleteness" : 0.8765645265428035,
+    "mindScore" : 0.8064064867732889
+  },
+  {
+    "behaviorCompleteness" : 0.8074111831493038,
+    "totalDataPoints" : 1,
+    "date" : "2025-12-11T11:30:07Z",
+    "notesByCategory" : {
+      "mind" : 0
+    },
+    "physicalScore" : 0.37767203574703884,
+    "mindCompleteness" : 0.8051246648387163,
+    "overallScore" : 0.48757247631513584,
+    "overallCompleteness" : 0.9390047538503564,
+    "accountId" : "1DA79DE8-54EB-4B7F-9F12-CE26EB0AFC49",
+    "behaviorScore" : 0.7262174058196657,
+    "notesCount" : 1,
+    "dataSourceCounts" : {
+      "manual" : 1
+    },
+    "physicalCompleteness" : 0.6931637612035192,
+    "mindScore" : 0.35882798737870303
+  },
+  {
+    "behaviorCompleteness" : 0.7446338329339747,
+    "totalDataPoints" : 1,
+    "date" : "2025-12-10T11:30:07Z",
+    "notesByCategory" : {
+      "mind" : 0
+    },
+    "physicalScore" : 0.42150793168071066,
+    "mindCompleteness" : 0.7245104342632168,
+    "overallScore" : 0.5262927360987817,
+    "overallCompleteness" : 0.824637586666762,
+    "accountId" : "1DA79DE8-54EB-4B7F-9F12-CE26EB0AFC49",
+    "behaviorScore" : 0.5969981874170154,
+    "notesCount" : 1,
+    "dataSourceCounts" : {
+      "manual" : 1
+    },
+    "physicalCompleteness" : 0.6383416550703425,
+    "mindScore" : 0.560372089198619
+  },
+  {
+    "behaviorCompleteness" : 0.9641803489208041,
+    "totalDataPoints" : 1,
+    "date" : "2025-12-09T11:30:07Z",
+    "notesByCategory" : {
+      "mind" : 0
+    },
+    "physicalScore" : 0.5966137474497573,
+    "mindCompleteness" : 0.813114787796078,
+    "overallScore" : 0.5487985098177188,
+    "overallCompleteness" : 0.713706346574472,
+    "accountId" : "1DA79DE8-54EB-4B7F-9F12-CE26EB0AFC49",
+    "behaviorScore" : 0.5629967860708025,
+    "notesCount" : 1,
+    "dataSourceCounts" : {
+      "manual" : 1
+    },
+    "physicalCompleteness" : 0.6285939198400382,
+    "mindScore" : 0.48678499593259666
+  },
+  {
+    "behaviorCompleteness" : 0.9781320144244037,
+    "totalDataPoints" : 1,
+    "date" : "2025-12-08T11:30:07Z",
+    "notesByCategory" : {
+      "mind" : 0
+    },
+    "physicalScore" : 0.1691606015970581,
+    "mindCompleteness" : 0.7115004118301915,
+    "overallScore" : 0.45073332178237385,
+    "overallCompleteness" : 0.8043551572144962,
+    "accountId" : "1DA79DE8-54EB-4B7F-9F12-CE26EB0AFC49",
+    "behaviorScore" : 0.5809367797519542,
+    "notesCount" : 1,
+    "dataSourceCounts" : {
+      "manual" : 1
+    },
+    "physicalCompleteness" : 0.5377436984527306,
+    "mindScore" : 0.6021025839981091
+  },
+  {
+    "behaviorCompleteness" : 0.9773905732386212,
+    "totalDataPoints" : 1,
+    "date" : "2025-12-07T11:30:07Z",
+    "notesByCategory" : {
+      "mind" : 0
+    },
+    "physicalScore" : 0.30295234753552414,
+    "mindCompleteness" : 0.7730217196071778,
+    "overallScore" : 0.3609690609218876,
+    "overallCompleteness" : 0.9675808064075738,
+    "accountId" : "1DA79DE8-54EB-4B7F-9F12-CE26EB0AFC49",
+    "behaviorScore" : 0.46226905287948333,
+    "notesCount" : 1,
+    "dataSourceCounts" : {
+      "manual" : 1
+    },
+    "physicalCompleteness" : 0.6139282869688439,
+    "mindScore" : 0.31768578235065537
+  },
+  {
+    "behaviorCompleteness" : 0.637909805438435,
+    "totalDataPoints" : 1,
+    "date" : "2025-12-06T11:30:07Z",
+    "notesByCategory" : {
+      "mind" : 0
+    },
+    "physicalScore" : 0.5210764292728964,
+    "mindCompleteness" : 0.7218200075822524,
+    "overallScore" : 0.5513024911431984,
+    "overallCompleteness" : 0.8054411305190197,
+    "accountId" : "1DA79DE8-54EB-4B7F-9F12-CE26EB0AFC49",
+    "behaviorScore" : 0.584625533854714,
+    "notesCount" : 1,
+    "dataSourceCounts" : {
+      "manual" : 1
+    },
+    "physicalCompleteness" : 0.9960743703797856,
+    "mindScore" : 0.5482055103019846
+  },
+  {
+    "behaviorCompleteness" : 0.7646537869211133,
+    "totalDataPoints" : 1,
+    "date" : "2025-12-05T11:30:07Z",
+    "notesByCategory" : {
+      "mind" : 0
+    },
+    "physicalScore" : 0.3261474783423227,
+    "mindCompleteness" : 0.8599351520626244,
+    "overallScore" : 0.4811547278920673,
+    "overallCompleteness" : 0.9020051680360563,
+    "accountId" : "1DA79DE8-54EB-4B7F-9F12-CE26EB0AFC49",
+    "behaviorScore" : 0.6476203564409704,
+    "notesCount" : 1,
+    "dataSourceCounts" : {
+      "manual" : 1
+    },
+    "physicalCompleteness" : 0.8781813169252272,
+    "mindScore" : 0.46969634889290873
+  },
+  {
+    "behaviorCompleteness" : 0.7841669319067553,
+    "totalDataPoints" : 1,
+    "date" : "2025-12-04T11:30:07Z",
+    "notesByCategory" : {
+      "mind" : 0
+    },
+    "physicalScore" : 0.5339012053395911,
+    "mindCompleteness" : 0.724773249520799,
+    "overallScore" : 0.5174050076822273,
+    "overallCompleteness" : 0.6171989682842672,
+    "accountId" : "1DA79DE8-54EB-4B7F-9F12-CE26EB0AFC49",
+    "behaviorScore" : 0.4467743912366251,
+    "notesCount" : 1,
+    "dataSourceCounts" : {
+      "manual" : 1
+    },
+    "physicalCompleteness" : 0.6749839824785501,
+    "mindScore" : 0.5715394264704657
+  },
+  {
+    "behaviorCompleteness" : 0.8422154856927139,
+    "mindScore" : 0.8154836944246493,
+    "date" : "2025-12-03T11:30:07Z",
+    "notesByCategory" : {
+      "mind" : 0
+    },
+    "mindCompleteness" : 0.8041518393560414,
+    "physicalScore" : 0.78336073513057,
+    "overallCompleteness" : 0.7622374598491707,
+    "accountId" : "1DA79DE8-54EB-4B7F-9F12-CE26EB0AFC49",
+    "overallScore" : 0.7804978077178027,
+    "behaviorScore" : 0.7426489935981888,
+    "notesCount" : 1,
+    "dataSourceCounts" : {
+      "manual" : 1
+    },
+    "physicalCompleteness" : 0.9553542824806219,
+    "totalDataPoints" : 1
+  },
+  {
+    "behaviorCompleteness" : 0.6299970504981772,
+    "mindScore" : 0.6919556752953757,
+    "date" : "2025-12-02T11:30:07Z",
+    "notesByCategory" : {
+      "mind" : 0
+    },
+    "mindCompleteness" : 0.8293730226399298,
+    "physicalScore" : 0.776126239619702,
+    "overallCompleteness" : 0.8320833134649638,
+    "accountId" : "1DA79DE8-54EB-4B7F-9F12-CE26EB0AFC49",
+    "overallScore" : 0.6876147881438284,
+    "behaviorScore" : 0.5947624495164074,
+    "notesCount" : 1,
+    "dataSourceCounts" : {
+      "manual" : 1
+    },
+    "physicalCompleteness" : 0.9626076014569869,
+    "totalDataPoints" : 1
+  },
+  {
+    "behaviorCompleteness" : 0.8859575369795454,
+    "mindScore" : 0.6115996363320362,
+    "date" : "2025-12-01T11:30:07Z",
+    "notesByCategory" : {
+      "mind" : 0
+    },
+    "mindCompleteness" : 0.7851975973406414,
+    "physicalScore" : 0.6516710283337841,
+    "overallCompleteness" : 0.6588964204026494,
+    "accountId" : "1DA79DE8-54EB-4B7F-9F12-CE26EB0AFC49",
+    "overallScore" : 0.5678782839427096,
+    "behaviorScore" : 0.44036418716230846,
+    "notesCount" : 1,
+    "dataSourceCounts" : {
+      "manual" : 1
+    },
+    "physicalCompleteness" : 0.5962891546235989,
+    "totalDataPoints" : 1
+  },
+  {
+    "behaviorCompleteness" : 0.9385755516206564,
+    "mindScore" : 0.38789172371736796,
+    "date" : "2025-11-30T11:30:07Z",
+    "notesByCategory" : {
+      "mind" : 0
+    },
+    "mindCompleteness" : 0.8622423384267632,
+    "physicalScore" : 0.4276564179444131,
+    "overallCompleteness" : 0.8092947192742842,
+    "accountId" : "1DA79DE8-54EB-4B7F-9F12-CE26EB0AFC49",
+    "overallScore" : 0.4100183147676893,
+    "behaviorScore" : 0.4145068026412869,
+    "notesCount" : 1,
+    "dataSourceCounts" : {
+      "manual" : 1
+    },
+    "physicalCompleteness" : 0.5629652939182258,
+    "totalDataPoints" : 1
+  },
+  {
+    "behaviorCompleteness" : 0.6866594295343168,
+    "mindScore" : 0.7133466293074577,
+    "date" : "2025-11-29T11:30:07Z",
+    "notesByCategory" : {
+      "mind" : 0
+    },
+    "mindCompleteness" : 0.921272071873074,
+    "physicalScore" : 0.25347001061507113,
+    "overallCompleteness" : 0.8298943829004277,
+    "accountId" : "1DA79DE8-54EB-4B7F-9F12-CE26EB0AFC49",
+    "overallScore" : 0.49326597932613386,
+    "behaviorScore" : 0.5129812980558729,
+    "notesCount" : 1,
+    "dataSourceCounts" : {
+      "manual" : 1
+    },
+    "physicalCompleteness" : 0.9650045672430101,
+    "totalDataPoints" : 1
+  },
+  {
+    "behaviorCompleteness" : 0.6457218480481808,
+    "mindScore" : 0.7217811936003281,
+    "date" : "2025-11-28T11:30:07Z",
+    "notesByCategory" : {
+      "mind" : 0
+    },
+    "mindCompleteness" : 0.8293188643231418,
+    "physicalScore" : 0.46354410449753247,
+    "overallCompleteness" : 0.87700900996259,
+    "accountId" : "1DA79DE8-54EB-4B7F-9F12-CE26EB0AFC49",
+    "overallScore" : 0.5894506332259634,
+    "behaviorScore" : 0.5830266015800293,
+    "notesCount" : 1,
+    "dataSourceCounts" : {
+      "manual" : 1
+    },
+    "physicalCompleteness" : 0.7536101322730651,
+    "totalDataPoints" : 1
+  },
+  {
+    "behaviorCompleteness" : 0.9230866247103077,
+    "mindScore" : 0.7023933270614114,
+    "date" : "2025-11-27T11:30:07Z",
+    "notesByCategory" : {
+      "mind" : 0
+    },
+    "mindCompleteness" : 0.7239607987720034,
+    "physicalScore" : 0.4966327780132217,
+    "overallCompleteness" : 0.9778365064301263,
+    "accountId" : "1DA79DE8-54EB-4B7F-9F12-CE26EB0AFC49",
+    "overallScore" : 0.5832328069662297,
+    "behaviorScore" : 0.5506723158240562,
+    "notesCount" : 1,
+    "dataSourceCounts" : {
+      "manual" : 1
+    },
+    "physicalCompleteness" : 0.7355153499541158,
+    "totalDataPoints" : 1
+  },
+  {
+    "behaviorCompleteness" : 0.6653276681262279,
+    "mindScore" : 0.4652288872383294,
+    "date" : "2025-11-26T11:30:07Z",
+    "notesByCategory" : {
+      "mind" : 0
+    },
+    "mindCompleteness" : 0.7424368690037257,
+    "physicalScore" : 0.45507759102070644,
+    "overallCompleteness" : 0.6638288634763426,
+    "accountId" : "1DA79DE8-54EB-4B7F-9F12-CE26EB0AFC49",
+    "overallScore" : 0.44362419654598123,
+    "behaviorScore" : 0.41056611137890764,
+    "notesCount" : 1,
+    "dataSourceCounts" : {
+      "manual" : 1
+    },
+    "physicalCompleteness" : 0.9709353513959736,
+    "totalDataPoints" : 1
+  }
+]

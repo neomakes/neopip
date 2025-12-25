@@ -13,6 +13,53 @@ import Combine
 class MockDataService: DataServiceProtocol {
     static let shared = MockDataService()
     
+    // MARK: - File Management
+    private let fileManager = FileManager.default
+    private lazy var mockDataDirectory: URL = {
+        // 프로젝트 루트의 MockData 폴더 사용
+        let projectRoot = URL(fileURLWithPath: #file)
+            .deletingLastPathComponent() // Services
+            .deletingLastPathComponent() // PIP_Project
+            .deletingLastPathComponent() // PIP_Project
+        return projectRoot.appendingPathComponent("MockData")
+    }()
+    
+    // MARK: - JSON File Names (Subdirectory Structure)
+    private enum FileName {
+        // Insight 페이지 데이터
+        static let analysisCards = "Insight/analysisCards.json"
+        
+        // Home 페이지 데이터
+        static let dailyGems = "Home/dailyGems.json"
+        static let userStats = "Home/userStats.json"
+        
+        // Status 페이지 데이터
+        static let userProfile = "Status/userProfile.json"
+        static let achievements = "Status/achievements.json"
+        static let valueAnalysis = "Status/valueAnalysis.json"
+        
+        // Write 페이지 데이터
+        static let dataTypeSchemas = "Write/dataTypeSchemas.json"
+        
+        // 공통 데이터
+        static let timeSeriesData = "Common/timeSeriesData.json"
+        static let dailyStats = "Common/dailyStats.json"
+    }
+    
+    // MARK: - JSON Encoder/Decoder
+    private let jsonEncoder: JSONEncoder = {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        encoder.outputFormatting = .prettyPrinted
+        return encoder
+    }()
+    
+    private let jsonDecoder: JSONDecoder = {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return decoder
+    }()
+    
     // MARK: - Mock Data Storage
     private var mockDataPoints: [TimeSeriesDataPoint] = []
     private var mockDailyGems: [DailyGem] = []
@@ -33,13 +80,95 @@ class MockDataService: DataServiceProtocol {
     private let mockAnonymousUserId = UUID()
     
     private init() {
-        if let savedCards = loadAnalysisCards() {
-            mockAnalysisCards = savedCards
+        setupDataDirectory()
+        loadAllData()
+    }
+    
+    // MARK: - File Management Helpers
+    private func setupDataDirectory() {
+        do {
+            try fileManager.createDirectory(at: mockDataDirectory, withIntermediateDirectories: true, attributes: nil)
+        } catch {
+            print("Failed to create mock data directory: \(error)")
+        }
+    }
+    
+    private func fileURL(for fileName: String) -> URL {
+        let fileURL = mockDataDirectory.appendingPathComponent(fileName)
+        
+        // 서브디렉토리가 있는 경우 디렉토리 생성
+        let directoryURL = fileURL.deletingLastPathComponent()
+        if directoryURL != mockDataDirectory {
+            do {
+                try fileManager.createDirectory(at: directoryURL, withIntermediateDirectories: true, attributes: nil)
+            } catch {
+                print("Failed to create subdirectory: \(error)")
+            }
+        }
+        
+        return fileURL
+    }
+    
+    private func saveJSON<T: Encodable>(_ object: T, to fileName: String) {
+        let fileURL = fileURL(for: fileName)
+        do {
+            let data = try jsonEncoder.encode(object)
+            try data.write(to: fileURL, options: .atomic)
+            print("✅ Saved \(fileName)")
+        } catch {
+            print("❌ Failed to save \(fileName): \(error)")
+        }
+    }
+    
+    private func loadJSON<T: Decodable>(_ type: T.Type, from fileName: String) -> T? {
+        let fileURL = fileURL(for: fileName)
+        do {
+            let data = try Data(contentsOf: fileURL)
+            let object = try jsonDecoder.decode(type, from: data)
+            print("✅ Loaded \(fileName)")
+            return object
+        } catch {
+            print("❌ Failed to load \(fileName): \(error)")
+            return nil
+        }
+    }
+    
+    private func loadAllData() {
+        // Load data type schemas first
+        if let schemas = loadJSON([DataTypeSchema].self, from: FileName.dataTypeSchemas) {
+            dataTypeSchemas = schemas
         } else {
             initializeDataTypeSchemas()
-            generateMockData()
-            saveAnalysisCards()
+            saveJSON(dataTypeSchemas, to: FileName.dataTypeSchemas)
         }
+        
+        // Load mock data
+        mockAnalysisCards = loadJSON([InsightAnalysisCard].self, from: FileName.analysisCards) ?? []
+        mockUserStats = loadJSON(UserStats.self, from: FileName.userStats)
+        mockUserProfile = loadJSON(UserProfile.self, from: FileName.userProfile)
+        mockAchievements = loadJSON([Achievement].self, from: FileName.achievements) ?? []
+        mockValueAnalysis = loadJSON(ValueAnalysis.self, from: FileName.valueAnalysis)
+        mockDailyGems = loadJSON([DailyGem].self, from: FileName.dailyGems) ?? []
+        mockDataPoints = loadJSON([TimeSeriesDataPoint].self, from: FileName.timeSeriesData) ?? []
+        mockDailyStats = loadJSON([DailyStats].self, from: FileName.dailyStats) ?? []
+        
+        // Generate missing data
+        if mockAnalysisCards.isEmpty || mockUserStats == nil || mockUserProfile == nil {
+            generateMockData()
+            saveAllData()
+        }
+    }
+    
+    private func saveAllData() {
+        saveJSON(mockAnalysisCards, to: FileName.analysisCards)
+        if let stats = mockUserStats { saveJSON(stats, to: FileName.userStats) }
+        if let profile = mockUserProfile { saveJSON(profile, to: FileName.userProfile) }
+        saveJSON(mockAchievements, to: FileName.achievements)
+        if let analysis = mockValueAnalysis { saveJSON(analysis, to: FileName.valueAnalysis) }
+        saveJSON(mockDailyGems, to: FileName.dailyGems)
+        saveJSON(mockDataPoints, to: FileName.timeSeriesData)
+        saveJSON(mockDailyStats, to: FileName.dailyStats)
+        saveJSON(dataTypeSchemas, to: FileName.dataTypeSchemas)
     }
     
     // MARK: - Data Type Schema Initialization
@@ -683,6 +812,9 @@ class MockDataService: DataServiceProtocol {
             mockDataPoints.append(dataPoint)
         }
         
+        // Save to file
+        saveJSON(mockDataPoints, to: FileName.timeSeriesData)
+        
         return Just(dataPoint)
             .setFailureType(to: Error.self)
             .eraseToAnyPublisher()
@@ -690,6 +822,10 @@ class MockDataService: DataServiceProtocol {
     
     func deleteDataPoint(_ id: UUID) -> AnyPublisher<Void, Error> {
         mockDataPoints.removeAll { $0.id == id }
+        
+        // Save to file
+        saveJSON(mockDataPoints, to: FileName.timeSeriesData)
+        
         return Just(())
             .setFailureType(to: Error.self)
             .eraseToAnyPublisher()
@@ -724,6 +860,9 @@ class MockDataService: DataServiceProtocol {
         } else {
             mockDailyGems.append(gem)
         }
+        
+        // Save to file
+        saveJSON(mockDailyGems, to: FileName.dailyGems)
         
         return Just(gem)
             .setFailureType(to: Error.self)
@@ -809,6 +948,9 @@ class MockDataService: DataServiceProtocol {
         } else {
             mockDataPoints.append(updatedDataPoint)
         }
+        
+        // Save to file
+        saveJSON(mockDataPoints, to: FileName.timeSeriesData)
     }
     
     // MARK: - Analysis Cards
@@ -1348,13 +1490,56 @@ class MockDataService: DataServiceProtocol {
     
     // MARK: - Persistence
     private func loadAnalysisCards() -> [InsightAnalysisCard]? {
-        guard let data = UserDefaults.standard.data(forKey: "mockAnalysisCards") else { return nil }
-        return try? JSONDecoder().decode([InsightAnalysisCard].self, from: data)
+        return loadJSON([InsightAnalysisCard].self, from: FileName.analysisCards)
     }
     
     private func saveAnalysisCards() {
-        if let data = try? JSONEncoder().encode(mockAnalysisCards) {
-            UserDefaults.standard.set(data, forKey: "mockAnalysisCards")
+        saveJSON(mockAnalysisCards, to: FileName.analysisCards)
+    }
+    
+    private func loadUserStats() -> UserStats? {
+        return loadJSON(UserStats.self, from: FileName.userStats)
+    }
+    
+    private func saveUserStats() {
+        if let stats = mockUserStats {
+            saveJSON(stats, to: FileName.userStats)
         }
+    }
+    
+    private func loadUserProfile() -> UserProfile? {
+        return loadJSON(UserProfile.self, from: FileName.userProfile)
+    }
+    
+    private func saveUserProfile() {
+        if let profile = mockUserProfile {
+            saveJSON(profile, to: FileName.userProfile)
+        }
+    }
+    
+    private func loadAchievements() -> [Achievement]? {
+        return loadJSON([Achievement].self, from: FileName.achievements)
+    }
+    
+    private func saveAchievements() {
+        saveJSON(mockAchievements, to: FileName.achievements)
+    }
+    
+    private func loadValueAnalysis() -> ValueAnalysis? {
+        return loadJSON(ValueAnalysis.self, from: FileName.valueAnalysis)
+    }
+    
+    private func saveValueAnalysis() {
+        if let analysis = mockValueAnalysis {
+            saveJSON(analysis, to: FileName.valueAnalysis)
+        }
+    }
+    
+    private func loadDailyGems() -> [DailyGem]? {
+        return loadJSON([DailyGem].self, from: FileName.dailyGems)
+    }
+    
+    private func saveDailyGems() {
+        saveJSON(mockDailyGems, to: FileName.dailyGems)
     }
 }

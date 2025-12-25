@@ -1,0 +1,72 @@
+{
+  "topValues" : [
+    {
+      "description" : "Physical and mental wellbeing",
+      "trend" : "increasing",
+      "name" : "Health",
+      "id" : "6F801C04-FD0B-45BF-9618-8172518102A3",
+      "score" : 0.85
+    },
+    {
+      "description" : "Personal development",
+      "trend" : "increasing",
+      "name" : "Growth",
+      "id" : "F76CEBCB-1CAD-4365-BF96-6190744EF93D",
+      "score" : 0.72
+    },
+    {
+      "description" : "Relationships and community",
+      "trend" : "stable",
+      "name" : "Connection",
+      "id" : "981B667F-55FF-46C5-B6C9-285B2E595D47",
+      "score" : 0.68
+    },
+    {
+      "description" : "Goals and accomplishments",
+      "trend" : "increasing",
+      "name" : "Achievement",
+      "id" : "646CAE3E-C5B8-4320-810E-378F8F763172",
+      "score" : 0.78
+    },
+    {
+      "description" : "Work-life harmony",
+      "trend" : "stable",
+      "name" : "Balance",
+      "id" : "43072F26-DB34-43FD-8268-39E5DC6602E6",
+      "score" : 0.65
+    },
+    {
+      "description" : "Self-expression and innovation",
+      "trend" : "increasing",
+      "name" : "Creativity",
+      "id" : "4246C7BC-8E29-45DF-AFD3-910E57F42A4C",
+      "score" : 0.7
+    }
+  ],
+  "analysisDate" : "2025-12-25T11:30:07Z",
+  "comparisonData" : {
+    "userPercentile" : 75.5,
+    "averageScore" : 0.68,
+    "uniqueAspects" : [
+      "Strong focus on health and wellbeing",
+      "Consistent growth mindset",
+      "Values balance in life"
+    ]
+  },
+  "accountId" : "1DA79DE8-54EB-4B7F-9F12-CE26EB0AFC49",
+  "insights" : [
+    "You prioritize health more than average users",
+    "Your value scores are well-balanced across all dimensions",
+    "Growth is increasingly important to you"
+  ],
+  "createdAt" : "2025-12-25T11:30:07Z",
+  "id" : "A8379554-ED72-49EE-B0D4-F192801240FD",
+  "valueDistribution" : {
+    "balance" : 0.65,
+    "health" : 0.85,
+    "achievement" : 0.78,
+    "connection" : 0.68,
+    "creativity" : 0.7,
+    "growth" : 0.72
+  }
+}
