@@ -193,9 +193,9 @@ struct GemSlot: View {
         )
     }
     
-    // 좌우 위치 오프셋 계산 (오늘 젬 제외)
+    // 좌우 위치 오프셋 계산 (오늘 젬 제외 - 오늘은 중앙 고정)
     private func horizontalOffset(for normalizedY: CGFloat) -> CGFloat {
-        guard index < totalCount - 1 else { return 0 }  // Today는 중앙 고정
+        guard index < totalCount - 1 else { return 0 }  // Today는 중앙 고정 ✨
         
         // 도형의 닮음을 고려한 좌우 퍼짐 (간격 더 벌림)
         // normalizedY가 1에 가까울수록 더 넓게 퍼짐

@@ -63,6 +63,7 @@ class HomeViewModel: ObservableObject {
     
     /// 초기 데이터 로드 (최근 30일)
     func loadInitialData() {
+        print("📥 [HomeViewModel] loadInitialData() called")
         isLoading = true
         errorMessage = nil
         
@@ -73,6 +74,10 @@ class HomeViewModel: ObservableObject {
             return
         }
         
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        print("📥 [HomeViewModel] Fetching daily gems from \(formatter.string(from: startDate)) to \(formatter.string(from: endDate))")
+        
         // DailyGems 로드
         dataService.fetchDailyGems(from: startDate, to: endDate)
             .receive(on: DispatchQueue.main)
@@ -81,9 +86,11 @@ class HomeViewModel: ObservableObject {
                     self?.isLoading = false
                     if case .failure(let error) = completion {
                         self?.errorMessage = error.localizedDescription
+                        print("❌ [HomeViewModel] Error fetching gems: \(error.localizedDescription)")
                     }
                 },
                 receiveValue: { [weak self] gems in
+                    print("✅ [HomeViewModel] Received \(gems.count) daily gems")
                     self?.dailyGems = gems
                     self?.updateLast7Days()
                 }
@@ -144,6 +151,12 @@ class HomeViewModel: ObservableObject {
         
         var gemRecords: [GemRecord] = []
         
+        print("📅 [HomeViewModel.updateLast7Days] Processing dailyGems: \(dailyGems.count) total gems")
+        print("📅 [HomeViewModel.updateLast7Days] Today's date: \(today)")
+        
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        
         // 과거 6일 + 오늘 = 7일
         for i in (0...6).reversed() {
             let date = calendar.date(byAdding: .day, value: -i, to: today) ?? Date()
@@ -153,23 +166,45 @@ class HomeViewModel: ObservableObject {
                 calendar.isDate(gem.date, inSameDayAs: date)
             }
             
-            // GemRecord 생성 (기록 순서대로 gemIndex 설정)
+            let dateStr = formatter.string(from: date)
             let gemIndex = 7 - i  // 오늘: 7, 1일전: 6, 2일전: 5, ..., 6일전: 1 ✨
-            let isCompleted = dailyGem != nil  // DailyGem이 존재하면 완성된 것으로 간주
             
-            let gemRecord = GemRecord(
-                id: UUID(),
-                date: date,
-                gemIndex: gemIndex,
-                isCompleted: isCompleted,
-                dataPointIds: []
-            )
-            
-            gemRecords.append(gemRecord)
+            // 오늘(i=0)은 데이터 유무 상관없이 항상 생성
+            // 과거(i>0)는 데이터가 있을 때만 생성
+            if i == 0 {
+                // 오늘: 무조건 생성 (데이터 유무에 따라 isCompleted 결정)
+                let isCompleted = dailyGem != nil
+                let gemRecord = GemRecord(
+                    id: UUID(),
+                    date: date,
+                    gemIndex: gemIndex,
+                    isCompleted: isCompleted,
+                    dataPointIds: dailyGem?.dataPointIds ?? []
+                )
+                gemRecords.append(gemRecord)
+                print("📅 [HomeViewModel.updateLast7Days] \(dateStr): Today's gem created (isCompleted=\(isCompleted))")
+            } else if let dailyGem = dailyGem {
+                // 과거: 데이터가 있을 때만 생성
+                let gemRecord = GemRecord(
+                    id: UUID(),
+                    date: date,
+                    gemIndex: gemIndex,
+                    isCompleted: true,
+                    dataPointIds: dailyGem.dataPointIds
+                )
+                gemRecords.append(gemRecord)
+                print("📅 [HomeViewModel.updateLast7Days] \(dateStr): Created gem with \(dailyGem.dataPointIds.count) dataPoints")
+            } else {
+                print("📅 [HomeViewModel.updateLast7Days] \(dateStr): No data, skipping")
+            }
         }
         
         self.last7Days = gemRecords
+        print("✅ [HomeViewModel.updateLast7Days] Updated last7Days: \(gemRecords.count) records")
+        print("🔥 [HomeViewModel] Current streak: \(currentStreak)")
     }
+
+
     
     /// 특정 날짜의 데이터 포인트 가져오기
     func fetchDataPoints(for date: Date) -> AnyPublisher<[TimeSeriesDataPoint], Error> {

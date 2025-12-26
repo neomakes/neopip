@@ -1,5 +1,4 @@
 import SwiftUI
-import UIKit
 
 struct InsightStoryView: View {
     @StateObject private var viewModel: InsightStoryViewModel
@@ -48,6 +47,10 @@ struct InsightStoryView: View {
             // Base gradient background (matching AnalysisCard design)
             GradientUtils.createCardGradient(themeColor: cardColor)
                 .ignoresSafeArea()
+                .onAppear {
+                    print("🎬 [InsightStoryView] View appeared - cardType: \(cardType)")
+                    print("📊 [InsightStoryView] viewModel state - isLoading: \(viewModel.isLoading), story: \(viewModel.insightStory?.title ?? "nil")")
+                }
             
             // Neon glow effect
             VStack {

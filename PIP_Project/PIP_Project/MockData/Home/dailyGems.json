@@ -1,27 +1,14 @@
 [
   {
-    "uncertainty": 0.25,
-    "accountId": "1DA79DE8-54EB-4B7F-9F12-CE26EB0AFC49",
-    "colorTheme": "tiger",
-    "id": "7b236870-d3d2-4d69-90ae-4f2a7140b858",
-    "gemType": "diamond",
-    "dataPointIds": [
-      "bca09abc-c3fa-4cd4-b6cd-f677eec92acb"
-    ],
-    "brightness": 0.8,
-    "createdAt": "2025-12-26T11:30:07Z",
-    "date": "2025-12-26T11:30:07Z"
-  },
-  {
-    "uncertainty": 0.28,
+    "uncertainty": 0.32794959050395167,
     "accountId": "1DA79DE8-54EB-4B7F-9F12-CE26EB0AFC49",
     "colorTheme": "teal",
-    "id": "a6e015ee-7391-4d96-ab6b-3aa68c1435a5",
-    "gemType": "sphere",
+    "id": "1B2E3F4A-5B6C-7D8E-9F0A-1B2C3D4E5F6G",
+    "gemType": "diamond",
     "dataPointIds": [
-      "d24b08a6-d73f-4e1c-988b-0abc2885e37c"
+      "4F879CD2-F3A2-4C00-B03C-B587016DB3D2"
     ],
-    "brightness": 0.75,
+    "brightness": 0.7504365260942063,
     "createdAt": "2025-12-25T11:30:07Z",
     "date": "2025-12-25T11:30:07Z"
   },

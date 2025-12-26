@@ -38,6 +38,16 @@ struct GemDetailView: View {
                         .foregroundColor(.white)
                         .padding()
                     Spacer()
+                } else if radarDataSets.isEmpty {
+                    Spacer()
+                    VStack(spacing: 16) {
+                        Image(systemName: "exclamationmark.circle")
+                            .font(.system(size: 48))
+                            .foregroundColor(.white.opacity(0.6))
+                        Text("No data available for this date")
+                            .foregroundColor(.white.opacity(0.8))
+                    }
+                    Spacer()
                 } else {
                     // 상단: Gem 및 날짜
                     VStack(spacing: 16) {

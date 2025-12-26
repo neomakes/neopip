@@ -53,6 +53,146 @@
       }
     },
     "weekOfYear" : 52,
+    "date" : "2025-12-25T17:00:00Z",
+    "anonymousUserId" : "19FFC359-9236-4FF8-A165-FCB46C8317B5",
+    "confidence" : 0.8344768937372831,
+    "notes" : "A productive day overall. Managed to finish the main tasks.",
+    "source" : "manual",
+    "timestamp" : "2025-12-26T15:59:00Z",
+    "createdAt" : "2025-12-26T11:30:07Z",
+    "updatedAt" : "2025-12-26T11:30:07Z",
+    "id" : "4F879CD2-F3A2-4C00-B03C-B587016DB3D2",
+    "timeOfDay" : "night",
+    "dayOfWeek" : 5,
+    "tags" : [
+      "daily-summary",
+      "journal"
+    ]
+  },
+  {
+    "month" : 12,
+    "completeness" : 0.8575689372346716,
+    "values" : {
+      "focus" : {
+        "type" : "double",
+        "value" : 64.16232881903971
+      },
+      "digitalDistraction" : {
+        "type" : "double",
+        "value" : 85.15303915110016
+      },
+      "activityLevel" : {
+        "type" : "double",
+        "value" : 66.70725018843213
+      },
+      "stress" : {
+        "type" : "double",
+        "value" : 39.49214577416244
+      },
+      "mood" : {
+        "type" : "double",
+        "value" : 21.361326939650137
+      },
+      "productivity" : {
+        "type" : "double",
+        "value" : 40.92640381229731
+      },
+      "fatigue" : {
+        "type" : "double",
+        "value" : 98.0024634021552
+      },
+      "nutrition" : {
+        "type" : "double",
+        "value" : 62.34876749983831
+      },
+      "exploration" : {
+        "type" : "double",
+        "value" : 36.94938889619841
+      },
+      "sleepScore" : {
+        "type" : "double",
+        "value" : 96.95016598883905
+      },
+      "energy" : {
+        "type" : "double",
+        "value" : 32.93922315435981
+      },
+      "socialActivity" : {
+        "type" : "double",
+        "value" : 71.25926285729885
+      }
+    },
+    "weekOfYear" : 52,
+    "date" : "2025-12-24T17:00:00Z",
+    "anonymousUserId" : "19FFC359-9236-4FF8-A165-FCB46C8317B5",
+    "confidence" : 0.8344768937372831,
+    "notes" : "A productive day overall. Managed to finish the main tasks.",
+    "source" : "manual",
+    "timestamp" : "2025-12-25T15:59:00Z",
+    "createdAt" : "2025-12-25T11:30:07Z",
+    "updatedAt" : "2025-12-25T11:30:07Z",
+    "id" : "27E24E35-2E0F-4E17-9044-6947E9627857",
+    "timeOfDay" : "night",
+    "dayOfWeek" : 3,
+    "tags" : [
+      "daily-summary",
+      "journal"
+    ]
+  },
+  {
+    "month" : 12,
+    "completeness" : 0.8575689372346716,
+    "values" : {
+      "focus" : {
+        "type" : "double",
+        "value" : 64.16232881903971
+      },
+      "digitalDistraction" : {
+        "type" : "double",
+        "value" : 85.15303915110016
+      },
+      "activityLevel" : {
+        "type" : "double",
+        "value" : 66.70725018843213
+      },
+      "stress" : {
+        "type" : "double",
+        "value" : 39.49214577416244
+      },
+      "mood" : {
+        "type" : "double",
+        "value" : 21.361326939650137
+      },
+      "productivity" : {
+        "type" : "double",
+        "value" : 40.92640381229731
+      },
+      "fatigue" : {
+        "type" : "double",
+        "value" : 98.0024634021552
+      },
+      "nutrition" : {
+        "type" : "double",
+        "value" : 62.34876749983831
+      },
+      "exploration" : {
+        "type" : "double",
+        "value" : 36.94938889619841
+      },
+      "sleepScore" : {
+        "type" : "double",
+        "value" : 96.95016598883905
+      },
+      "energy" : {
+        "type" : "double",
+        "value" : 32.93922315435981
+      },
+      "socialActivity" : {
+        "type" : "double",
+        "value" : 71.25926285729885
+      }
+    },
+    "weekOfYear" : 52,
     "date" : "2025-12-23T17:00:00Z",
     "anonymousUserId" : "19FFC359-9236-4FF8-A165-FCB46C8317B5",
     "confidence" : 0.8344768937372831,

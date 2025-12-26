@@ -255,22 +255,29 @@ class MockDataService: DataServiceProtocol {
     }
     
     private func loadJSON<T: Decodable>(_ type: T.Type, from fileName: String, isSilent: Bool = false) -> T? {
-        // 파일명만 추출 (예: "332A2000-CCC0-4B01-8B02-0B3EBA7152A0.json")
-        let components = fileName.split(separator: "/")
+        // 파일명과 서브디렉토리 분리 (예: "Home/dailyGems.json" -> subdirectory: "MockData/Home", resourceName: "dailyGems")
+        let components = fileName.split(separator: "/").map { String($0) }
         let resourceName = String(components.last?.split(separator: ".").first ?? "")
         let resourceExtension = String(components.last?.split(separator: ".").last ?? "json")
         
-        if !isSilent {
-            print("📂 Trying to load from Bundle: \(resourceName).\(resourceExtension)")
+        // 서브디렉토리 구성 (예: "Home/dailyGems.json" -> "MockData/Home")
+        var subdirectory = "MockData"
+        if components.count > 1 {
+            let subpaths = components.dropLast()
+            subdirectory = "MockData/" + subpaths.joined(separator: "/")
         }
         
-        // Bundle root에서 직접 찾기
-        if let bundleUrl = Bundle.main.url(forResource: resourceName, withExtension: resourceExtension) {
+        if !isSilent {
+            print("📂 Trying to load from Bundle: \(subdirectory)/\(resourceName).\(resourceExtension)")
+        }
+        
+        // Bundle에서 subdirectory와 함께 찾기
+        if let bundleUrl = Bundle.main.url(forResource: resourceName, withExtension: resourceExtension, subdirectory: subdirectory) {
             do {
                 let data = try Data(contentsOf: bundleUrl)
                 let object = try jsonDecoder.decode(type, from: data)
                 if !isSilent {
-                    print("✅ Loaded \(fileName) from Bundle root: \(bundleUrl.path)")
+                    print("✅ Loaded \(fileName) from Bundle: \(bundleUrl.path)")
                 }
                 return object
             } catch {
@@ -282,7 +289,7 @@ class MockDataService: DataServiceProtocol {
         }
         
         if !isSilent {
-            print("⚠️ File not found in Bundle: \(resourceName).\(resourceExtension)")
+            print("⚠️ File not found in Bundle: \(subdirectory)/\(resourceName).\(resourceExtension)")
         }
         
         // 2차 시도: mockDataDirectory 경로에서 로드 (Legacy support)
