@@ -25,89 +25,90 @@ struct InsightStoryView: View {
     }
 
     var body: some View {
-        ZStack {
-            // Base gradient background
-            GradientUtils.createCardGradient(themeColor: cardColor).ignoresSafeArea()
-            
-            // Neon glow effect
-            VStack {
-                HStack {
-                    Spacer()
-                    GradientUtils.createNeonGlow(themeColor: cardColor, scale: 1.0)
-                }
-                Spacer()
-            }.ignoresSafeArea()
-
-            if viewModel.isLoading {
-                ProgressView()
-            } else if let story = viewModel.insightStory {
-                VStack(spacing: 0) {
-                    // Progress bar and header
-                    ProgressBar(
-                        pageCount: story.pages.count,
-                        currentPage: $viewModel.currentPageIndex,
-                        currentPageProgress: $viewModel.currentPageProgress
-                    )
-                    .padding(.top, 10)
-                    .padding(.horizontal, 16)
-                    
-                    // Story Header
-                    storyHeader(story: story)
-                        .padding(.vertical, 16)
-                        .padding(.horizontal)
-
-                    // Page content
-                    if story.pages.indices.contains(viewModel.currentPageIndex) {
-                        StoryPageView(page: story.pages[viewModel.currentPageIndex])
-                            .transition(.opacity.animation(.easeInOut))
+        GeometryReader { geometry in
+            ZStack {
+                // Base gradient background
+                GradientUtils.createCardGradient(themeColor: cardColor).ignoresSafeArea()
+                
+                // Neon glow effect
+                VStack {
+                    HStack {
+                        Spacer()
+                        GradientUtils.createNeonGlow(themeColor: cardColor, scale: 1.0)
                     }
-                    
                     Spacer()
+                }.ignoresSafeArea()
+
+                if viewModel.isLoading {
+                    ProgressView()
+                } else if let story = viewModel.insightStory {
+                    VStack(spacing: 0) {
+                        // Progress bar and header
+                        ProgressBar(
+                            pageCount: story.pages.count,
+                            currentPage: $viewModel.currentPageIndex,
+                            currentPageProgress: $viewModel.currentPageProgress
+                        )
+                        .padding(.top, 10)
+                        .padding(.horizontal, 16)
+                        
+                        // Story Header
+                        storyHeader(story: story)
+                            .padding(.vertical, 16)
+                            .padding(.horizontal)
+
+                        // Page content
+                        if story.pages.indices.contains(viewModel.currentPageIndex) {
+                            StoryPageView(page: story.pages[viewModel.currentPageIndex])
+                                .transition(.opacity.animation(.easeInOut))
+                        }
+                        
+                        Spacer()
+                    }
+                } else if let errorMessage = viewModel.errorMessage {
+                    errorView(errorMessage: errorMessage)
+                } else {
+                    loadingPlaceholder()
                 }
-                .contentShape(Rectangle()) // Make the VStack tappable
-                .gesture(
-                    LongPressGesture(minimumDuration: 0.3)
-                        .onChanged { pressing in
-                            if pressing {
-                                viewModel.pauseStory()
+                
+                // Pause Overlay
+                if viewModel.isPaused {
+                    Color.black.opacity(0.001)
+                        .ignoresSafeArea()
+                }
+            }
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { _ in
+                        viewModel.pauseStory()
+                    }
+                    .onEnded { value in
+                        viewModel.resumeStory()
+                        
+                        // It's a tap if the drag distance is negligible
+                        if value.translation.width < 10 && value.translation.height < 10 {
+                            let screenWidth = geometry.size.width
+                            let tapLocationX = value.location.x
+                            
+                            // Tapping left 20% of the screen
+                            if tapLocationX < screenWidth * 0.2 {
+                                viewModel.goToPreviousStory()
+                            // Tapping right 20% of the screen
+                            } else if tapLocationX > screenWidth * 0.8 {
+                                viewModel.goToNextStory()
                             }
+                            // Tapping the middle 60% does nothing for navigation
                         }
-                        .onEnded { _ in
-                            viewModel.resumeStory()
-                        }
-                )
-
-                // Navigation Taps Overlay
-                HStack(spacing: 0) {
-                    // Left Tap Area
-                    Color.clear
-                        .contentShape(Rectangle())
-                        .onTapGesture(perform: viewModel.goToPreviousStory)
-
-                    // Right Tap Area
-                    Color.clear
-                        .contentShape(Rectangle())
-                        .onTapGesture(perform: viewModel.goToNextStory)
+                    }
+            )
+            .onChange(of: viewModel.shouldDismiss) { shouldDismiss in
+                if shouldDismiss {
+                    presentationMode.wrappedValue.dismiss()
                 }
-
-            } else if let errorMessage = viewModel.errorMessage {
-                errorView(errorMessage: errorMessage)
-            } else {
-                loadingPlaceholder()
             }
-            
-            // Pause Overlay
-            if viewModel.isPaused {
-                Color.black.opacity(0.01) // Absorb taps
-                    .ignoresSafeArea()
-            }
+            .onDisappear(perform: viewModel.stopStoryTimer)
         }
-        .onChange(of: viewModel.shouldDismiss) { shouldDismiss in
-            if shouldDismiss {
-                presentationMode.wrappedValue.dismiss()
-            }
-        }
-        .onDisappear(perform: viewModel.stopStoryTimer)
     }
     
     @ViewBuilder
@@ -135,6 +136,7 @@ struct InsightStoryView: View {
                     .font(.title3)
                     .foregroundColor(.white.opacity(0.8))
             }
+            .padding(8) // Add some padding to make it easier to tap
         }
     }
     
