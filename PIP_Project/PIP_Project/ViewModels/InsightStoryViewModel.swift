@@ -8,6 +8,7 @@ class InsightStoryViewModel: ObservableObject {
     @Published var currentPageProgress: Double = 0.0
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
+    @Published var shouldDismiss: Bool = false
 
     private let dataService: DataServiceProtocol
     private let cardId: String
@@ -122,6 +123,14 @@ class InsightStoryViewModel: ObservableObject {
         pageAdvanceTimer = nil
         progressTimer?.invalidate()
         progressTimer = nil
+        
+        // 마지막 페이지 도달 시 자동 dismiss 트리거
+        if let story = insightStory, currentPageIndex == story.pages.count - 1 {
+            print("⏱️ [InsightStoryViewModel] Last page reached, auto-dismissing in 2 seconds")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                self.shouldDismiss = true
+            }
+        }
     }
     
     func pauseTimers() {

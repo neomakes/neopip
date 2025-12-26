@@ -8,6 +8,9 @@ struct InsightStoryView: View {
     @State private var isWaving: Bool = false
     @State private var likeAnimation: Bool = false
     @State private var dragOffset: CGFloat = 0  // For interactive swipe translation
+    @State private var isLongPressed: Bool = false
+    @State private var tapFeedbackLeft: Bool = false
+    @State private var tapFeedbackRight: Bool = false
     
     let cardType: AnalysisCardType
 
@@ -137,6 +140,32 @@ struct InsightStoryView: View {
                             }
                         }
                         .clipped()
+                        
+                        // 좌/우 탭 피드백 오버레이
+                        HStack(spacing: 0) {
+                            VStack {
+                                if tapFeedbackLeft {
+                                    Image(systemName: "chevron.left")
+                                        .font(.system(size: 30, weight: .bold))
+                                        .foregroundColor(.white.opacity(0.7))
+                                        .transition(.scale)
+                                }
+                            }
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            
+                            Spacer()
+                            
+                            VStack {
+                                if tapFeedbackRight {
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 30, weight: .bold))
+                                        .foregroundColor(.white.opacity(0.7))
+                                        .transition(.scale)
+                                }
+                            }
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        }
+                        
                         .gesture(
                             DragGesture(minimumDistance: 10)
                                 .onChanged { value in
@@ -156,27 +185,44 @@ struct InsightStoryView: View {
                                     viewModel.resumeTimers()
                                 }
                         )
-                        .onTapGesture { location in
+                        .simultaneousGesture(
+                            LongPressGesture(minimumDuration: 0.5)
+                                .onChanged { _ in
+                                    isLongPressed = true
+                                    viewModel.pauseTimers()
+                                    print("⏸️ [InsightStoryView] Long press started")
+                                }
+                                .onEnded { _ in
+                                    isLongPressed = false
+                                    viewModel.resumeTimers()
+                                    print("▶️ [InsightStoryView] Long press ended")
+                                }
+                        )
+                        .onTapGesture(coordinateSpace: .local) { location in
                             let midX = geo.size.width / 2
                             if location.x < midX {
-                                print("DEBUG: Left tap -> previous page")
+                                print("👈 [InsightStoryView] Left tap detected")
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    tapFeedbackLeft = true
+                                }
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                    tapFeedbackLeft = false
+                                }
                                 viewModel.previous()
                             } else {
-                                print("DEBUG: Right tap -> next page")
+                                print("👉 [InsightStoryView] Right tap detected")
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    tapFeedbackRight = true
+                                }
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                    tapFeedbackRight = false
+                                }
                                 viewModel.next()
                             }
                         }
                     }
                     .frame(height: 520)
-                    .onLongPressGesture(minimumDuration: 0.5, perform: {
-                        // Long press started - pause timer
-                        viewModel.pauseTimers()
-                    }, onPressingChanged: { isPressing in
-                        if !isPressing {
-                            // Long press ended - resume timer
-                            viewModel.resumeTimers()
-                        }
-                    })
+                    
                     Spacer()
                     
                     // Page counter and navigation info
@@ -257,6 +303,22 @@ struct InsightStoryView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+            
+            // Long Press 오버레이 (가장 위에)
+            if isLongPressed {
+                ZStack {
+                    Color.black.opacity(0.3)
+                    
+                    VStack(spacing: 12) {
+                        Image(systemName: "pause.fill")
+                            .font(.system(size: 40))
+                        Text("재생 일시정지")
+                            .font(.system(size: 14, weight: .semibold))
+                    }
+                    .foregroundColor(.white)
+                }
+                .ignoresSafeArea()
+            }
         }
         .onAppear(perform: {
             startWaveAnimation()  // 스토리 시작 시 wave animation 자동 재생
@@ -264,6 +326,12 @@ struct InsightStoryView: View {
         .onChange(of: viewModel.currentPageIndex) {
             // 페이지 변경 시에도 wave animation 재생
             startWaveAnimation()
+        }
+        .onChange(of: viewModel.shouldDismiss) { shouldDismiss in
+            if shouldDismiss {
+                print("📪 [InsightStoryView] Auto-dismissing after last page")
+                presentationMode.wrappedValue.dismiss()
+            }
         }
         .onDisappear(perform: {
             viewModel.stopTimers()
