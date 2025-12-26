@@ -1373,9 +1373,26 @@ class MockDataService: DataServiceProtocol {
     
     // MARK: - Insight Story
     func fetchInsightStory(for cardId: String) -> AnyPublisher<InsightStory, Error> {
-        // mockAnalysisCards에서 cardId로 찾기 (메모리에 로드된 데이터)
+        // 1단계: mockAnalysisCards 상태 로깅
+        print("🔍 [fetchInsightStory] Request for cardId: \(cardId)")
+        print("📊 [fetchInsightStory] mockAnalysisCards count: \(mockAnalysisCards.count)")
+        
+        if mockAnalysisCards.isEmpty {
+            print("⚠️ [fetchInsightStory] WARNING: mockAnalysisCards is empty!")
+            print("📁 [fetchInsightStory] Attempting to reload from files...")
+            mockAnalysisCards = loadAnalysisCardsFromIndividualFiles()
+            print("📊 [fetchInsightStory] After reload: \(mockAnalysisCards.count) cards")
+        }
+        
+        // 2단계: 사용 가능한 cardId 목록 로깅
+        let availableIds = mockAnalysisCards.map { $0.id.uuidString }
+        print("📋 [fetchInsightStory] Available cardIds: \(availableIds)")
+        
+        // 3단계: 카드 조회
         if let card = mockAnalysisCards.first(where: { $0.id.uuidString == cardId }) {
-            // AnalysisCardPage를 StoryPage로 변환
+            print("✅ [fetchInsightStory] Found card: \(card.title)")
+            print("📄 [fetchInsightStory] Card has \(card.pages.count) pages")
+            
             let storyPages: [StoryPage] = card.pages.map { analysisPage in
                 StoryPage(
                     pageNumber: analysisPage.pageNumber,
@@ -1383,6 +1400,13 @@ class MockDataService: DataServiceProtocol {
                     body: analysisPage.content.body ?? "",
                     imageName: ""
                 )
+            }
+            
+            print("🔄 [fetchInsightStory] Converted \(storyPages.count) story pages")
+            
+            // 각 페이지 내용 샘플 로깅
+            for (idx, page) in storyPages.enumerated() {
+                print("   Page \(idx + 1): headline='\(page.headline.prefix(50))...', body='\(page.body.prefix(50))...'")
             }
             
             let story = InsightStory(
@@ -1393,15 +1417,19 @@ class MockDataService: DataServiceProtocol {
                 isLiked: card.isLiked
             )
             
-            print("✅ [fetchInsightStory] Loaded from mockAnalysisCards: \(card.title), pages=\(storyPages.count)")
+            print("✅ [fetchInsightStory] Successfully created InsightStory with \(story.pages.count) pages")
+            
             return Just(story)
                 .setFailureType(to: Error.self)
                 .eraseToAnyPublisher()
         }
         
-        // 실패 처리
-        print("❌ [fetchInsightStory] Failed: cardId \(cardId) not found in mockAnalysisCards")
-        let errorMsg = "InsightStory not found for cardId: \(cardId)"
+        // 4단계: 카드 미발견 시 상세 에러
+        print("❌ [fetchInsightStory] Card not found!")
+        print("   Requested: \(cardId)")
+        print("   Available IDs: \(availableIds)")
+        
+        let errorMsg = "InsightStory not found for cardId: \(cardId). Available: \(availableIds.joined(separator: ", "))"
         
         return Fail(error: NSError(domain: "MockDataService", code: 404, userInfo: [NSLocalizedDescriptionKey: errorMsg]))
             .eraseToAnyPublisher()

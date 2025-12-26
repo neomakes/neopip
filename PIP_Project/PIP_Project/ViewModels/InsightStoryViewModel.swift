@@ -26,22 +26,26 @@ class InsightStoryViewModel: ObservableObject {
         dataService.fetchInsightStory(for: cardId)
             .receive(on: DispatchQueue.main)
             .sink(receiveCompletion: { [weak self] (completion: Subscribers.Completion<Error>) in
-                self?.isLoading = false
                 switch completion {
                 case .failure(let error):
+                    self?.isLoading = false
                     self?.errorMessage = error.localizedDescription
                 case .finished:
                     break
                 }
             }, receiveValue: { [weak self] (story: InsightStory) in
                 guard let self = self else { return }
+                
                 // Ensure pages are sorted by pageNumber before assigning
                 var sortedStory = story
                 sortedStory.pages = story.pages.sorted { $0.pageNumber < $1.pageNumber }
 
+                // Update all state immediately
                 self.insightStory = sortedStory
+                self.isLoading = false  // ← 핵심: 여기서도 false로 설정!
                 self.currentPageIndex = 0
                 self.startTimers()
+                
                 print("DEBUG: Loaded InsightStory id=\(sortedStory.id), title=\(sortedStory.title), pages=\(sortedStory.pages.count)")
                 for p in sortedStory.pages {
                     print("DEBUG: Page \(p.pageNumber) - headline: \(p.headline.prefix(40)), imageName: \(p.imageName)")

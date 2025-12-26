@@ -48,8 +48,19 @@ struct InsightStoryView: View {
             GradientUtils.createCardGradient(themeColor: cardColor)
                 .ignoresSafeArea()
                 .onAppear {
-                    print("🎬 [InsightStoryView] View appeared - cardType: \(cardType)")
-                    print("📊 [InsightStoryView] viewModel state - isLoading: \(viewModel.isLoading), story: \(viewModel.insightStory?.title ?? "nil")")
+                    print("🎬 [InsightStoryView] View appeared")
+                    print("   cardType: \(cardType)")
+                    print("   isLoading: \(viewModel.isLoading)")
+                    print("   story title: \(viewModel.insightStory?.title ?? "nil")")
+                    print("   story pages: \(viewModel.insightStory?.pages.count ?? 0)")
+                    print("   errorMessage: \(viewModel.errorMessage ?? "none")")
+                    
+                    // Warn if stalled after 3 seconds
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                        if viewModel.insightStory == nil && viewModel.errorMessage == nil && !viewModel.isLoading {
+                            print("⚠️ [InsightStoryView] Stalled: No data, no error, no loading after 3 seconds")
+                        }
+                    }
                 }
             
             // Neon glow effect
@@ -173,8 +184,8 @@ struct InsightStoryView: View {
                         Text("\(viewModel.currentPageIndex + 1) / \(story.pages.count)")
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundColor(.white.opacity(0.7))
-                            .onChange(of: viewModel.currentPageIndex) {
-                                print("DEBUG: UI currentPageIndex changed to: \($0)")
+                            .onChange(of: viewModel.currentPageIndex) { newValue in
+                                print("DEBUG: UI currentPageIndex changed to: \(newValue)")
                             }
                         
                         Spacer()

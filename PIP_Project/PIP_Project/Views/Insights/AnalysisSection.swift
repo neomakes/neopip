@@ -46,6 +46,14 @@ struct AnalysisSection: View {
                 Spacer()
             }
             .padding(.horizontal, 16)
+            .onAppear {
+                print("📊 [AnalysisSection] View appeared")
+                print("   analysisCards count: \(viewModel.analysisCards.count)")
+                print("   currentIndex: \(currentIndex)")
+                print("   showStoryView: \(showStoryView)")
+                print("   selectedCardId: \(selectedCardId ?? "nil")")
+                print("   selectedCardType: \(selectedCardType?.rawValue ?? "nil")")
+            }
             
             // MARK: - Analysis Carousel with Navigation
             if viewModel.analysisCards.isEmpty {
@@ -60,6 +68,9 @@ struct AnalysisSection: View {
                 .background(Color.white.opacity(0.06))
                 .cornerRadius(12)
                 .padding(.horizontal, 12)
+                .onAppear {
+                    print("⚠️ [AnalysisSection] No analysis cards available - showing empty state")
+                }
             } else {
                 VStack(spacing: 12) {
                     // Carousel
@@ -76,9 +87,12 @@ struct AnalysisSection: View {
                                         opacity: cardOpacity(for: actualIndex, currentIndex: currentIndex)
                                     )
                                     .onTapGesture {
+                                        print("🖱️ [AnalysisCard] Tapped! cardId: \(card.id.uuidString), cardType: \(card.cardType)")
                                         self.selectedCardId = card.id.uuidString
                                         self.selectedCardType = card.cardType
+                                        print("📍 [AnalysisCard] State updated - selectedCardId: \(String(describing: self.selectedCardId)), showStoryView: before=\(self.showStoryView)")
                                         self.showStoryView = true
+                                        print("📍 [AnalysisCard] After toggle - showStoryView: \(self.showStoryView)")
                                     }
                                     .frame(width: cardSize(for: actualIndex, currentIndex: currentIndex))
                                     .id(index)
@@ -138,9 +152,29 @@ struct AnalysisSection: View {
                 .padding(.horizontal, 8)
             }
         }
+        .onChange(of: showStoryView) { newValue in
+            if newValue {
+                print("🎭 [AnalysisSection] Sheet attempting to present - cardId: \(selectedCardId ?? "nil"), cardType: \(selectedCardType?.rawValue ?? "nil")")
+                if let cardId = selectedCardId, let cardType = selectedCardType {
+                    print("✅ [AnalysisSection] Sheet conditions met, presenting InsightStoryView")
+                } else {
+                    print("⚠️ [AnalysisSection] Sheet conditions NOT met!")
+                }
+            }
+        }
         .sheet(isPresented: $showStoryView) {
             if let cardId = selectedCardId, let cardType = selectedCardType {
                 InsightStoryView(cardId: cardId, cardType: cardType)
+            }
+        }
+        .onChange(of: showStoryView) { newValue in
+            if !newValue {
+                print("📪 [AnalysisSection] Sheet dismissed")
+                print("   Resetting selectedCardId and selectedCardType")
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    self.selectedCardId = nil
+                    self.selectedCardType = nil
+                }
             }
         }
     }
