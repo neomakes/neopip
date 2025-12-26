@@ -36,7 +36,7 @@ struct DashboardTitleView: View {
     var body: some View {
         HStack {
             HStack(alignment: .center, spacing: 6) {
-                Image("title_logo_7")
+                Image("title_logo_8")
                     .resizable()
                     .scaledToFit()
                     .frame(height: 24)
