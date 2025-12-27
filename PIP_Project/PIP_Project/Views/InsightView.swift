@@ -12,8 +12,8 @@ struct InsightView: View {
                 VStack(spacing: 0) {
                     // MARK: - Orb Visualization Section
                     OrbVizSection(viewModel: viewModel)
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 80)
+                        .padding(.horizontal, 0)
+                        .padding(.bottom, 20)
                     
                     // MARK: - Dashboard Section
                     DashboardSection(viewModel: viewModel)
@@ -23,7 +23,7 @@ struct InsightView: View {
                     // MARK: - Analysis Section
                     AnalysisSection(viewModel: viewModel)
                         .padding(.horizontal, 0)
-                        .padding(.bottom, 110) // TabBar 높이 고려 + 여유 공간
+                        .padding(.bottom, 100) // TabBar 높이 고려 + 여유 공간
                 }
                 .padding(.top, 16)
             }

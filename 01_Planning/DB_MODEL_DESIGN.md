@@ -517,25 +517,14 @@ struct OrbVisualization: Identifiable, Codable {
     var date: Date
     
     // ML 모델에서 계산된 값
-    var brightness: Double              // 사용자 모델의 재생성 성능 (0.0 ~ 1.0)
-    var borderBrightness: Double        // 오늘 예측의 정확도 (0.0 ~ 1.0)
-    var complexity: Int                  // 기하학적 복잡도 (1 ~ 10)
-    var uncertainty: Double              // AI 모델 불확실성 (0.0 ~ 1.0)
+    var brightness: Double              // 모델의 예측 정확도 (0.0 ~ 1.0)
+    var borderBrightness: Double        // 예측 불확실성 (0.0 ~ 1.0)
     
-    // 고유 Feature (다른 사용자들과 구분)
-    var uniqueFeatures: [String: Double]  // 고유 특징값 (색상과 형태 결정)
+    // 색상 (uniqueFeatures로부터 생성된 3개 색상)
+    var colorGradient: [String]         // 선형 그라데이션 + 테두리 색상
+                                        // ["#RRGGBB", "#RRGGBB", "#RRGGBB"]
     
-    // 시계열 특징값에서 추출
-    var timeSeriesFeatures: [String: Double]
-    var categoryWeights: [String: Double]
-    
-    // 시각화 파라미터
-    var gemType: GemType
-    var colorTheme: ColorTheme
-    var size: Double
-    var colorGradient: [String]          // 고유 Feature 기반 색상 그라데이션
-    
-    // 연결된 데이터
+    // 기타 정보
     var dataPointIds: [String]
     var mlModelOutputId: UUID?
     
@@ -545,33 +534,36 @@ struct OrbVisualization: Identifiable, Codable {
 
 **Orb 시각화 의미** (InsightView 최상단 표시):
 
-1. **brightness (내부 밝기)**: 사용자 모델의 재생성 성능
-   - **밝을수록**: 기존 시계열 정보의 재구성 성능이 높음 → 서비스가 사용자를 잘 이해함
-   - **어두울수록**: 사용자 모델의 재생성 성능이 좋지 않음 → 데이터가 부족하거나 패턴 파악이 어려움
-   - **시각화**: Orb 내부 색상의 opacity로 표현
+1. **brightness (방사형 그라데이션 opacity)**: 모델의 예측 정확도
+   - **시각화 방식**: 중심(흰색) → 가장자리(검은색)의 방사형 그라데이션
+   - **밝을수록** (opacity 높음): 예측이 정확함 → 신뢰할 수 있는 예측
+   - **어두울수록** (opacity 낮음): 예측이 부정확함 → 불확실성이 높음
 
-2. **borderBrightness (테두리 밝기)**: 오늘 예측의 정확도
-   - **밝을수록**: 오늘의 예측이 정확함 → 신뢰할 수 있는 예측
-   - **어두울수록**: 예측이 부정확할 수 있음 → 불확실성이 높음
-   - **시각화**: Orb 테두리의 opacity로 표현
+2. **borderBrightness (테두리 stroke opacity)**: 예측 불확실성
+   - **시각화 방식**: liquid_orb 이미지 테두리보다 살짝 바깥쪽의 색상 stroke
+   - **밝을수록** (opacity 높음): 불확실성이 낮음 (신뢰도 높음)
+   - **어두울수록** (opacity 낮음): 불확실성이 높음 (신뢰도 낮음)
 
-3. **uniqueFeatures (고유 특징)**: 다른 사용자들과 구분되는 고유 Feature
-   - **의미**: 사용자만의 고유한 데이터 패턴
-   - **시각화**: 내부 색상과 형태를 결정
-   - **예시**: 
-     - `feature1: 0.8, feature2: 0.6` → 특정 색상 그라데이션 생성
-     - 각 사용자마다 다른 색상 조합으로 시각화
+3. **colorGradient (선형 그라데이션)**: 사용자의 고유 특징
+   - **시각화 방식**: 3개 색상의 선형 그라데이션 (위/아래 또는 대각선)
+   - **의미**: 각 사용자마다 다른 색상 조합으로 고유성 표현
+   - **적용**: 선형 그라데이션 오버레이 + 테두리 stroke 색상으로도 사용
 
-**시각화 예시**:
+**시각화 구조**:
 ```
-┌─────────────────────────┐
-│   Orb (brightness: 0.85)│
-│   ┌─────────────────┐   │
-│   │  고유 색상      │   │ ← uniqueFeatures 기반
-│   │  (밝음)         │   │ ← brightness = 재생성 성능
-│   └─────────────────┘   │
-│   ═══════════════════   │ ← borderBrightness = 예측 정확도
-└─────────────────────────┘
+┌─────────────────────────────┐
+│   liquid_orb 이미지          │
+│  ┌───────────────────────┐  │
+│  │ 방사형 그라데이션:     │  │
+│  │ ○ (밝음) → ● (어두움) │  │ ← opacity = brightness
+│  └───────────────────────┘  │   (예측 정확도)
+│  ┌───────────────────────┐  │
+│  │ 선형 그라데이션:       │  │
+│  │ 3개 색상 blend        │  │ ← 고유 특징 표현
+│  └───────────────────────┘  │
+└─────────────────────────────┘
+   ═════════════════════════    ← 색상 테두리 stroke
+   (colorGradient 색상)         (opacity = borderBrightness)
 ```
 
 ### 4.5. Goal (목표)

@@ -80,6 +80,16 @@ class InsightViewModel: ObservableObject {
         // 오늘 날짜 기준 Mock Orb 생성
         let mockAnonymousUserId = UUID()
         
+        // uniqueFeatures 생성
+        let uniqueFeatures: [String: Double] = [
+            "mood_variance": Double.random(in: 0.3...0.7),
+            "energy_consistency": Double.random(in: 0.5...0.9),
+            "sleep_pattern": Double.random(in: 0.4...0.8)
+        ]
+        
+        // uniqueFeatures로부터 색상 그라데이션 생성
+        let colorGradient = ColorUtility.generateColorGradient(from: uniqueFeatures)
+        
         orbVisualization = OrbVisualization(
             id: UUID(),
             anonymousUserId: mockAnonymousUserId,
@@ -88,11 +98,7 @@ class InsightViewModel: ObservableObject {
             borderBrightness: Double.random(in: 0.7...0.95), // 오늘 예측 정확도
             complexity: Int.random(in: 3...8),
             uncertainty: Double.random(in: 0.1...0.3),
-            uniqueFeatures: [
-                "mood_variance": Double.random(in: 0.3...0.7),
-                "energy_consistency": Double.random(in: 0.5...0.9),
-                "sleep_pattern": Double.random(in: 0.4...0.8)
-            ],
+            uniqueFeatures: uniqueFeatures,
             timeSeriesFeatures: [:],
             categoryWeights: [
                 "mind": Double.random(in: 0.3...0.5),
@@ -102,7 +108,7 @@ class InsightViewModel: ObservableObject {
             gemType: .sphere,
             colorTheme: .teal,
             size: 1.0,
-            colorGradient: ["#82EBEB", "#40DBDB", "#31B0B0"],
+            colorGradient: colorGradient,  // ✅ uniqueFeatures 기반 생성된 색상
             dataPointIds: [],
             mlModelOutputId: nil,
             createdAt: Date()

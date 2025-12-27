@@ -27,6 +27,12 @@ struct LicenseData {
             url: "https://www.figma.com/community/file/1387261229967041993"
         ),
         LicenseItem(
+            title: "Abstract iridescent liquid orb a digital art piece",
+            author: "Ttohamina",
+            licenseType: "Freepik License (Free with Attribution)",
+            url: "https://www.freepik.com/free-psd/abstract-iridescent-liquid-orb-digital-art-piece_405493066.htm#fromView=keyword&page=1&position=8&uuid=9ca06021-67ea-4aca-90ed-b101d682a0dc&query=Liquid+glass+sphere?sign-up=google"
+        ),
+        LicenseItem(
             title: "3D Holographic Shapes",
             author: "BRIX Agency",
             licenseType: "CC BY 4.0",

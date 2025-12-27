@@ -2098,4 +2098,44 @@ class MockDataService: DataServiceProtocol {
     private func saveDailyGems() {
         saveJSON(mockDailyGems, to: FileName.dailyGems)
     }
+    
+    // MARK: - OrbVisualization Helper
+    
+    /// OrbVisualization을 생성합니다 (uniqueFeatures 기반 색상 생성).
+    /// - Returns: 새로운 OrbVisualization 인스턴스
+    private func generateOrbVisualization() -> OrbVisualization {
+        // uniqueFeatures 생성
+        let uniqueFeatures: [String: Double] = [
+            "mood_variance": Double.random(in: 0.3...0.7),
+            "energy_consistency": Double.random(in: 0.5...0.9),
+            "sleep_pattern": Double.random(in: 0.4...0.8)
+        ]
+        
+        // uniqueFeatures로부터 색상 그라데이션 생성
+        let colorGradient = ColorUtility.generateColorGradient(from: uniqueFeatures)
+        
+        return OrbVisualization(
+            id: UUID(),
+            anonymousUserId: mockAnonymousUserId,
+            date: Date(),
+            brightness: Double.random(in: 0.6...0.9),          // 사용자 모델 재생성 성능
+            borderBrightness: Double.random(in: 0.7...0.95),   // 오늘 예측 정확도
+            complexity: Int.random(in: 3...8),
+            uncertainty: Double.random(in: 0.1...0.3),
+            uniqueFeatures: uniqueFeatures,
+            timeSeriesFeatures: [:],
+            categoryWeights: [
+                "mind": Double.random(in: 0.3...0.5),
+                "behavior": Double.random(in: 0.2...0.4),
+                "physical": Double.random(in: 0.2...0.4)
+            ],
+            gemType: .sphere,
+            colorTheme: .teal,
+            size: 1.0,
+            colorGradient: colorGradient,  // ✅ uniqueFeatures 기반 생성된 색상
+            dataPointIds: [],
+            mlModelOutputId: nil,
+            createdAt: Date()
+        )
+    }
 }
