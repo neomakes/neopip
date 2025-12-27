@@ -17,6 +17,7 @@ import SwiftUI
 /// - colorGradient: 사용자의 고유 특징
 struct OrbVizSection: View {
     @ObservedObject var viewModel: InsightViewModel
+    @State private var isAnimating = false
     
     var body: some View {
         Group {
@@ -28,8 +29,8 @@ struct OrbVizSection: View {
                         .fill(
                             RadialGradient(
                                 gradient: Gradient(colors: [
-                                    Color("railroad_front"),
-                                    Color.black.opacity(1.0)
+                                    Color("railroad_front").opacity(0.6),
+                                    Color.black.opacity(0.8)
                                 ]),
                                 center: .center,
                                 startRadius: 0,
@@ -53,14 +54,14 @@ struct OrbVizSection: View {
                             // mask: 이미지 범위 내에서만 표시
                             RadialGradient(
                                 gradient: Gradient(colors: [
-                                    Color(white: 0.7),  // 중심: 연한 회색
+                                    Color.white.opacity(0.7),  // 중심: 연한 회색
                                     Color.black         // 가장자리: 검은색
                                 ]),
                                 center: .center,
                                 startRadius: 0,
                                 endRadius: 120
                             )
-                            .opacity(orbViz.brightness)  // 예측 정확도에 따라
+                            .opacity(orbViz.brightness * (isAnimating ? 0.7 : 1.0))  // 스케일이 커질 때 투명도 감소
                             .mask(
                                 Image("liquid_orb")
                                     .resizable()
@@ -79,7 +80,7 @@ struct OrbVizSection: View {
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
-                            .opacity(0.25)  // 투명도 높임 (고유 색상의 미묘한 표현)
+                            .opacity(0.25 * (isAnimating ? 0.7 : 1.0))  // 스케일이 커질 때 투명도 감소
                             .mask(
                                 Image("liquid_orb")
                                     .resizable()
@@ -87,6 +88,13 @@ struct OrbVizSection: View {
                             )
                         }
                         .frame(width: 240, height: 240)
+                        .scaleEffect(isAnimating ? 1.05 : 0.95)  // 일렁이는 애니메이션
+                        .offset(y: isAnimating ? -15 : 0)  // 스케일이 커질 때 위로 이동
+                    }
+                }
+                .onAppear {
+                    withAnimation(Animation.easeInOut(duration: 2.5).repeatForever(autoreverses: true)) {
+                        isAnimating = true
                     }
                 }
                 
