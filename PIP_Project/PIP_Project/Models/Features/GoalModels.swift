@@ -7,6 +7,61 @@
 
 import Foundation
 
+// MARK: - Enums (Re-define for GoalModels)
+public enum GemTypeForGoal: String, Codable {
+    case sphere
+    case diamond
+    case crystal
+    case prism
+    case custom
+}
+
+public enum ColorThemeForGoal: String, Codable {
+    case teal
+    case amber
+    case tiger
+    case blue
+    
+    var hexColor: String {
+        switch self {
+        case .teal:
+            return "#14B8A6"
+        case .amber:
+            return "#F59E0B"
+        case .tiger:
+            return "#FF6B35"
+        case .blue:
+            return "#3B82F6"
+        }
+    }
+}
+
+// MARK: - Type Aliases for GoalModels
+// These are explicitly namespaced to avoid collisions
+
+// MARK: - User Preferences (for GoalRecommendationInput)
+enum AppThemeForGoal: String, Codable {
+    case dark
+    case light
+    case system
+}
+
+struct UserPreferencesForGoal: Codable {
+    var theme: AppThemeForGoal
+    var notificationsEnabled: Bool
+    var language: String
+    var timeZone: String
+}
+
+// MARK: - Time Series Window (for GoalRecommendationInput)
+struct TimeSeriesWindowForGoal: Codable {
+    var startDate: Date
+    var endDate: Date
+    var aggregatedFeatures: [String: Double]  // 집계된 특징값
+    var trendFeatures: [String: Double]       // 트렌드 특징값
+    var seasonalityFeatures: [String: Double]? // 계절성 특징값
+}
+
 // MARK: - Goal
 /// 목표
 /// Firestore의 users/{accountId}/goals/{goalId}에 저장
@@ -43,8 +98,8 @@ enum GoalStatus: String, Codable {
 }
 
 struct GemVisualization: Codable {
-    var gemType: GemType
-    var colorTheme: ColorTheme
+    var gemType: GemTypeForGoal
+    var colorTheme: ColorThemeForGoal
     var brightness: Double         // 진행률에 따라 조절
     var size: Double
     var customShape: String?       // 커스텀 형태 ID
@@ -178,15 +233,131 @@ struct GoalRecommendation: Identifiable, Codable {
         accountId.uuidString
     }
 }
+// MARK: - Program Progress
+/// 프로그램 진행 상황 (메트릭 및 스토리 포함)
+/// Firestore의 users/{accountId}/goals/{goalId}/program_progress/{programId}에 저장
+struct ProgramProgress: Identifiable, Codable {
+    let id: UUID
+    var programId: UUID
+    var goalId: UUID
+    var accountId: UUID
+    
+    // 메트릭 데이터
+    var beforeMetrics: [String: Double]    // 프로그램 시작 전 메트릭 (mood, stress, energy 등)
+    var currentMetrics: [String: Double]   // 현재 메트릭
+    var improvementRate: Double            // 개선율 (0.0 ~ 1.0)
+    
+    // 진행률 히스토리
+    var progressHistory: [ProgressPoint]   // 날짜별 진행 데이터
+    
+    // 스토리 데이터
+    var stories: [ProgramStory]            // 프로그램 실행 스토리 (인스타 형식)
+    
+    // 레이더 차트 데이터
+    var radarChartData: [RadarDataPoint]   // 초기 vs 현재 메트릭 비교용
+    
+    var createdAt: Date
+    var updatedAt: Date
+    
+    var programIdString: String {
+        programId.uuidString
+    }
+    
+    var goalIdString: String {
+        goalId.uuidString
+    }
+    
+    var accountIdString: String {
+        accountId.uuidString
+    }
+}
 
+// MARK: - Progress Point
+/// 목표 진행 포인트 (BarLineChart용)
+struct ProgressPoint: Identifiable, Codable {
+    var id: UUID = UUID()
+    var date: Date
+    var goalProgress: Double               // 현재 Goal 진행률 (0.0 ~ 1.0)
+    var presentProgress: Double            // 기준선/예상치 (0.0 ~ 1.0)
+    var sessionsCompleted: Int
+    var sessionsPlanned: Int
+}
+
+// MARK: - Radar Data Point
+/// 레이더 차트 데이터 포인트
+struct RadarDataPoint: Identifiable, Codable {
+    var id: UUID = UUID()
+    var label: String                      // "Mood", "Stress", "Energy" 등
+    var beforeValue: Double                // 초기 값 (0.0 ~ 1.0)
+    var afterValue: Double                 // 현재 값 (0.0 ~ 1.0)
+    var improvement: Double {               // 자동 계산
+        afterValue - beforeValue
+    }
+}
+
+// MARK: - Program Story
+/// 프로그램 스토리 (인스타그램 스토리 형식)
+/// Firestore의 users/{accountId}/goals/{goalId}/program_progress/{programId}/stories/{storyId}에 저장
+struct ProgramStory: Identifiable, Codable {
+    let id: UUID
+    var programId: UUID
+    var title: String
+    var subtitle: String?
+    var pages: [GoalStoryPage]
+    var isViewed: Bool = false
+    var viewedAt: Date?
+    var createdAt: Date
+    
+    var programIdString: String {
+        programId.uuidString
+    }
+}
+
+// MARK: - Story Page
+/// 스토리 페이지
+struct GoalStoryPage: Identifiable, Codable {
+    var id: UUID = UUID()
+    var pageNumber: Int
+    var contentType: GoalStoryPageContentType
+    var content: GoalStoryPageContent
+    var visualizations: [GoalStoryVisualization]?
+}
+
+enum GoalStoryPageContentType: String, Codable {
+    case text           // 텍스트
+    case image          // 이미지
+    case tip            // 팁/조언
+    case milestone      // 마일스톤
+    case motivation     // 동기부여
+    case mixed          // 혼합
+}
+
+struct GoalStoryPageContent: Codable {
+    var headline: String?
+    var body: String?
+    var imageName: String?
+    var mantra: String?                    // 동기 부여 문구
+}
+
+struct GoalStoryVisualization: Codable {
+    var type: GoalStoryVisualizationType
+    var data: [String: String]?            // 그래프 데이터 등
+}
+
+enum GoalStoryVisualizationType: String, Codable {
+    case progress      // 진행률
+    case metric        // 메트릭
+    case comparison    // 비교
+    case chart         // 차트
+}
 // MARK: - Goal Recommendation Input
 /// 목표 추천 알고리즘 입력
 /// Firestore에 저장하지 않고, 쿼리로 생성
 struct GoalRecommendationInput: Codable {
     var accountId: UUID
     var anonymousUserId: UUID
-    var timeSeriesWindow: TimeSeriesWindow?
+    var timeSeriesWindow: TimeSeriesWindowForGoal?
     var currentGoals: [String]             // 현재 활성 목표 ID들
-    var userPreferences: UserPreferences
+    var userPreferences: UserPreferencesForGoal
     var mlFeatures: [String: Double]       // ML 모델 특징값
 }

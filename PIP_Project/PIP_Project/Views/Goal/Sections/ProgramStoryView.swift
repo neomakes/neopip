@@ -1,247 +1,376 @@
 import SwiftUI
 
-/// MARK: - ProgramStoryView (MVVM: DetailView - ProgramsSection Navigation Target)
+/// ProgramStoryView - Instagram Story Style Program Progress Display
 ///
-/// **Role**: Program의 상세 정보 및 단계별 가이드 페이지
-/// ProgramsSection의 프로그램 카드 탭으로 네비게이션되는 상세 뷰
-///
-/// **MVVM Relationship:**
-/// - **View** (현재): ProgramStoryView
-///   - 역할: 선택된 프로그램의 상세 내용을 단계별로 표시
-///   - Binds to: @State program (Program model)
-///   - Input: program (Program), 전달받은 프로그램 정보
-///
-/// - **ViewModel**: (Optional) ProgramStoryViewModel
-///   - 현재는 단순 @State 사용 가능
-///   - 향후 복잡성 증가 시 ViewModel 추가
-///   - 책임: 단계별 진행 상황, 사용자 입력 처리
-///
-/// - **Model**: Program + ProgramStep
-///   - Program: 프로그램 기본 정보
-///   - ProgramStep:
-///     * id: String
-///     * stepNumber: Int
-///     * title: String
-///     * description: String
-///     * instructions: [String] (단계별 지시사항)
-///     * duration: Int (소요 시간, 분)
-///     * tips: [String]?
-///     * image: String? (asset name)
-///
-/// **Navigation Flow:**
-/// GoalView → ProgramsSection → (card tap) → ProgramStoryView
-///
-/// **Presentation Style:**
-/// Full-screen modal presentation with vertical paging
-/// Bottom sheet or full modal with back button
-/// Swipeable pages or button-based navigation through steps
+/// Displays program stories in an Instagram-like format with:
+/// - Page-based navigation (tap sides to move)
+/// - Progress indicator at top
+/// - Story content (text, tips, milestones, motivation)
+/// - Like and reply interactions
 ///
 struct ProgramStoryView: View {
-    @Environment(\.presentationMode) var presentationMode
+    @Environment(\.dismiss) var dismiss
+    @State private var currentPageIndex: Int = 0
+    @State private var isLiked: Bool = false
+    
     let program: Program
-    let maxPages: Int? // nil이면 모든 페이지, 숫자면 해당 페이지까지만
-    
-    @State private var currentStepIndex: Int = 0
-    @State private var completedSteps: Set<String> = []
-    @State private var showAcceptanceAlert = false
-    
-    init(program: Program, maxPages: Int? = nil) {
-        self.program = program
-        self.maxPages = maxPages
-    }
-    
-    var effectiveStepsCount: Int {
-        if let maxPages = maxPages {
-            return min(maxPages, program.steps.count)
-        }
-        return program.steps.count
-    }
-    
-    var isAcceptanceMode: Bool {
-        return maxPages == nil // 모든 페이지를 보여줄 때는 수락 모드
-    }
-    
-    var currentStep: ProgramStep? {
-        guard currentStepIndex < effectiveStepsCount else { return nil }
-        return program.steps[currentStepIndex]
-    }
-    
-    var progressPercentage: Double {
-        guard effectiveStepsCount > 0 else { return 0 }
-        return Double(currentStepIndex + 1) / Double(effectiveStepsCount)
-    }
+    let progress: ProgramProgress?
     
     var body: some View {
-        ZStack {
-            // Background
-            LinearGradient(
-                gradient: Gradient(colors: [
-                    Color.blue.opacity(0.3),
-                    Color.black.opacity(0.8)
-                ]),
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-            
-            VStack(spacing: 0) {
-                // Header
-                VStack(spacing: 12) {
-                    HStack {
-                        Button(action: { presentationMode.wrappedValue.dismiss() }) {
-                            HStack(spacing: 6) {
-                                Image(systemName: "chevron.left")
-                                    .font(.system(size: 16, weight: .semibold))
-                                Text("Back")
-                                    .font(.system(size: 14, weight: .medium))
-                            }
-                            .foregroundColor(.white)
-                        }
-                        
-                        Spacer()
-                        
-                        Text("Step \(currentStepIndex + 1)/\(effectiveStepsCount)")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(.gray)
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 16)
-                    
-                    // Progress Bar
-                    GeometryReader { geometry in
-                        ZStack(alignment: .leading) {
-                            RoundedRectangle(cornerRadius: 2)
-                                .fill(Color.white.opacity(0.2))
-                            
-                            RoundedRectangle(cornerRadius: 2)
-                                .fill(
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [
-                                            Color.blue.opacity(0.3),
-                                            Color.blue
-                                        ]),
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
-                                .frame(width: geometry.size.width * progressPercentage)
-                        }
-                        .frame(height: 4)
-                    }
-                    .frame(height: 4)
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 12)
-                }
-                .padding(.bottom, 20)
+        GeometryReader { geometry in
+            ZStack {
+                // Background gradient
+                LinearGradient(
+                    gradient: Gradient(colors: [
+                        Color.black,
+                        Color(red: 0.1, green: 0.1, blue: 0.12)
+                    ]),
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .ignoresSafeArea()
                 
-                // Content
-                ScrollView {
-                    if let step = currentStep {
-                        VStack(alignment: .leading, spacing: 24) {
-                            // Step Title
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text(step.title)
-                                    .font(.system(size: 28, weight: .bold))
+                if let progress = progress, !progress.stories.isEmpty {
+                    let story = progress.stories[0]  // First story
+                    
+                    VStack(spacing: 0) {
+                        // MARK: - Progress Bar & Header
+                        HStack(spacing: 12) {
+                            // Progress bars for pages
+                            HStack(spacing: 4) {
+                                ForEach(0..<story.pages.count, id: \.self) { index in
+                                    GeometryReader { geo in
+                                        Capsule()
+                                            .fill(
+                                                index < currentPageIndex ? Color.white :
+                                                index == currentPageIndex ? Color.white.opacity(0.7) :
+                                                Color.white.opacity(0.3)
+                                            )
+                                            .frame(height: 2)
+                                    }
+                                }
+                            }
+                            .frame(height: 2)
+                            
+                            // Close button
+                            Button(action: { dismiss() }) {
+                                Image(systemName: "xmark")
                                     .foregroundColor(.white)
-                                
-                                Text("Duration: \(step.duration) minutes")
-                                    .font(.system(size: 14, weight: .medium))
+                                    .font(.system(size: 14, weight: .semibold))
+                            }
+                            .frame(width: 30, height: 30)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        
+                        // MARK: - Story Title & Info
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(story.title)
+                                .font(.pip.title2)
+                                .foregroundColor(.white)
+                            
+                            if let subtitle = story.subtitle {
+                                Text(subtitle)
+                                    .font(.pip.body)
                                     .foregroundColor(.gray)
                             }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        
+                        // MARK: - Page Content
+                        if story.pages.indices.contains(currentPageIndex) {
+                            let page = story.pages[currentPageIndex]
                             
-                            // Step Image (Placeholder)
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(Color.white.opacity(0.1))
+                            VStack(spacing: 16) {
+                                // Content based on page type
+                                switch page.contentType {
+                                case .text:
+                                    textPageContent(content: page.content)
+                                case .image:
+                                    imagePageContent(imageName: page.content.imageName ?? "")
+                                case .tip:
+                                    tipPageContent(content: page.content)
+                                case .milestone:
+                                    milestonePageContent(content: page.content)
+                                case .motivation:
+                                    motivationPageContent(content: page.content)
+                                case .mixed:
+                                    mixedPageContent(content: page.content)
+                                }
                                 
-                                Image(systemName: "photo.fill")
-                                    .font(.system(size: 48))
-                                    .foregroundColor(.gray)
+                                Spacer()
                             }
-                            .frame(height: 200)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 12)
+                            .transition(.opacity)
+                        }
+                        
+                        // MARK: - Bottom Actions
+                        HStack(spacing: 16) {
+                            // Like button
+                            Button(action: {
+                                withAnimation {
+                                    isLiked.toggle()
+                                }
+                            }) {
+                                Image(systemName: isLiked ? "heart.fill" : "heart")
+                                    .foregroundColor(isLiked ? .red : .white)
+                                    .font(.system(size: 16))
+                            }
                             
-                            // Description
-                            Text(step.description)
-                                .font(.system(size: 16, weight: .regular))
-                                .foregroundColor(.white.opacity(0.9))
-                                .lineSpacing(4)
-
+                            // Text input placeholder
+                            HStack {
+                                Text("Reply...")
+                                    .font(.pip.body)
+                                    .foregroundColor(.gray)
+                                Spacer()
+                                Image(systemName: "arrow.right")
+                                    .foregroundColor(.gray)
+                                    .font(.system(size: 12))
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(Color.white.opacity(0.1))
+                            .cornerRadius(8)
                             
                             Spacer()
-                                .frame(height: 20)
                         }
-                        .padding(.horizontal, 20)
-                        .padding(.bottom, 20)
-                    }
-                }
-                
-                // Navigation Buttons
-                HStack(spacing: 12) {
-                    if currentStepIndex > 0 {
-                        Button(action: { currentStepIndex -= 1 }) {
-                            Text("Previous")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 48)
-                                .background(Color.white.opacity(0.1))
-                                .cornerRadius(12)
-                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
                     }
                     
-                    if currentStepIndex < effectiveStepsCount - 1 {
-                        Button(role: .none, action: { currentStepIndex += 1 }) {
-                            Text("Next")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(.black)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 48)
-                                .background(Color.blue)
-                                .cornerRadius(12)
-                        }
-                    } else {
-                        if isAcceptanceMode {
-                            Button(action: { showAcceptanceAlert = true }) {
-                                Text("Accept Program")
-                                    .font(.system(size: 16, weight: .semibold))
-                                    .foregroundColor(.black)
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 48)
-                                    .background(Color.green)
-                                    .cornerRadius(12)
+                    // Tap to advance
+                    .contentShape(Rectangle())
+                    .onTapGesture { location in
+                        let midpoint = geometry.size.width / 2
+                        if location.x < midpoint {
+                            // Previous page
+                            if currentPageIndex > 0 {
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    currentPageIndex -= 1
+                                }
                             }
                         } else {
-                            Button(action: { presentationMode.wrappedValue.dismiss() }) {
-                                Text("Complete")
-                                    .font(.system(size: 16, weight: .semibold))
-                                    .foregroundColor(.black)
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 48)
-                                    .background(Color.green)
-                                    .cornerRadius(12)
+                            // Next page
+                            if currentPageIndex < story.pages.count - 1 {
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    currentPageIndex += 1
+                                }
+                            } else {
+                                // Story finished
+                                dismiss()
                             }
                         }
                     }
+                } else {
+                    // No stories available
+                    VStack(spacing: 16) {
+                        Image(systemName: "book.closed")
+                            .font(.system(size: 48))
+                            .foregroundColor(.gray)
+                        
+                        Text("No Stories Yet")
+                            .font(.pip.title2)
+                            .foregroundColor(.white)
+                        
+                        Text("Stories about this program will appear here as you progress")
+                            .font(.pip.body)
+                            .foregroundColor(.gray)
+                            .multilineTextAlignment(.center)
+                        
+                        Button(action: { dismiss() }) {
+                            Text("Dismiss")
+                                .font(.pip.body)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(Color.accentColor)
+                                .cornerRadius(8)
+                        }
+                        .padding(.horizontal, 40)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding(.horizontal, 20)
                 }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 16)
             }
         }
-        .navigationBarHidden(true)
-        .alert("Accept Program", isPresented: $showAcceptanceAlert) {
-            Button("Cancel", role: .cancel) {
-                // Do nothing
+    }
+    
+    // MARK: - Page Content Views
+    
+    private func textPageContent(content: GoalStoryPageContent) -> some View {
+        VStack(spacing: 16) {
+            if let headline = content.headline {
+                Text(headline)
+                    .font(.pip.title2)
+                    .foregroundColor(.white)
             }
-            Button("Accept", role: .none) {
-                // TODO: 프로그램 수락 로직 추가 (GoalViewModel에 addProgram 호출)
-                presentationMode.wrappedValue.dismiss()
+            
+            if let body = content.body {
+                Text(body)
+                    .font(.pip.body)
+                    .foregroundColor(.gray)
+                    .lineSpacing(4)
             }
-        } message: {
-            Text("Would you like to add '\(program.name)' to your active programs?")
+        }
+    }
+    
+    private func imagePageContent(imageName: String) -> some View {
+        VStack {
+            if !imageName.isEmpty {
+                Image(imageName)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxHeight: 300)
+            } else {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.gray.opacity(0.2))
+                    .frame(height: 300)
+                    .overlay(
+                        Image(systemName: "photo")
+                            .font(.system(size: 48))
+                            .foregroundColor(.gray)
+                    )
+            }
+        }
+    }
+    
+    private func tipPageContent(content: GoalStoryPageContent) -> some View {
+        VStack(spacing: 12) {
+            HStack {
+                Image(systemName: "lightbulb.fill")
+                    .foregroundColor(.yellow)
+                    .font(.system(size: 20))
+                
+                Text("Pro Tip")
+                    .font(.pip.title2)
+                    .foregroundColor(.white)
+                
+                Spacer()
+            }
+            
+            if let headline = content.headline {
+                Text(headline)
+                    .font(.pip.body)
+                    .foregroundColor(.white)
+                    .fontWeight(.semibold)
+            }
+            
+            if let body = content.body {
+                Text(body)
+                    .font(.pip.body)
+                    .foregroundColor(.gray)
+                    .lineSpacing(4)
+            }
+        }
+        .padding(12)
+        .background(Color.yellow.opacity(0.1))
+        .cornerRadius(8)
+    }
+    
+    private func milestonePageContent(content: GoalStoryPageContent) -> some View {
+        VStack(spacing: 12) {
+            HStack {
+                Image(systemName: "flag.fill")
+                    .foregroundColor(.green)
+                    .font(.system(size: 20))
+                
+                Text("Milestone")
+                    .font(.pip.title2)
+                    .foregroundColor(.white)
+                
+                Spacer()
+            }
+            
+            if let headline = content.headline {
+                Text(headline)
+                    .font(.pip.body)
+                    .foregroundColor(.white)
+                    .fontWeight(.semibold)
+            }
+            
+            if let body = content.body {
+                Text(body)
+                    .font(.pip.body)
+                    .foregroundColor(.gray)
+            }
+        }
+        .padding(12)
+        .background(Color.green.opacity(0.1))
+        .cornerRadius(8)
+    }
+    
+    private func motivationPageContent(content: GoalStoryPageContent) -> some View {
+        VStack(spacing: 16) {
+            Image(systemName: "sparkles")
+                .font(.system(size: 32))
+                .foregroundColor(.yellow)
+            
+            if let mantra = content.mantra {
+                Text(mantra)
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundColor(.white)
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(4)
+            }
+        }
+    }
+    
+    private func mixedPageContent(content: GoalStoryPageContent) -> some View {
+        VStack(spacing: 12) {
+            if let headline = content.headline {
+                Text(headline)
+                    .font(.pip.title2)
+                    .foregroundColor(.white)
+            }
+            
+            if let body = content.body {
+                Text(body)
+                    .font(.pip.body)
+                    .foregroundColor(.gray)
+                    .lineSpacing(4)
+            }
+            
+            if let mantra = content.mantra {
+                Text(mantra)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(.accentColor)
+                    .italic()
+            }
         }
     }
 }
 
 #Preview {
-    Text("Preview")
+    ProgramStoryView(program: Program(
+        id: UUID(),
+        name: "Test Program",
+        description: "Test Description",
+        category: GoalCategory.emotional,
+        duration: 21,
+        difficulty: DifficultyLevel.beginner,
+        gemVisualization: GemVisualization(
+            gemType: .diamond,
+            colorTheme: .amber,
+            brightness: 0.8,
+            size: 1.0,
+            customShape: nil
+        ),
+        illustration3D: nil,
+        popularity: 0.85,
+        rating: 4.5,
+        reviewCount: 234,
+        userCount: 1234,
+        steps: [],
+        prerequisites: nil,
+        tags: ["test"],
+        expectedEffects: ["test"],
+        requiredDataTypes: ["test"],
+        userReviews: nil,
+        isRecommended: true,
+        createdAt: Date()
+    ), progress: nil)
 }

@@ -5,6 +5,8 @@ struct MainTabView: View {
     @State private var showWriteSheet: Bool = false
     @StateObject private var homeViewModel = HomeViewModel()
     @StateObject private var insightViewModel = InsightViewModel()
+    @StateObject private var goalViewModel = GoalViewModel()
+    @StateObject private var statusViewModel = StatusViewModel()
     
     var body: some View {
         ZStack {
@@ -18,7 +20,7 @@ struct MainTabView: View {
                     })
                     case 1: InsightView(viewModel: insightViewModel)
                     case 2: WriteView()
-                    case 3: GoalView()
+                    case 3: GoalView(viewModel: goalViewModel)
                     case 4: StatusView()
                     default: HomeView(onWriteRequested: {
                         selectedTab = 2

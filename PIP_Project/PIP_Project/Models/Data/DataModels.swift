@@ -77,6 +77,19 @@ enum ColorTheme: String, Codable {
     case amber       // Amber Flame
     case tiger       // Tiger Flame
     case blue        // French Blue
+    
+    var hexColor: String {
+        switch self {
+        case .teal:
+            return "#14B8A6"
+        case .amber:
+            return "#F59E0B"
+        case .tiger:
+            return "#FF6B35"
+        case .blue:
+            return "#3B82F6"
+        }
+    }
 }
 
 // MARK: - Gem Record (MVP용 단순화 모델)

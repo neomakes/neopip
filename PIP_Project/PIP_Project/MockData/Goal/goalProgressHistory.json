@@ -1,0 +1,418 @@
+[
+  {
+    "id": "PROGRESS-001-UUID",
+    "goalId": "G001-UUID-0001-0001",
+    "accountId": "1DA79DE8-54EB-4B7F-9F12-CE26EB0AFC49",
+    "programId": "P001-UUID-0001-0001",
+    "progressPoints": [
+      {
+        "id": "PP-001",
+        "date": "2025-11-29T00:00:00Z",
+        "goalProgress": 0.05,
+        "presentProgress": 0.03,
+        "sessionsCompleted": 1,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PP-002",
+        "date": "2025-11-30T00:00:00Z",
+        "goalProgress": 0.10,
+        "presentProgress": 0.06,
+        "sessionsCompleted": 2,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PP-003",
+        "date": "2025-12-01T00:00:00Z",
+        "goalProgress": 0.15,
+        "presentProgress": 0.09,
+        "sessionsCompleted": 3,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PP-004",
+        "date": "2025-12-02T00:00:00Z",
+        "goalProgress": 0.18,
+        "presentProgress": 0.12,
+        "sessionsCompleted": 4,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PP-005",
+        "date": "2025-12-03T00:00:00Z",
+        "goalProgress": 0.22,
+        "presentProgress": 0.16,
+        "sessionsCompleted": 5,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PP-006",
+        "date": "2025-12-04T00:00:00Z",
+        "goalProgress": 0.27,
+        "presentProgress": 0.19,
+        "sessionsCompleted": 6,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PP-007",
+        "date": "2025-12-05T00:00:00Z",
+        "goalProgress": 0.32,
+        "presentProgress": 0.22,
+        "sessionsCompleted": 7,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PP-008",
+        "date": "2025-12-06T00:00:00Z",
+        "goalProgress": 0.38,
+        "presentProgress": 0.25,
+        "sessionsCompleted": 8,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PP-009",
+        "date": "2025-12-07T00:00:00Z",
+        "goalProgress": 0.43,
+        "presentProgress": 0.28,
+        "sessionsCompleted": 9,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PP-010",
+        "date": "2025-12-08T00:00:00Z",
+        "goalProgress": 0.48,
+        "presentProgress": 0.31,
+        "sessionsCompleted": 10,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PP-011",
+        "date": "2025-12-09T00:00:00Z",
+        "goalProgress": 0.52,
+        "presentProgress": 0.34,
+        "sessionsCompleted": 11,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PP-012",
+        "date": "2025-12-10T00:00:00Z",
+        "goalProgress": 0.57,
+        "presentProgress": 0.38,
+        "sessionsCompleted": 12,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PP-013",
+        "date": "2025-12-11T00:00:00Z",
+        "goalProgress": 0.62,
+        "presentProgress": 0.41,
+        "sessionsCompleted": 13,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PP-014",
+        "date": "2025-12-12T00:00:00Z",
+        "goalProgress": 0.67,
+        "presentProgress": 0.44,
+        "sessionsCompleted": 14,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PP-015",
+        "date": "2025-12-13T00:00:00Z",
+        "goalProgress": 0.72,
+        "presentProgress": 0.47,
+        "sessionsCompleted": 15,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PP-016",
+        "date": "2025-12-14T00:00:00Z",
+        "goalProgress": 0.75,
+        "presentProgress": 0.50,
+        "sessionsCompleted": 16,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PP-017",
+        "date": "2025-12-15T00:00:00Z",
+        "goalProgress": 0.78,
+        "presentProgress": 0.53,
+        "sessionsCompleted": 17,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PP-018",
+        "date": "2025-12-16T00:00:00Z",
+        "goalProgress": 0.82,
+        "presentProgress": 0.56,
+        "sessionsCompleted": 18,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PP-019",
+        "date": "2025-12-17T00:00:00Z",
+        "goalProgress": 0.85,
+        "presentProgress": 0.59,
+        "sessionsCompleted": 19,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PP-020",
+        "date": "2025-12-18T00:00:00Z",
+        "goalProgress": 0.88,
+        "presentProgress": 0.63,
+        "sessionsCompleted": 20,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PP-021",
+        "date": "2025-12-19T00:00:00Z",
+        "goalProgress": 0.90,
+        "presentProgress": 0.66,
+        "sessionsCompleted": 21,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PP-022",
+        "date": "2025-12-20T00:00:00Z",
+        "goalProgress": 0.92,
+        "presentProgress": 0.69,
+        "sessionsCompleted": 22,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PP-023",
+        "date": "2025-12-21T00:00:00Z",
+        "goalProgress": 0.94,
+        "presentProgress": 0.72,
+        "sessionsCompleted": 23,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PP-024",
+        "date": "2025-12-22T00:00:00Z",
+        "goalProgress": 0.95,
+        "presentProgress": 0.75,
+        "sessionsCompleted": 24,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PP-025",
+        "date": "2025-12-23T00:00:00Z",
+        "goalProgress": 0.96,
+        "presentProgress": 0.78,
+        "sessionsCompleted": 25,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PP-026",
+        "date": "2025-12-24T00:00:00Z",
+        "goalProgress": 0.97,
+        "presentProgress": 0.81,
+        "sessionsCompleted": 26,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PP-027",
+        "date": "2025-12-25T00:00:00Z",
+        "goalProgress": 0.98,
+        "presentProgress": 0.84,
+        "sessionsCompleted": 27,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PP-028",
+        "date": "2025-12-26T00:00:00Z",
+        "goalProgress": 0.98,
+        "presentProgress": 0.87,
+        "sessionsCompleted": 28,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PP-029",
+        "date": "2025-12-27T00:00:00Z",
+        "goalProgress": 0.99,
+        "presentProgress": 0.90,
+        "sessionsCompleted": 29,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PP-030",
+        "date": "2025-12-28T00:00:00Z",
+        "goalProgress": 1.0,
+        "presentProgress": 0.93,
+        "sessionsCompleted": 30,
+        "sessionsPlanned": 30
+      }
+    ]
+  },
+  {
+    "id": "PROGRESS-002-UUID",
+    "goalId": "G001-UUID-0001-0001",
+    "accountId": "1DA79DE8-54EB-4B7F-9F12-CE26EB0AFC49",
+    "programId": "P002-UUID-0002-0002",
+    "progressPoints": [
+      {
+        "id": "PP-031",
+        "date": "2025-12-15T00:00:00Z",
+        "goalProgress": 0.08,
+        "presentProgress": 0.05,
+        "sessionsCompleted": 1,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PP-032",
+        "date": "2025-12-16T00:00:00Z",
+        "goalProgress": 0.15,
+        "presentProgress": 0.10,
+        "sessionsCompleted": 2,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PP-033",
+        "date": "2025-12-17T00:00:00Z",
+        "goalProgress": 0.22,
+        "presentProgress": 0.15,
+        "sessionsCompleted": 3,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PP-034",
+        "date": "2025-12-18T00:00:00Z",
+        "goalProgress": 0.28,
+        "presentProgress": 0.20,
+        "sessionsCompleted": 4,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PP-035",
+        "date": "2025-12-19T00:00:00Z",
+        "goalProgress": 0.35,
+        "presentProgress": 0.25,
+        "sessionsCompleted": 5,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PP-036",
+        "date": "2025-12-20T00:00:00Z",
+        "goalProgress": 0.42,
+        "presentProgress": 0.30,
+        "sessionsCompleted": 6,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PP-037",
+        "date": "2025-12-21T00:00:00Z",
+        "goalProgress": 0.48,
+        "presentProgress": 0.35,
+        "sessionsCompleted": 7,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PP-038",
+        "date": "2025-12-22T00:00:00Z",
+        "goalProgress": 0.52,
+        "presentProgress": 0.40,
+        "sessionsCompleted": 8,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PP-039",
+        "date": "2025-12-23T00:00:00Z",
+        "goalProgress": 0.55,
+        "presentProgress": 0.43,
+        "sessionsCompleted": 9,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PP-040",
+        "date": "2025-12-24T00:00:00Z",
+        "goalProgress": 0.58,
+        "presentProgress": 0.47,
+        "sessionsCompleted": 10,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PP-041",
+        "date": "2025-12-25T00:00:00Z",
+        "goalProgress": 0.60,
+        "presentProgress": 0.50,
+        "sessionsCompleted": 11,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PP-042",
+        "date": "2025-12-26T00:00:00Z",
+        "goalProgress": 0.58,
+        "presentProgress": 0.52,
+        "sessionsCompleted": 17,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PP-043",
+        "date": "2025-12-27T00:00:00Z",
+        "goalProgress": 0.54,
+        "presentProgress": 0.50,
+        "sessionsCompleted": 17,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PP-044",
+        "date": "2025-12-28T00:00:00Z",
+        "goalProgress": 0.52,
+        "presentProgress": 0.48,
+        "sessionsCompleted": 18,
+        "sessionsPlanned": 30
+      }
+    ]
+  },
+  {
+    "id": "PROGRESS-003-UUID",
+    "goalId": "G001-UUID-0001-0001",
+    "accountId": "1DA79DE8-54EB-4B7F-9F12-CE26EB0AFC49",
+    "programId": "P003-UUID-0003-0003",
+    "progressPoints": [
+      {
+        "id": "PP-045",
+        "date": "2025-12-01T00:00:00Z",
+        "goalProgress": 0.10,
+        "presentProgress": 0.08,
+        "sessionsCompleted": 1,
+        "sessionsPlanned": 10
+      },
+      {
+        "id": "PP-046",
+        "date": "2025-12-08T00:00:00Z",
+        "goalProgress": 0.20,
+        "presentProgress": 0.16,
+        "sessionsCompleted": 2,
+        "sessionsPlanned": 10
+      },
+      {
+        "id": "PP-047",
+        "date": "2025-12-15T00:00:00Z",
+        "goalProgress": 0.30,
+        "presentProgress": 0.24,
+        "sessionsCompleted": 3,
+        "sessionsPlanned": 10
+      },
+      {
+        "id": "PP-048",
+        "date": "2025-12-22T00:00:00Z",
+        "goalProgress": 0.35,
+        "presentProgress": 0.32,
+        "sessionsCompleted": 3,
+        "sessionsPlanned": 10
+      },
+      {
+        "id": "PP-049",
+        "date": "2025-12-28T00:00:00Z",
+        "goalProgress": 0.40,
+        "presentProgress": 0.37,
+        "sessionsCompleted": 4,
+        "sessionsPlanned": 10
+      }
+    ]
+  }
+]

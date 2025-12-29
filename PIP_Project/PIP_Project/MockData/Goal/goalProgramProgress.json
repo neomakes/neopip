@@ -1,0 +1,326 @@
+[
+  {
+    "id": "F8D4A2C1-3B5E-4F7A-9C2D-1E5B8A3F6G9H",
+    "programId": "P001-UUID-0001-0001",
+    "goalId": "G001-UUID-0001-0001",
+    "accountId": "1DA79DE8-54EB-4B7F-9F12-CE26EB0AFC49",
+    "beforeMetrics": {
+      "mood": 0.42,
+      "stress": 0.75,
+      "energy": 0.48,
+      "focus": 0.55
+    },
+    "currentMetrics": {
+      "mood": 0.72,
+      "stress": 0.38,
+      "energy": 0.81,
+      "focus": 0.84
+    },
+    "improvementRate": 0.45,
+    "radarChartData": [
+      {
+        "id": "R001-UUID",
+        "label": "Mood",
+        "beforeValue": 0.42,
+        "afterValue": 0.72
+      },
+      {
+        "id": "R002-UUID",
+        "label": "Stress",
+        "beforeValue": 0.75,
+        "afterValue": 0.38
+      },
+      {
+        "id": "R003-UUID",
+        "label": "Energy",
+        "beforeValue": 0.48,
+        "afterValue": 0.81
+      },
+      {
+        "id": "R004-UUID",
+        "label": "Focus",
+        "beforeValue": 0.55,
+        "afterValue": 0.84
+      }
+    ],
+    "progressHistory": [
+      {
+        "id": "PH001-UUID",
+        "date": "2025-12-28T00:00:00Z",
+        "goalProgress": 0.95,
+        "presentProgress": 0.88,
+        "sessionsCompleted": 29,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PH002-UUID",
+        "date": "2025-12-27T00:00:00Z",
+        "goalProgress": 0.90,
+        "presentProgress": 0.84,
+        "sessionsCompleted": 28,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PH003-UUID",
+        "date": "2025-12-26T00:00:00Z",
+        "goalProgress": 0.85,
+        "presentProgress": 0.80,
+        "sessionsCompleted": 27,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PH004-UUID",
+        "date": "2025-12-25T00:00:00Z",
+        "goalProgress": 0.78,
+        "presentProgress": 0.75,
+        "sessionsCompleted": 26,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PH005-UUID",
+        "date": "2025-12-24T00:00:00Z",
+        "goalProgress": 0.72,
+        "presentProgress": 0.70,
+        "sessionsCompleted": 25,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PH006-UUID",
+        "date": "2025-12-23T00:00:00Z",
+        "goalProgress": 0.65,
+        "presentProgress": 0.63,
+        "sessionsCompleted": 24,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PH007-UUID",
+        "date": "2025-12-22T00:00:00Z",
+        "goalProgress": 0.58,
+        "presentProgress": 0.56,
+        "sessionsCompleted": 23,
+        "sessionsPlanned": 30
+      }
+    ],
+    "stories": [
+      {
+        "id": "S001-UUID",
+        "programId": "P001-UUID-0001-0001",
+        "title": "Day 1: Getting Started",
+        "subtitle": "Your first step to transformation",
+        "isViewed": false,
+        "createdAt": "2025-12-08T10:30:07Z"
+      },
+      {
+        "id": "S002-UUID",
+        "programId": "P001-UUID-0001-0001",
+        "title": "Week 1: Building Momentum",
+        "subtitle": "Consistency is starting to pay off",
+        "isViewed": true,
+        "viewedAt": "2025-12-15T14:22:10Z",
+        "createdAt": "2025-12-15T10:30:07Z"
+      },
+      {
+        "id": "S003-UUID",
+        "programId": "P001-UUID-0001-0001",
+        "title": "Halfway There!",
+        "subtitle": "See how much you've improved",
+        "isViewed": true,
+        "viewedAt": "2025-12-22T16:45:33Z",
+        "createdAt": "2025-12-22T10:30:07Z"
+      }
+    ],
+    "createdAt": "2025-12-08T10:30:07Z",
+    "updatedAt": "2025-12-28T18:45:22Z"
+  },
+  {
+    "id": "A7C9E2B4-5D1F-4K3M-7P8Q-2R4S6T8U9V0W",
+    "programId": "P002-UUID-0002-0002",
+    "goalId": "G001-UUID-0001-0001",
+    "accountId": "1DA79DE8-54EB-4B7F-9F12-CE26EB0AFC49",
+    "beforeMetrics": {
+      "mood": 0.38,
+      "stress": 0.82,
+      "energy": 0.45,
+      "focus": 0.52
+    },
+    "currentMetrics": {
+      "mood": 0.68,
+      "stress": 0.42,
+      "energy": 0.76,
+      "focus": 0.81
+    },
+    "improvementRate": 0.38,
+    "radarChartData": [
+      {
+        "id": "R005-UUID",
+        "label": "Mood",
+        "beforeValue": 0.38,
+        "afterValue": 0.68
+      },
+      {
+        "id": "R006-UUID",
+        "label": "Stress",
+        "beforeValue": 0.82,
+        "afterValue": 0.42
+      },
+      {
+        "id": "R007-UUID",
+        "label": "Energy",
+        "beforeValue": 0.45,
+        "afterValue": 0.76
+      },
+      {
+        "id": "R008-UUID",
+        "label": "Focus",
+        "beforeValue": 0.52,
+        "afterValue": 0.81
+      }
+    ],
+    "progressHistory": [
+      {
+        "id": "PH008-UUID",
+        "date": "2025-12-28T00:00:00Z",
+        "goalProgress": 0.58,
+        "presentProgress": 0.52,
+        "sessionsCompleted": 18,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PH009-UUID",
+        "date": "2025-12-27T00:00:00Z",
+        "goalProgress": 0.54,
+        "presentProgress": 0.48,
+        "sessionsCompleted": 17,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PH010-UUID",
+        "date": "2025-12-26T00:00:00Z",
+        "goalProgress": 0.50,
+        "presentProgress": 0.45,
+        "sessionsCompleted": 16,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PH011-UUID",
+        "date": "2025-12-25T00:00:00Z",
+        "goalProgress": 0.46,
+        "presentProgress": 0.41,
+        "sessionsCompleted": 15,
+        "sessionsPlanned": 30
+      },
+      {
+        "id": "PH012-UUID",
+        "date": "2025-12-24T00:00:00Z",
+        "goalProgress": 0.42,
+        "presentProgress": 0.38,
+        "sessionsCompleted": 14,
+        "sessionsPlanned": 30
+      }
+    ],
+    "stories": [
+      {
+        "id": "S004-UUID",
+        "programId": "P002-UUID-0002-0002",
+        "title": "Welcome to Meditation",
+        "subtitle": "Find your inner peace",
+        "isViewed": false,
+        "createdAt": "2025-12-15T08:15:30Z"
+      },
+      {
+        "id": "S005-UUID",
+        "programId": "P002-UUID-0002-0002",
+        "title": "Week 2: Deepening Your Practice",
+        "subtitle": "Meditation benefits start to emerge",
+        "isViewed": true,
+        "viewedAt": "2025-12-22T10:45:22Z",
+        "createdAt": "2025-12-22T08:15:30Z"
+      }
+    ],
+    "createdAt": "2025-12-15T08:15:30Z",
+    "updatedAt": "2025-12-28T19:22:15Z"
+  },
+  {
+    "id": "D2F6B8A3-7E9C-2K4L-5M6N-3O5P7Q9R1S2T",
+    "programId": "P003-UUID-0003-0003",
+    "goalId": "G001-UUID-0001-0001",
+    "accountId": "1DA79DE8-54EB-4B7F-9F12-CE26EB0AFC49",
+    "beforeMetrics": {
+      "mood": 0.40,
+      "stress": 0.78,
+      "energy": 0.50,
+      "focus": 0.45
+    },
+    "currentMetrics": {
+      "mood": 0.62,
+      "stress": 0.48,
+      "energy": 0.72,
+      "focus": 0.75
+    },
+    "improvementRate": 0.28,
+    "radarChartData": [
+      {
+        "id": "R009-UUID",
+        "label": "Mood",
+        "beforeValue": 0.40,
+        "afterValue": 0.62
+      },
+      {
+        "id": "R010-UUID",
+        "label": "Stress",
+        "beforeValue": 0.78,
+        "afterValue": 0.48
+      },
+      {
+        "id": "R011-UUID",
+        "label": "Energy",
+        "beforeValue": 0.50,
+        "afterValue": 0.72
+      },
+      {
+        "id": "R012-UUID",
+        "label": "Focus",
+        "beforeValue": 0.45,
+        "afterValue": 0.75
+      }
+    ],
+    "progressHistory": [
+      {
+        "id": "PH013-UUID",
+        "date": "2025-12-28T00:00:00Z",
+        "goalProgress": 0.40,
+        "presentProgress": 0.37,
+        "sessionsCompleted": 4,
+        "sessionsPlanned": 10
+      },
+      {
+        "id": "PH014-UUID",
+        "date": "2025-12-27T00:00:00Z",
+        "goalProgress": 0.38,
+        "presentProgress": 0.35,
+        "sessionsCompleted": 4,
+        "sessionsPlanned": 10
+      },
+      {
+        "id": "PH015-UUID",
+        "date": "2025-12-26T00:00:00Z",
+        "goalProgress": 0.35,
+        "presentProgress": 0.33,
+        "sessionsCompleted": 3,
+        "sessionsPlanned": 10
+      }
+    ],
+    "stories": [
+      {
+        "id": "S006-UUID",
+        "programId": "P003-UUID-0003-0003",
+        "title": "Reading Journey Begins",
+        "subtitle": "Expand your mind with books",
+        "isViewed": false,
+        "createdAt": "2025-12-01T14:20:45Z"
+      }
+    ],
+    "createdAt": "2025-12-01T14:20:45Z",
+    "updatedAt": "2025-12-28T20:10:33Z"
+  }
+]
