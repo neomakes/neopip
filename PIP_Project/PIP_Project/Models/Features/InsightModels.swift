@@ -170,9 +170,9 @@ struct PredictionData: Identifiable, Codable {
 }
 
 // MARK: - Insight Analysis Card
-/// 인사이트 분석 카드 (카드뉴스 형식)
-/// Firestore의 anonymous_users/{anonymousUserId}/insights/{insightId}/analysis_cards/{cardId}에 저장
-/// 인스타그램 스토리처럼 여러 페이지로 구성
+/// Insight analysis card (card news format)
+/// Stored in Firestore at anonymous_users/{anonymousUserId}/insights/{insightId}/analysis_cards/{cardId}
+/// Composed of multiple pages like Instagram stories
 struct InsightAnalysisCard: Identifiable, Codable {
     let id: UUID
     var insightId: UUID
@@ -183,7 +183,7 @@ struct InsightAnalysisCard: Identifiable, Codable {
     var subtitle: String?
     var cardType: AnalysisCardType
     
-    // 여러 페이지 (인스타 스토리 형식)
+    // Multiple pages (Instagram story format)
     var pages: [AnalysisCardPage]
     
     // 행동 제안

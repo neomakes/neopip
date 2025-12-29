@@ -106,8 +106,8 @@ struct OrbVizSection: View {
         }
     }
     
-    /// Hex 색상 문자열을 SwiftUI Color로 변환
-    /// - Parameter hex: "#RRGGBB" 형식의 문자열
+    /// Convert hex color string to SwiftUI Color
+    /// - Parameter hex: String in "#RRGGBB" format
     /// - Returns: SwiftUI Color
     private func colorFromHex(_ hex: String) -> Color {
         let hex = hex.trimmingCharacters(in: CharacterSet(charactersIn: "#"))

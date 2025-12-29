@@ -251,7 +251,7 @@ struct ProgramProgress: Identifiable, Codable {
     var progressHistory: [ProgressPoint]   // 날짜별 진행 데이터
     
     // 스토리 데이터
-    var stories: [ProgramStory]            // 프로그램 실행 스토리 (인스타 형식)
+    var stories: [ProgramStory]            // Program execution stories (Instagram format)
     
     // 레이더 차트 데이터
     var radarChartData: [RadarDataPoint]   // 초기 vs 현재 메트릭 비교용
@@ -296,8 +296,8 @@ struct RadarDataPoint: Identifiable, Codable {
 }
 
 // MARK: - Program Story
-/// 프로그램 스토리 (인스타그램 스토리 형식)
-/// Firestore의 users/{accountId}/goals/{goalId}/program_progress/{programId}/stories/{storyId}에 저장
+/// Program story (Instagram story format)
+/// Stored in Firestore at users/{accountId}/goals/{goalId}/program_progress/{programId}/stories/{storyId}
 struct ProgramStory: Identifiable, Codable {
     let id: UUID
     var programId: UUID

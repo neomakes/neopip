@@ -2,7 +2,7 @@
 //  HomeViewModel.swift
 //  PIP_Project
 //
-//  HomeView의 ViewModel: 데이터 관리 및 비즈니스 로직
+//  HomeView's ViewModel: Data management and business logic
 //
 
 import Foundation
@@ -26,7 +26,7 @@ class HomeViewModel: ObservableObject {
     // MARK: - Initialization
     init(dataService: DataServiceProtocol? = nil) {
         self.dataService = dataService ?? MockDataService.shared
-        self.userName = "Neo"  // Mock 사용자명 (실제로는 Firebase Auth에서 가져옴)
+        self.userName = "Neo"  // Mock username (actually retrieved from Firebase Auth)
         loadInitialData()
         
         // 매일 자정에 데이터 새로고침 (Streak 업데이트를 위함)
@@ -239,7 +239,7 @@ class HomeViewModel: ObservableObject {
             "nutrition": "Icon_nutrition"
         ]
         
-        // 매핑 테이블에서 먼저 찾기
+        // First look in mapping table
         if let mapped = mappings[lowerName] {
             return mapped
         }
@@ -250,7 +250,7 @@ class HomeViewModel: ObservableObject {
             return mapped
         }
         
-        // 기본값: Icon_${이름} 형식 시도
+        // Default: Try Icon_${name} format
         return "Icon_\(lowerName.replacingOccurrences(of: " ", with: "_").capitalized)"
     }
 

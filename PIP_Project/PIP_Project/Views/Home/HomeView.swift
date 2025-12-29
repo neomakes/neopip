@@ -48,10 +48,10 @@ struct HomeView: View {
     }
     
     // MARK: - Fixed Stats Header
-    /// VStack 형태:
-    /// - 1단계: "Hi, 사용자명"
-    /// - 2단계: VStack으로 정렬된 Records / Streaks
-    ///   - 각각은 HStack (Icon + Value)
+    /// VStack layout:
+    /// - Step 1: "Hi, Username"
+    /// - Step 2: VStack aligned Records / Streaks
+    ///   - Each is HStack (Icon + Value)
     private var fixedStatsHeader: some View {
         VStack(alignment: .leading, spacing: 16) {
             // "Hi, 사용자명"
@@ -97,8 +97,8 @@ struct HomeView: View {
     }
 }
 
-// MARK: - Stat Item Component (단순화)
-/// Icon + Value만 표시 (label은 icon asset에 포함됨)
+// MARK: - Stat Item Component (Simplified)
+/// Display only Icon + Value (label is included in icon asset)
 struct StatItem: View {
     let iconName: String
     let value: String

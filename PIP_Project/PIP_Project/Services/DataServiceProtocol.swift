@@ -2,13 +2,13 @@
 //  DataServiceProtocol.swift
 //  PIP_Project
 //
-//  Data Service Protocol: MockData와 Firebase를 추상화
+//  Data Service Protocol: Abstract MockData and Firebase
 //
 
 import Foundation
 import Combine
 
-/// 데이터 서비스 프로토콜 (MockData와 Firebase 공통 인터페이스)
+/// Data service protocol (common interface for MockData and Firebase)
 protocol DataServiceProtocol {
     // MARK: - TimeSeriesDataPoint
     func fetchDataPoints(for date: Date) -> AnyPublisher<[TimeSeriesDataPoint], Error>

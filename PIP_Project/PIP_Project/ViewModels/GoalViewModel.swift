@@ -2,7 +2,7 @@
 //  GoalViewModel.swift
 //  PIP_Project
 //
-//  GoalView의 ViewModel
+//  ViewModel for GoalView
 //
 
 import Foundation
@@ -17,12 +17,12 @@ class GoalViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     
-    // 새로 추가된 프로퍼티
+    // Newly added properties
     @Published var selectedGoal: Goal?
     @Published var ongoingPrograms: [Program] = []              // 최대 3개
     @Published var currentProgramIndex: Int = 0
     @Published var programProgress: [String: ProgramProgress] = [:]  // programId -> ProgramProgress
-    @Published var selectedProgram: Program?                    // Sheet 표시용
+    @Published var selectedProgram: Program?                    // For Sheet display
     
     // MARK: - Dependencies
     private var cancellables = Set<AnyCancellable>()
@@ -34,7 +34,7 @@ class GoalViewModel: ObservableObject {
     
     // MARK: - Public Methods
     
-    /// 초기 데이터 로드
+    /// Load initial data
     func loadInitialData() {
         isLoading = true
         createMockGoals()
@@ -44,11 +44,11 @@ class GoalViewModel: ObservableObject {
         isLoading = false
     }
     
-    /// 첫 번째 활성 목표 선택
+    /// Select first active goal
     func selectFirstGoal() {
         if let firstGoal = activeGoals.first {
             selectedGoal = firstGoal
-            // 해당 목표의 진행 중인 프로그램 필터링 (최대 3개)
+            // Filter ongoing programs for the goal (max 3)
             ongoingPrograms = availablePrograms
                 .filter { $0.category == firstGoal.category }
                 .prefix(3)
@@ -57,28 +57,28 @@ class GoalViewModel: ObservableObject {
         }
     }
     
-    /// 프로그램 선택 (탭 네비게이션)
+    /// Select program (tab navigation)
     func selectProgram(at index: Int) {
         guard index < ongoingPrograms.count else { return }
         currentProgramIndex = index
         selectedProgram = ongoingPrograms[index]
     }
     
-    /// 다음 프로그램으로 이동
+    /// Move to next program
     func selectNextProgram() {
         if currentProgramIndex < ongoingPrograms.count - 1 {
             selectProgram(at: currentProgramIndex + 1)
         }
     }
     
-    /// 이전 프로그램으로 이동
+    /// Move to previous program
     func selectPreviousProgram() {
         if currentProgramIndex > 0 {
             selectProgram(at: currentProgramIndex - 1)
         }
     }
     
-    /// 현재 선택된 프로그램의 진행 상황 반환
+    /// Return progress of currently selected program
     func currentProgramProgress() -> ProgramProgress? {
         guard currentProgramIndex < ongoingPrograms.count else { return nil }
         let program = ongoingPrograms[currentProgramIndex]
@@ -92,8 +92,8 @@ class GoalViewModel: ObservableObject {
             Goal(
                 id: UUID(),
                 accountId: UUID(),
-                title: "감정 관리 개선",
-                description: "일상적인 스트레스를 효과적으로 관리하기",
+                title: "Improve Emotional Management",
+                description: "Effectively manage daily stress",
                 category: .emotional,
                 targetDate: Calendar.current.date(byAdding: .month, value: 3, to: Date()),
                 startDate: Date(),
@@ -118,8 +118,8 @@ class GoalViewModel: ObservableObject {
         availablePrograms = [
             Program(
                 id: UUID(),
-                name: "21일 감정 일기 프로그램",
-                description: "21일간 꾸준한 감정 기록을 통해 자신의 감정 패턴을 이해하고 관리하는 프로그램",
+                name: "21-Day Emotional Journal Program",
+                description: "A program to understand and manage your emotional patterns through consistent emotional recording for 21 days",
                 category: .emotional,
                 duration: 21,
                 difficulty: .beginner,
@@ -142,11 +142,11 @@ class GoalViewModel: ObservableObject {
                 userCount: 1234,
                 steps: [],
                 prerequisites: nil,
-                tags: ["감정", "일기", "21일"],
+                tags: ["emotion", "journal", "21-day"],
                 expectedEffects: [
-                    "감정 인식 능력 향상",
-                    "스트레스 관리 개선",
-                    "자기 이해도 증가"
+                    "Improve emotional awareness",
+                    "Enhance stress management",
+                    "Increase self-understanding"
                 ],
                 requiredDataTypes: ["mood", "stress", "energy"],
                 userReviews: nil,
@@ -248,7 +248,7 @@ class GoalViewModel: ObservableObject {
             
             let improvementRate = (currentMetrics.values.reduce(0, +) - beforeMetrics.values.reduce(0, +)) / Double(beforeMetrics.count)
             
-            // 진행률 히스토리 생성 (30일)
+            // Generate progress history (30 days)
             var progressHistory: [ProgressPoint] = []
             for day in 0..<30 {
                 let date = Calendar.current.date(byAdding: .day, value: -day, to: Date()) ?? Date()
@@ -261,7 +261,7 @@ class GoalViewModel: ObservableObject {
                 ))
             }
             
-            // 레이더 차트 데이터
+            // Radar chart data
             let radarData: [RadarDataPoint] = [
                 RadarDataPoint(label: "Mood", beforeValue: beforeMetrics["mood"] ?? 0.4, afterValue: currentMetrics["mood"] ?? 0.7),
                 RadarDataPoint(label: "Stress", beforeValue: beforeMetrics["stress"] ?? 0.7, afterValue: currentMetrics["stress"] ?? 0.4),
@@ -269,7 +269,7 @@ class GoalViewModel: ObservableObject {
                 RadarDataPoint(label: "Focus", beforeValue: beforeMetrics["focus"] ?? 0.6, afterValue: currentMetrics["focus"] ?? 0.8)
             ]
             
-            // 스토리 생성 (3개 페이지)
+            // Generate stories (3 pages)
             let stories: [ProgramStory] = [
                 ProgramStory(
                     id: UUID(),

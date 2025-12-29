@@ -16,7 +16,7 @@ struct MainTabView: View {
                 ZStack {
                     switch selectedTab {
                     case 0: HomeView(onWriteRequested: {
-                        selectedTab = 2  // Write 탭으로 이동
+                        selectedTab = 2  // Switch to Write tab
                     })
                     case 1: InsightView(viewModel: insightViewModel)
                     case 2: WriteView()
@@ -33,7 +33,7 @@ struct MainTabView: View {
             }
             .ignoresSafeArea(edges: [.bottom, .horizontal])
             
-            // Bottom TabBar Area (HomeView 위에 겹침)
+            // Bottom TabBar Area (overlaps HomeView)
             VStack(spacing: 0) {
                 Spacer()
                 TabBar(selectedTab: $selectedTab, showWriteSheet: $showWriteSheet)

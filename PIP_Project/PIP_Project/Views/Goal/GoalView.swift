@@ -12,6 +12,9 @@ struct GoalView: View {
                 VStack(spacing: 20) {
                     // MARK: - Gem Visualization Section
                     GemVizSection(viewModel: viewModel)
+                    
+                    // MARK: - Progress Section
+                    ProgressSection(viewModel: viewModel)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.top, 16)

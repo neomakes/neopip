@@ -17,12 +17,12 @@ class MockDataService: DataServiceProtocol {
     // MARK: - File Management
     private let fileManager = FileManager.default
     
-    /// 앱의 Documents 디렉토리 내 MockData 폴더 경로
-    /// Bundle의 MockData는 읽기 전용이므로, 런타임 데이터 저장용으로 Documents 사용
+    /// Path to MockData folder in app's Documents directory
+    /// Bundle's MockData is read-only, so Documents is used for runtime data storage
     private var mockDataDirectory: URL {
         if let documentsDir = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first {
             let mockDataDir = documentsDir.appendingPathComponent("MockData")
-            // 폴더가 없으면 생성
+            // Create folder if it doesn't exist
             try? fileManager.createDirectory(at: mockDataDir, withIntermediateDirectories: true)
             return mockDataDir
         }
@@ -34,24 +34,24 @@ class MockDataService: DataServiceProtocol {
     
     // MARK: - JSON File Names (Subdirectory Structure)
     private enum FileName {
-        // Insight 페이지 데이터
+        // Insight page data
         static let analysisCards = "Insight/analysisCards.json"
         static let dashboardData = "Insight/dashboardData.json"
         static let orbVisualization = "Insight/orbVisualization.json"
         
-        // Home 페이지 데이터
+        // Home page data
         static let dailyGems = "Home/dailyGems.json"
         static let userStats = "Home/userStats.json"
         
-        // Status 페이지 데이터
+        // Status page data
         static let userProfile = "Status/userProfile.json"
         static let achievements = "Status/achievements.json"
         static let valueAnalysis = "Status/valueAnalysis.json"
         
-        // Write 페이지 데이터
+        // Write page data
         static let dataTypeSchemas = "Write/dataTypeSchemas.json"
         
-        // 공통 데이터
+        // Common data
         static let timeSeriesData = "Common/timeSeriesData.json"
         static let dailyStats = "Common/dailyStats.json"
     }
@@ -106,7 +106,7 @@ class MockDataService: DataServiceProtocol {
         }
     }
     
-    /// InsightStory JSON 파일들을 앱의 Documents 디렉토리로 복사하고 형식 검증/자동 수정
+    /// Copy InsightStory JSON files to app's Documents directory and validate/auto-fix format
     private func copyInsightStoryJSONFilesIfNeeded() {
         let cardIds = [
             "332A2000-CCC0-4B01-8B02-0B3EBA7152A0",
@@ -118,7 +118,7 @@ class MockDataService: DataServiceProtocol {
             "1B3788C6-D81B-4813-BF15-A2BF53D58C36"
         ]
         
-        // 분석 카드 폴더 생성
+        // Create analysis card folder
         let analysisFolderURL = mockDataDirectory.appendingPathComponent("Insight/analysis")
         try? fileManager.createDirectory(at: analysisFolderURL, withIntermediateDirectories: true)
         
@@ -127,25 +127,25 @@ class MockDataService: DataServiceProtocol {
         for cardId in cardIds {
             let destinationPath = analysisFolderURL.appendingPathComponent("\(cardId).json")
             
-            // 이미 유효한 형식으로 존재하면 스킵
+            // Skip if already exists in valid format
             if fileManager.fileExists(atPath: destinationPath.path) {
-                // 형식 검증
+                // Format validation
                 if validateInsightStoryJSON(at: destinationPath) {
                     print("✅ Already valid: \(cardId).json")
                     continue
                 }
-                // 형식이 잘못되었으면 재생성
+                // Regenerate if format is invalid
             }
             
-            // Bundle에서 원본 JSON 파일 찾기
+            // Find original JSON file in Bundle
             if let bundleUrl = Bundle.main.url(forResource: cardId, withExtension: "json") {
                 do {
-                    // 원본 파일 로드
+                    // Load original file
                     let bundleData = try Data(contentsOf: bundleUrl)
                     
-                    // 원본 형식 파싱 시도
+                    // Try parsing original format
                     if let correctedData = convertToInsightStoryFormat(bundleData, cardId: cardId) {
-                        // 변환된 데이터 저장
+                        // Save converted data
                         try correctedData.write(to: destinationPath, options: .atomic)
                         print("✅ Saved \(cardId).json to: \(destinationPath.path)")
                     } else {
@@ -158,7 +158,7 @@ class MockDataService: DataServiceProtocol {
         }
     }
     
-    /// JSON이 유효한 InsightStory 형식인지 검증
+    /// Validate if JSON is valid InsightStory format
     private func validateInsightStoryJSON(at url: URL) -> Bool {
         do {
             let data = try Data(contentsOf: url)
@@ -169,32 +169,32 @@ class MockDataService: DataServiceProtocol {
         }
     }
     
-    /// 원본 JSON 형식을 InsightStory 형식으로 변환
+    /// Convert original JSON format to InsightStory format
     private func convertToInsightStoryFormat(_ data: Data, cardId: String) -> Data? {
         do {
-            // 먼저 Dictionary로 파싱
+            // First parse as Dictionary
             guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
                 return nil
             }
             
-            // InsightStory 형식으로 변환
+            // Convert to InsightStory format
             let id = (json["id"] as? String) ?? cardId
             let title = (json["title"] as? String) ?? "Untitled Story"
             let subtitle = (json["subtitle"] as? String) ?? ""
             let isLiked = (json["isLiked"] as? Bool) ?? false
             
-            // pages 배열 처리
+            // Process pages array
             var pages: [[String: Any]] = []
             if let rawPages = json["pages"] as? [[String: Any]] {
                 pages = rawPages.map { page in
                     var processedPage = page
-                    // pageNumber가 없으면 인덱스 기반으로 생성
+                    // If pageNumber doesn't exist, generate based on index
                     if processedPage["pageNumber"] == nil, let index = rawPages.firstIndex(where: { $0["pageNumber"] as? Int ?? -1 == page["pageNumber"] as? Int ?? -1 }) {
                         processedPage["pageNumber"] = index + 1
                     }
                     return processedPage
                 }
-                // pageNumber 순서로 정렬
+                // Sort by pageNumber order
                 pages.sort { 
                     let p1 = ($0["pageNumber"] as? Int) ?? 0
                     let p2 = ($1["pageNumber"] as? Int) ?? 0
@@ -202,7 +202,7 @@ class MockDataService: DataServiceProtocol {
                 }
             }
             
-            // 새로운 InsightStory 형식의 Dictionary 구성
+            // Construct new InsightStory format Dictionary
             let correctedStory: [String: Any] = [
                 "id": id,
                 "title": title,
@@ -211,10 +211,10 @@ class MockDataService: DataServiceProtocol {
                 "isLiked": isLiked
             ]
             
-            // 다시 JSON 데이터로 인코딩
+            // Re-encode as JSON data
             let correctedData = try JSONSerialization.data(withJSONObject: correctedStory, options: [.prettyPrinted, .sortedKeys])
             
-            // 최종 검증
+            // Final validation
             if let _ = try? jsonDecoder.decode(InsightStory.self, from: correctedData) {
                 print("✅ Successfully converted \(cardId) to InsightStory format")
                 return correctedData
@@ -230,7 +230,7 @@ class MockDataService: DataServiceProtocol {
     private func fileURL(for fileName: String) -> URL {
         let fileURL = mockDataDirectory.appendingPathComponent(fileName)
         
-        // 서브디렉토리가 있는 경우 디렉토리 생성
+        // Create directory if subdirectories exist
         let directoryURL = fileURL.deletingLastPathComponent()
         if directoryURL != mockDataDirectory {
             do {
@@ -255,12 +255,12 @@ class MockDataService: DataServiceProtocol {
     }
     
     private func loadJSON<T: Decodable>(_ type: T.Type, from fileName: String, isSilent: Bool = false) -> T? {
-        // 파일명과 서브디렉토리 분리 (예: "Home/dailyGems.json" -> subdirectory: "MockData/Home", resourceName: "dailyGems")
+        // Separate filename and subdirectory (e.g., "Home/dailyGems.json" -> subdirectory: "MockData/Home", resourceName: "dailyGems")
         let components = fileName.split(separator: "/").map { String($0) }
         let resourceName = String(components.last?.split(separator: ".").first ?? "")
         let resourceExtension = String(components.last?.split(separator: ".").last ?? "json")
         
-        // 서브디렉토리 구성 (예: "Home/dailyGems.json" -> "MockData/Home")
+        // Construct subdirectory (e.g., "Home/dailyGems.json" -> "MockData/Home")
         var subdirectory = "MockData"
         if components.count > 1 {
             let subpaths = components.dropLast()
@@ -271,7 +271,7 @@ class MockDataService: DataServiceProtocol {
             print("📂 Trying to load from Bundle: \(subdirectory)/\(resourceName).\(resourceExtension)")
         }
         
-        // Bundle에서 subdirectory와 함께 찾기
+        // Search in Bundle with subdirectory
         if let bundleUrl = Bundle.main.url(forResource: resourceName, withExtension: resourceExtension, subdirectory: subdirectory) {
             do {
                 let data = try Data(contentsOf: bundleUrl)
@@ -292,7 +292,7 @@ class MockDataService: DataServiceProtocol {
             print("⚠️ File not found in Bundle: \(subdirectory)/\(resourceName).\(resourceExtension)")
         }
         
-        // 2차 시도: mockDataDirectory 경로에서 로드 (Legacy support)
+        // Second attempt: Load from mockDataDirectory path (Legacy support)
         let filePath = mockDataDirectory.appendingPathComponent(fileName)
         
         do {
@@ -314,9 +314,9 @@ class MockDataService: DataServiceProtocol {
         return nil
     }
     
-    /// InsightStory JSON 파일을 특별 처리하는 함수
+    /// Function that specially processes InsightStory JSON files
     private func loadInsightStoryJSON(_ cardId: String) -> InsightStory? {
-        // 우선 Bundle 리소스에서 찾기 (MockData/Insight/analysis 서브디렉토리)
+        // First search in Bundle resources (MockData/Insight/analysis subdirectory)
         if let bundleUrl = Bundle.main.url(forResource: cardId, withExtension: "json", subdirectory: "MockData/Insight/analysis") {
             do {
                 let data = try Data(contentsOf: bundleUrl)
@@ -330,7 +330,7 @@ class MockDataService: DataServiceProtocol {
             print("⚠️ InsightStory JSON not found in Bundle at: MockData/Insight/analysis/\(cardId).json")
         }
         
-        // Fallback 1: Bundle root에서 찾기
+        // Fallback 1: Search in Bundle root
         if let bundleUrl = Bundle.main.url(forResource: cardId, withExtension: "json") {
             do {
                 let data = try Data(contentsOf: bundleUrl)
@@ -342,7 +342,7 @@ class MockDataService: DataServiceProtocol {
             }
         }
         
-        // Fallback 2: Documents 디렉토리에서 찾기
+        // Fallback 2: Search in Documents directory
         let fileName = "\(cardId).json"
         let documentsPath = mockDataDirectory.appendingPathComponent("Insight/analysis/\(fileName)").path
         do {
@@ -645,8 +645,8 @@ class MockDataService: DataServiceProtocol {
     }
     
     // MARK: - Public Methods for Schema Management
-    /// 데이터 타입 스키마 추가 (동적 확장용)
-    /// 새로운 데이터 타입을 추가하려면 이 메서드를 사용하세요.
+    /// Add data type schema (for dynamic expansion)
+    /// Use this method to add new data types.
     /// 
     /// 예시:
     /// ```swift
@@ -671,7 +671,7 @@ class MockDataService: DataServiceProtocol {
     func addDataTypeSchema(_ schema: DataTypeSchema) {
         if !dataTypeSchemas.contains(where: { $0.id == schema.id }) {
             dataTypeSchemas.append(schema)
-            // 스키마 추가 후 데이터 재생성 (선택사항)
+            // Regenerate data after schema addition (optional)
             // generateMockData()
         }
     }

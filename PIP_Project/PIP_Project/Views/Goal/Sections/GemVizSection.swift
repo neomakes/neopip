@@ -1,14 +1,14 @@
 import SwiftUI
 
-/// Gem 시각화 뷰 (3개 젬 동시 표시, 중앙 선택 강조)
+/// Gem visualization view (3 gems displayed simultaneously, center selection emphasized)
 ///
-/// 레이아웃:
-/// 1. **3개 젬 동시 표시**: 좌우 비선택 + 중앙 선택
-/// 2. **화면 너비 활용**: GeometryReader로 동적 레이아웃
-/// 3. **드래그 스냅핑**: Phaser Snapping으로 자연스러운 전환
-/// 4. **선택된 젬 강조**: 가운데 크게, 색상 오버레이 적용
-/// 5. **비선택 젬**: 뒤로 투명도 높여 표시
-/// 6. **List Indicator (점)**: 하단 페이지 표시
+/// Layout:
+/// 1. **3 gems displayed simultaneously**: Left and right unselected + center selected
+/// 2. **Utilize screen width**: Dynamic layout with GeometryReader
+/// 3. **Drag snapping**: Natural transition with Phaser Snapping
+/// 4. **Selected gem emphasis**: Larger in center, color overlay applied
+/// 5. **Unselected gems**: Displayed with reduced opacity
+/// 6. **List Indicator (dots)**: Page indicators at bottom
 struct GemVizSection: View {
     @ObservedObject var viewModel: GoalViewModel
     @State private var isAnimating = false
@@ -16,7 +16,7 @@ struct GemVizSection: View {
     
     var body: some View {
         VStack(alignment: .center, spacing: 5) {
-            // MARK: - 3개 Gem 동시 표시 with Navigation Buttons and Drag Gesture
+            // MARK: - 3 Gems Displayed Simultaneously with Navigation Buttons and Drag Gesture
             GeometryReader { geometry in
                 let screenWidth = geometry.size.width
                 let spacing = screenWidth / 3
@@ -41,7 +41,7 @@ struct GemVizSection: View {
                         
                         // Gem Stack with Drag Gesture
                         ZStack(alignment: .center) {
-                            // 좌측 젬 (비선택)
+                            // Left gem (unselected)
                             if viewModel.currentProgramIndex > 0 {
                                 GemCard(
                                     program: viewModel.ongoingPrograms[viewModel.currentProgramIndex - 1],
@@ -53,7 +53,7 @@ struct GemVizSection: View {
                                 .zIndex(1)
                             }
                             
-                            // 중앙 젬 (선택)
+                            // Center gem (selected)
                             GemCard(
                                 program: viewModel.ongoingPrograms[viewModel.currentProgramIndex],
                                 progress: viewModel.programProgress[viewModel.ongoingPrograms[viewModel.currentProgramIndex].id.uuidString],
@@ -63,7 +63,7 @@ struct GemVizSection: View {
                             .offset(x: dragOffset)
                             .zIndex(2)
                             
-                            // 우측 젬 (비선택)
+                            // Right gem (unselected)
                             if viewModel.currentProgramIndex < viewModel.ongoingPrograms.count - 1 {
                                 GemCard(
                                     program: viewModel.ongoingPrograms[viewModel.currentProgramIndex + 1],
@@ -85,23 +85,23 @@ struct GemVizSection: View {
                                     let threshold = screenWidth / 6
                                     let velocity = value.predictedEndLocation.x - value.location.x
                                     
-                                    // Threshold와 velocity를 고려한 스냅핑 (순환)
+                                    // Snapping considering threshold and velocity (circular)
                                     if value.translation.width > threshold || velocity > 50 {
-                                        // 우측으로 스와이프 - 이전 프로그램 (순환)
+                                        // Swipe right - previous program (circular)
                                         withAnimation(.easeInOut(duration: 0.3)) {
                                             let newIndex = (viewModel.currentProgramIndex - 1 + viewModel.ongoingPrograms.count) % viewModel.ongoingPrograms.count
                                             viewModel.selectProgram(at: newIndex)
                                             dragOffset = 0
                                         }
                                     } else if value.translation.width < -threshold || velocity < -50 {
-                                        // 좌측으로 스와이프 - 다음 프로그램 (순환)
+                                        // Swipe left - next program (circular)
                                         withAnimation(.easeInOut(duration: 0.3)) {
                                             let newIndex = (viewModel.currentProgramIndex + 1) % viewModel.ongoingPrograms.count
                                             viewModel.selectProgram(at: newIndex)
                                             dragOffset = 0
                                         }
                                     } else {
-                                        // 스냅 백
+                                        // Snap back
                                         withAnimation(.easeInOut(duration: 0.2)) {
                                             dragOffset = 0
                                         }
@@ -167,7 +167,7 @@ struct GemCard: View {
         VStack(spacing: isSelected ? 16 : 0) {
             // Gem 3D 시각화
             ZStack(alignment: .top) {
-                // 그림자 효과
+                // Shadow effect
                 Ellipse()
                     .fill(
                         RadialGradient(
@@ -185,9 +185,9 @@ struct GemCard: View {
                     .opacity(isSelected ? 1.0 : 0.6)  // 선택되지 않은 경우 투명도 조정
                 
                 VStack(spacing: 0) {
-                    // Gem 이미지 with Gradient & Overlay
+                    // Gem image with Gradient & Overlay
                     ZStack {
-                        // 1. 기본 이미지
+                        // 1. Base image
                         if let imageName = getShapeImageName(for: program) {
                             Image(imageName)
                                 .resizable()
@@ -201,7 +201,7 @@ struct GemCard: View {
                                 .foregroundColor(.gray.opacity(0.5))
                         }
                         
-                        // 2. 방사형 그라데이션 오버레이
+                        // 2. Radial gradient overlay
                         let programColor = getColorFromTheme(program.gemVisualization.colorTheme)
                         let improvementRate = progress?.improvementRate ?? 0.5
                         
@@ -229,7 +229,7 @@ struct GemCard: View {
                             }
                         )
                         
-                        // 3. 선형 그라데이션 오버레이 (랜덤 색상)
+                        // 3. Linear gradient overlay (random colors)
                         LinearGradient(
                             gradient: Gradient(colors: getRandomGradientColors(for: program)),
                             startPoint: .topLeading,
@@ -256,7 +256,7 @@ struct GemCard: View {
                 }
             }
             
-            // 프로그램 이름 (선택된 젬만 표시)
+            // Program name (only for selected gem)
             // if isSelected {
             //     Text(program.name)
             //         .font(.pip.body)
@@ -269,13 +269,13 @@ struct GemCard: View {
         .opacity(isSelected ? 1.0 : 0.6)
     }
     
-    /// Assets에서 3D Shape 이미지 이름 가져오기
+    /// Get 3D shape image name from Assets
     private func getShapeImageName(for program: Program) -> String? {
         let shapeId = (abs(program.id.hashValue) % 15) + 1
         return "3d_shape_\(shapeId)"
     }
     
-    /// ColorTheme를 SwiftUI Color로 변환
+    /// Convert ColorTheme to SwiftUI Color
     private func getColorFromTheme(_ theme: ColorThemeForGoal) -> Color {
         switch theme {
         case .teal:
@@ -289,7 +289,7 @@ struct GemCard: View {
         }
     }
     
-    /// 각 젬마다 랜덤 색상 선형 그라데이션 색상 반환
+    /// Return random gradient colors for each gem
     private func getRandomGradientColors(for program: Program) -> [Color] {
         let seed = abs(program.id.hashValue)
         return [
@@ -299,7 +299,7 @@ struct GemCard: View {
         ]
     }
     
-    /// 시드를 사용한 랜덤 색상 생성
+    /// Generate random color using seed
     private func randomColor(seed: Int) -> Color {
         srand48(seed)
         return Color(red: drand48(), green: drand48(), blue: drand48())

@@ -3,7 +3,7 @@ import SwiftUI
 struct LaunchView: View {
     var body: some View {
         ZStack {
-            // 디자인 시스템의 방사형 그라데이션 사용
+            // Use radial gradient from design system
             RadialGradient(
                 gradient: Gradient(colors: [Color.pip.bgGrad1, Color.pip.bgGrad2]),
                 center: .center,
@@ -12,7 +12,7 @@ struct LaunchView: View {
             )
             .ignoresSafeArea()
             
-            // 중앙 로고
+            // Center logo
             Image("LaunchLogo")
                 .resizable()
                 .aspectRatio(contentMode: .fit)

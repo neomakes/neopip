@@ -76,8 +76,8 @@ struct ProgressSection: View {
                                         .fill(Color.white.opacity(0.05))
                                     
                                     VStack {
-                                        // 간단한 레이더 차트 플레이스홀더
-                                        // 실제 RadarChart 컴포넌트는 별도로 구현 예정
+                                        // Simple radar chart placeholder
+                                        // Actual RadarChart component to be implemented separately
                                         VStack(spacing: 8) {
                                             ForEach(progress.radarChartData, id: \.id) { point in
                                                 HStack {
@@ -149,12 +149,12 @@ struct ProgressSection: View {
                             
                             if let progress = viewModel.currentProgramProgress() {
                                 VStack(alignment: .leading, spacing: 16) {
-                                    // 간단한 BarLineChart 시뮬레이션
+                                    // Simple BarLineChart simulation
                                     GeometryReader { geometry in
                                         VStack(alignment: .leading, spacing: 12) {
-                                            // 차트 영역
+                                            // Chart area
                                             ZStack(alignment: .bottomLeading) {
-                                                // 배경 그리드
+                                                // Background grid
                                                 VStack(spacing: 0) {
                                                     ForEach(0..<5, id: \.self) { _ in
                                                         Divider()
@@ -163,13 +163,13 @@ struct ProgressSection: View {
                                                     }
                                                 }
                                                 
-                                                // 차트 데이터 (최근 7일)
+                                                // Chart data (last 7 days)
                                                 let recentData = progress.progressHistory.prefix(7).reversed()
                                                 
                                                 HStack(alignment: .bottom, spacing: 0) {
                                                     ForEach(Array(recentData.enumerated()), id: \.element.id) { index, point in
                                                         VStack(alignment: .center, spacing: 4) {
-                                                            // Goal Progress Bar (파란색)
+                                                            // Goal Progress Bar (blue)
                                                             VStack {
                                                                 Spacer()
                                                                 RoundedRectangle(cornerRadius: 2)
@@ -177,7 +177,7 @@ struct ProgressSection: View {
                                                                     .frame(width: 4, height: geometry.size.height * point.goalProgress)
                                                             }
                                                             
-                                                            // Present Progress Line (주황색)
+                                                            // Present Progress Line (orange)
                                                             if index < recentData.count - 1 {
                                                                 Circle()
                                                                     .fill(Color.orange)
@@ -215,7 +215,7 @@ struct ProgressSection: View {
                                         }
                                     }
                                     
-                                    // 통계
+                                    // Statistics
                                     HStack(spacing: 12) {
                                         VStack(alignment: .leading, spacing: 4) {
                                             Text("Progress")

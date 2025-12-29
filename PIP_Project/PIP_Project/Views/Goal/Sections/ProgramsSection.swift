@@ -25,14 +25,14 @@ struct ProgramsSection: View {
             
             // MARK: - Program List
             VStack(spacing: 12) {
-                // TODO: 선택된 목표의 프로그램 리스트
+                // TODO: Selected goal's program list
                 ForEach(0..<3, id: \.self) { _ in
                     ZStack {
                         RoundedRectangle(cornerRadius: 12)
                             .fill(Color.white.opacity(0.05))
                         
                         HStack(spacing: 12) {
-                            // 프로그램 아이콘
+                            // Program icon
                             Image(systemName: "star.fill")
                                 .foregroundColor(.accentColor)
                                 .font(.system(size: 20))
