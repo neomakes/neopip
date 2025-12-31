@@ -202,7 +202,6 @@ struct GemCard: View {
                         }
                         
                         // 2. Radial gradient overlay
-                        let programColor = getColorFromTheme(program.gemVisualization.colorTheme)
                         let improvementRate = progress?.improvementRate ?? 0.5
                         
                         RadialGradient(
@@ -229,9 +228,9 @@ struct GemCard: View {
                             }
                         )
                         
-                        // 3. Linear gradient overlay (random colors)
+                        // 3. Linear gradient overlay (theme-based colors)
                         LinearGradient(
-                            gradient: Gradient(colors: getRandomGradientColors(for: program)),
+                            gradient: Gradient(colors: getThemeBasedGradientColors(for: program)),
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
@@ -289,20 +288,15 @@ struct GemCard: View {
         }
     }
     
-    /// Return random gradient colors for each gem
-    private func getRandomGradientColors(for program: Program) -> [Color] {
-        let seed = abs(program.id.hashValue)
-        return [
-            randomColor(seed: seed),
-            randomColor(seed: seed + 1),
-            randomColor(seed: seed + 2)
-        ]
-    }
-    
-    /// Generate random color using seed
-    private func randomColor(seed: Int) -> Color {
-        srand48(seed)
-        return Color(red: drand48(), green: drand48(), blue: drand48())
+    /// Return theme-based gradient colors for each gem
+    private func getThemeBasedGradientColors(for program: Program) -> [Color] {
+        if let gradientColors = program.gemVisualization.gradientColors, !gradientColors.isEmpty {
+            return gradientColors.compactMap { ColorThemeForGoal(rawValue: $0) }.map { getColorFromTheme($0) }
+        }
+        
+        // Fallback to a default gradient if colors are not available
+        let fallbackColor = getColorFromTheme(program.gemVisualization.colorTheme)
+        return [fallbackColor.opacity(0.7), fallbackColor.opacity(0.9)]
     }
 }
 

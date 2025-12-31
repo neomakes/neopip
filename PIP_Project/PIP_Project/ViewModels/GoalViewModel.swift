@@ -115,6 +115,10 @@ class GoalViewModel: ObservableObject {
     }
     
     private func createMockPrograms() {
+        let programStory1 = loadProgramStory(from: "P001-UUID-0001-0001")
+        let programStory2 = loadProgramStory(from: "P002-UUID-0002-0002")
+        let programStory3 = loadProgramStory(from: "P003-UUID-0003-0003")
+
         availablePrograms = [
             Program(
                 id: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!,
@@ -125,7 +129,8 @@ class GoalViewModel: ObservableObject {
                 difficulty: .beginner,
                 gemVisualization: GemVisualization(
                     gemType: .diamond,
-                    colorTheme: .amber,
+                    colorTheme: programStory1?.colorTheme ?? .amber,
+                    gradientColors: programStory1?.gradientColors?.map { $0.rawValue },
                     brightness: 0.8,
                     size: 1.0,
                     customShape: nil
@@ -162,7 +167,8 @@ class GoalViewModel: ObservableObject {
                 difficulty: .beginner,
                 gemVisualization: GemVisualization(
                     gemType: .sphere,
-                    colorTheme: .blue,
+                    colorTheme: programStory2?.colorTheme ?? .blue,
+                    gradientColors: programStory2?.gradientColors?.map { $0.rawValue },
                     brightness: 0.75,
                     size: 0.95,
                     customShape: nil
@@ -199,7 +205,8 @@ class GoalViewModel: ObservableObject {
                 difficulty: .intermediate,
                 gemVisualization: GemVisualization(
                     gemType: .diamond,
-                    colorTheme: .amber,
+                    colorTheme: programStory3?.colorTheme ?? .amber,
+                    gradientColors: programStory3?.gradientColors?.map { $0.rawValue },
                     brightness: 0.80,
                     size: 1.0,
                     customShape: nil
@@ -229,6 +236,46 @@ class GoalViewModel: ObservableObject {
             )
         ]
     }
+
+    private func loadProgramStory(from fileName: String) -> ProgramStory? {
+        // Try to load from Documents directory first (copied by MockDataService)
+        let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?
+            .appendingPathComponent("MockData/Goal/ongoing_programs/\(fileName).json")
+        
+        if let documentsURL = documentsPath, FileManager.default.fileExists(atPath: documentsURL.path) {
+            do {
+                let data = try Data(contentsOf: documentsURL)
+                let decoder = JSONDecoder()
+                decoder.dateDecodingStrategy = .iso8601
+                let story = try decoder.decode(ProgramStory.self, from: data)
+                return story
+            } catch {
+                print("Error loading program story from Documents: \(error)")
+            }
+        }
+        
+        // Fallback to Bundle
+        let resourceName = fileName
+        let resourceExtension = "json"
+        let subdirectory = "MockData/Goal/ongoing_programs"
+
+        guard let bundleUrl = Bundle.main.url(forResource: resourceName, withExtension: resourceExtension, subdirectory: subdirectory) else {
+            print("⚠️ File not found in Bundle: \(subdirectory)/\(resourceName).\(resourceExtension)")
+            return nil
+        }
+
+        do {
+            let data = try Data(contentsOf: bundleUrl)
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            let story = try decoder.decode(ProgramStory.self, from: data)
+            return story
+        } catch {
+            print("Error loading or decoding program story from \(fileName).json: \(error)")
+            return nil
+        }
+    }
+
     
     private func createMockProgramProgress() {
         for program in availablePrograms {

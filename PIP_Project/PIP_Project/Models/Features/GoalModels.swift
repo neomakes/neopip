@@ -100,6 +100,7 @@ enum GoalStatus: String, Codable {
 struct GemVisualization: Codable {
     var gemType: GemTypeForGoal
     var colorTheme: ColorThemeForGoal
+    var gradientColors: [String]? // Add gradient colors for richer background
     var brightness: Double         // 진행률에 따라 조절
     var size: Double
     var customShape: String?       // 커스텀 형태 ID

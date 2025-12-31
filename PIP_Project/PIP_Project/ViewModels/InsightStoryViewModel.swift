@@ -26,16 +26,19 @@ class InsightStoryViewModel: ObservableObject {
     
     // MARK: - Data Fetching
     func fetchInsightStory() {
+        print("🔍 [ViewModel] Starting to fetch insight story for cardId: \(cardId)")
         isLoading = true
         dataService.fetchInsightStory(for: cardId)
             .receive(on: DispatchQueue.main)
             .sink(receiveCompletion: { [weak self] completion in
                 if case .failure(let error) = completion {
+                    print("❌ [ViewModel] Failed to fetch story: \(error.localizedDescription)")
                     self?.isLoading = false
                     self?.errorMessage = error.localizedDescription
                 }
             }, receiveValue: { [weak self] story in
                 guard let self = self else { return }
+                print("✅ [ViewModel] Successfully fetched story with \(story.pages.count) pages")
                 var sortedStory = story
                 sortedStory.pages = story.pages.sorted { $0.pageNumber < $1.pageNumber }
 
@@ -44,6 +47,7 @@ class InsightStoryViewModel: ObservableObject {
                 self.isLoading = false
                 self.currentPageIndex = 0
                 self.startStoryTimer()
+                print("🎬 [ViewModel] Story timer started, current page: \(self.currentPageIndex)")
             })
             .store(in: &cancellables)
     }

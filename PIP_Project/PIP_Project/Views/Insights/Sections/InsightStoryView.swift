@@ -27,8 +27,12 @@ struct InsightStoryView: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                // Base gradient background
-                GradientUtils.createCardGradient(themeColor: cardColor).ignoresSafeArea()
+                // Base gradient background - 상단 검은색, 하단 카드 색상 (더 어둡게)
+                LinearGradient(
+                    gradient: Gradient(colors: [.black, cardColor.opacity(0.6)]),
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ).ignoresSafeArea()
                 
                 // Neon glow effect
                 VStack {
@@ -199,8 +203,6 @@ private struct StoryPageView: View {
                     .lineSpacing(5)
             }
             .padding(20)
-            .background(Color.black.opacity(0.25))
-            .cornerRadius(16)
 
             Spacer(minLength: 16)
 
