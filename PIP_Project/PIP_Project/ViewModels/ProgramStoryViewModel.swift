@@ -2,8 +2,8 @@ import Foundation
 import Combine
 
 @MainActor
-class InsightStoryViewModel: ObservableObject {
-    @Published var insightStory: InsightStory?
+class ProgramStoryViewModel: ObservableObject {
+    @Published var programStory: ProgramStory?
     @Published var currentPageIndex: Int = 0
     @Published var currentPageProgress: Double = 0.0
     @Published var isLoading: Bool = false
@@ -12,45 +12,56 @@ class InsightStoryViewModel: ObservableObject {
     @Published var isPaused: Bool = false
     @Published var isLiked: Bool = false
 
-    private let dataService: DataServiceProtocol
-    private let cardId: String
+    private let program: Program
+    private let progress: ProgramProgress?
     private var cancellables = Set<AnyCancellable>()
     private var storyTimer: Timer?
     private let storyDuration: TimeInterval = 5.0 // 한 페이지당 지속시간
 
-    init(dataService: DataServiceProtocol? = nil, cardId: String) {
-        self.dataService = dataService ?? MockDataService.shared
-        self.cardId = cardId
-        fetchInsightStory()
+    init(program: Program, progress: ProgramProgress?) {
+        self.program = program
+        self.progress = progress
+        loadStory()
     }
-    
-    // MARK: - Data Fetching
-    func fetchInsightStory() {
-        isLoading = true
-        dataService.fetchInsightStory(for: cardId)
-            .receive(on: DispatchQueue.main)
-            .sink(receiveCompletion: { [weak self] completion in
-                if case .failure(let error) = completion {
-                    self?.isLoading = false
-                    self?.errorMessage = error.localizedDescription
-                }
-            }, receiveValue: { [weak self] story in
-                guard let self = self else { return }
-                var sortedStory = story
-                sortedStory.pages = story.pages.sorted { $0.pageNumber < $1.pageNumber }
 
-                self.insightStory = sortedStory
-                self.isLiked = self.insightStory?.isLiked ?? false
+    // MARK: - Data Loading
+    func loadStory() {
+        isLoading = true
+        
+        print("DEBUG: Loading story for program: \(program.name)")
+        print("DEBUG: Story file name: \(program.storyFileName)")
+        
+        // Load detailed story from programs JSON file
+        if let filePath = Bundle.main.path(forResource: program.storyFileName, ofType: "json") {
+            print("DEBUG: Found file path: \(filePath)")
+            do {
+                let data = try Data(contentsOf: URL(fileURLWithPath: filePath))
+                print("DEBUG: Successfully loaded data, size: \(data.count) bytes")
+                self.programStory = try JSONDecoder().decode(ProgramStory.self, from: data)
+                self.isLiked = self.programStory?.isLiked ?? false
+                print("DEBUG: Successfully decoded ProgramStory")
                 self.isLoading = false
-                self.currentPageIndex = 0
                 self.startStoryTimer()
-            })
-            .store(in: &cancellables)
+            } catch {
+                print("DEBUG: Failed to decode JSON: \(error)")
+                self.isLoading = false
+                self.errorMessage = "Failed to load story data: \(error.localizedDescription)"
+            }
+        } else {
+            print("DEBUG: File not found for resource: \(program.storyFileName).json")
+            // List all available resources to debug
+            if let bundlePath = Bundle.main.bundlePath as NSString? {
+                let jsonFiles = try? FileManager.default.contentsOfDirectory(atPath: bundlePath as String).filter { $0.hasSuffix(".json") }
+                print("DEBUG: Available JSON files in bundle: \(jsonFiles ?? [])")
+            }
+            self.isLoading = false
+            self.errorMessage = "No story file found for this program"
+        }
     }
 
     // MARK: - Story Navigation
     func goToNextStory() {
-        guard let story = insightStory else { return }
+        guard let story = programStory else { return }
         if currentPageIndex < story.pages.count - 1 {
             currentPageIndex += 1
             resetCurrentPage()
@@ -70,9 +81,9 @@ class InsightStoryViewModel: ObservableObject {
             resetCurrentPage()
         }
     }
-    
+
     private func advanceToNextPage() {
-        guard let story = insightStory else { return }
+        guard let story = programStory else { return }
         if currentPageIndex < story.pages.count - 1 {
             currentPageIndex += 1
             currentPageProgress = 0.0
@@ -80,28 +91,30 @@ class InsightStoryViewModel: ObservableObject {
             dismissStory()
         }
     }
-    
+
     // MARK: - Timer and Progress Control
     func startStoryTimer() {
         stopStoryTimer()
         currentPageProgress = 0.0
-        
+
         storyTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
-            self?.updateProgress()
+            Task { @MainActor in
+                await self?.updateProgress()
+            }
         }
     }
 
     private func updateProgress() {
-        guard !isPaused, let story = insightStory, currentPageIndex < story.pages.count else { return }
-        
+        guard !isPaused, let story = programStory, currentPageIndex < story.pages.count else { return }
+
         let increment = 0.05 / storyDuration
         currentPageProgress += increment
-        
+
         if currentPageProgress >= 1.0 {
             advanceToNextPage()
         }
     }
-    
+
     func stopStoryTimer() {
         storyTimer?.invalidate()
         storyTimer = nil
@@ -124,9 +137,9 @@ class InsightStoryViewModel: ObservableObject {
     // MARK: - Actions
     func toggleLike() {
         isLiked.toggle()
-        if var story = insightStory {
+        if var story = programStory {
             story.isLiked = isLiked
-            insightStory = story
+            programStory = story
         }
         // TODO: Persist this change via dataService
     }

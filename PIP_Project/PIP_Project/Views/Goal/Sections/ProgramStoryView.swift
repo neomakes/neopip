@@ -1,230 +1,258 @@
 import SwiftUI
 
-/// ProgramStoryView - Instagram Story Style Program Progress Display
-///
-/// Displays program stories in an Instagram-like format with:
-/// - Page-based navigation (tap sides to move)
-/// - Progress indicator at top
-/// - Story content (text, tips, milestones, motivation)
-/// - Like and reply interactions
-///
 struct ProgramStoryView: View {
-    @Environment(\.dismiss) var dismiss
-    @State private var currentPageIndex: Int = 0
-    @State private var isLiked: Bool = false
-    
+    @StateObject private var viewModel: ProgramStoryViewModel
+    @Environment(\.presentationMode) var presentationMode
+
     let program: Program
     let progress: ProgramProgress?
-    
+
+    init(program: Program, progress: ProgramProgress?) {
+        self.program = program
+        self.progress = progress
+        _viewModel = StateObject(wrappedValue: ProgramStoryViewModel(program: program, progress: progress))
+    }
+
+    var cardType: AnalysisCardType {
+        switch program.gemVisualization.colorTheme {
+        case .teal:
+            return .explanation
+        case .amber:
+            return .prediction
+        case .tiger:
+            return .control
+        case .blue:
+            return .correlation
+        }
+    }
+
+    var cardColor: Color {
+        switch cardType {
+        case .explanation: return Color(red: 0.51, green: 0.92, blue: 0.92) // Teal
+        case .prediction: return Color(red: 1.0, green: 0.65, blue: 0.0)   // Amber
+        case .control: return Color(red: 1.0, green: 0.4, blue: 0.0)    // Tiger
+        case .correlation: return Color(red: 0.0, green: 0.4, blue: 0.8)    // Blue
+        }
+    }
+
+    var cardTypeLabel: String {
+        cardType.rawValue.capitalized
+    }
+
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                // Background gradient
-                LinearGradient(
-                    gradient: Gradient(colors: [
-                        Color.black,
-                        Color(red: 0.1, green: 0.1, blue: 0.12)
-                    ]),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .ignoresSafeArea()
-                
-                if let progress = progress, !progress.stories.isEmpty {
-                    let story = progress.stories[0]  // First story
-                    
+                // Base gradient background
+                GradientUtils.createCardGradient(themeColor: cardColor).ignoresSafeArea()
+
+                // Neon glow effect
+                VStack {
+                    HStack {
+                        Spacer()
+                        GradientUtils.createNeonGlow(themeColor: cardColor, scale: 1.0)
+                    }
+                    Spacer()
+                }.ignoresSafeArea()
+
+                if viewModel.isLoading {
+                    ProgressView()
+                } else if let story = viewModel.programStory {
                     VStack(spacing: 0) {
-                        // MARK: - Progress Bar & Header
-                        HStack(spacing: 12) {
-                            // Progress bars for pages
-                            HStack(spacing: 4) {
-                                ForEach(0..<story.pages.count, id: \.self) { index in
-                                    GeometryReader { geo in
-                                        Capsule()
-                                            .fill(
-                                                index < currentPageIndex ? Color.white :
-                                                index == currentPageIndex ? Color.white.opacity(0.7) :
-                                                Color.white.opacity(0.3)
-                                            )
-                                            .frame(height: 2)
-                                    }
-                                }
-                            }
-                            .frame(height: 2)
-                            
-                            // Close button
-                            Button(action: { dismiss() }) {
-                                Image(systemName: "xmark")
-                                    .foregroundColor(.white)
-                                    .font(.system(size: 14, weight: .semibold))
-                            }
-                            .frame(width: 30, height: 30)
-                        }
+                        // Progress bar and header
+                        ProgressBar(
+                            pageCount: story.pages.count,
+                            currentPage: $viewModel.currentPageIndex,
+                            currentPageProgress: $viewModel.currentPageProgress
+                        )
+                        .padding(.top, 10)
                         .padding(.horizontal, 16)
-                        .padding(.vertical, 12)
-                        
-                        // MARK: - Story Title & Info
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(story.title)
-                                .font(.pip.title2)
-                                .foregroundColor(.white)
-                            
-                            if let subtitle = story.subtitle {
-                                Text(subtitle)
-                                    .font(.pip.body)
-                                    .foregroundColor(.gray)
-                            }
+
+                        // Story Header
+                        storyHeader(story: story)
+                            .padding(.vertical, 16)
+                            .padding(.horizontal)
+
+                        // Page content
+                        if story.pages.indices.contains(viewModel.currentPageIndex) {
+                            StoryPageView(page: story.pages[viewModel.currentPageIndex], viewModel: viewModel)
+                                .transition(.opacity.animation(.easeInOut))
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 12)
-                        
-                        // MARK: - Page Content
-                        if story.pages.indices.contains(currentPageIndex) {
-                            let page = story.pages[currentPageIndex]
-                            
-                            VStack(spacing: 16) {
-                                // Content based on page type
-                                switch page.contentType {
-                                case .text:
-                                    textPageContent(content: page.content)
-                                case .image:
-                                    imagePageContent(imageName: page.content.imageName ?? "")
-                                case .tip:
-                                    tipPageContent(content: page.content)
-                                case .milestone:
-                                    milestonePageContent(content: page.content)
-                                case .motivation:
-                                    motivationPageContent(content: page.content)
-                                case .mixed:
-                                    mixedPageContent(content: page.content)
-                                }
-                                
-                                Spacer()
-                            }
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 12)
-                            .transition(.opacity)
-                        }
-                        
-                        // MARK: - Bottom Actions
-                        HStack(spacing: 16) {
-                            // Like button
-                            Button(action: {
-                                withAnimation {
-                                    isLiked.toggle()
-                                }
-                            }) {
-                                Image(systemName: isLiked ? "heart.fill" : "heart")
-                                    .foregroundColor(isLiked ? .red : .white)
-                                    .font(.system(size: 16))
-                            }
-                            
-                            // Text input placeholder
-                            HStack {
-                                Text("Reply...")
-                                    .font(.pip.body)
-                                    .foregroundColor(.gray)
-                                Spacer()
-                                Image(systemName: "arrow.right")
-                                    .foregroundColor(.gray)
-                                    .font(.system(size: 12))
-                            }
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .background(Color.white.opacity(0.1))
-                            .cornerRadius(8)
-                            
-                            Spacer()
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 12)
+
+                        Spacer()
                     }
-                    
-                    // Tap to advance
-                    .contentShape(Rectangle())
-                    .onTapGesture { location in
-                        let midpoint = geometry.size.width / 2
-                        if location.x < midpoint {
-                            // Previous page
-                            if currentPageIndex > 0 {
-                                withAnimation(.easeInOut(duration: 0.2)) {
-                                    currentPageIndex -= 1
-                                }
-                            }
-                        } else {
-                            // Next page
-                            if currentPageIndex < story.pages.count - 1 {
-                                withAnimation(.easeInOut(duration: 0.2)) {
-                                    currentPageIndex += 1
-                                }
-                            } else {
-                                // Story finished
-                                dismiss()
-                            }
-                        }
-                    }
+                } else if let errorMessage = viewModel.errorMessage {
+                    errorView(errorMessage: errorMessage)
                 } else {
-                    // No stories available
-                    VStack(spacing: 16) {
-                        Image(systemName: "book.closed")
-                            .font(.system(size: 48))
-                            .foregroundColor(.gray)
-                        
-                        Text("No Stories Yet")
-                            .font(.pip.title2)
-                            .foregroundColor(.white)
-                        
-                        Text("Stories about this program will appear here as you progress")
-                            .font(.pip.body)
-                            .foregroundColor(.gray)
-                            .multilineTextAlignment(.center)
-                        
-                        Button(action: { dismiss() }) {
-                            Text("Dismiss")
-                                .font(.pip.body)
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 12)
-                                .background(Color.accentColor)
-                                .cornerRadius(8)
-                        }
-                        .padding(.horizontal, 40)
+                    loadingPlaceholder()
+                }
+
+                // Pause Overlay
+                if viewModel.isPaused {
+                    Color.black.opacity(0.001)
+                        .ignoresSafeArea()
+                }
+            }
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { _ in
+                        viewModel.pauseStory()
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .padding(.horizontal, 20)
+                    .onEnded { value in
+                        viewModel.resumeStory()
+
+                        // It's a tap if the drag distance is negligible
+                        if value.translation.width < 10 && value.translation.height < 10 {
+                            let screenWidth = geometry.size.width
+                            let tapLocationX = value.location.x
+
+                            // Tapping left 20% of the screen
+                            if tapLocationX < screenWidth * 0.2 {
+                                viewModel.goToPreviousStory()
+                            // Tapping right 20% of the screen
+                            } else if tapLocationX > screenWidth * 0.8 {
+                                viewModel.goToNextStory()
+                            }
+                            // Tapping the middle 60% does nothing for navigation
+                        }
+                    }
+            )
+            .onChange(of: viewModel.shouldDismiss) { shouldDismiss in
+                if shouldDismiss {
+                    presentationMode.wrappedValue.dismiss()
+                }
+            }
+            .onDisappear(perform: viewModel.stopStoryTimer)
+        }
+    }
+
+    @ViewBuilder
+    private func storyHeader(story: ProgramStory) -> some View {
+        HStack(alignment: .center, spacing: 8) {
+            Text(cardTypeLabel)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(cardColor)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
+                .background(Color.white.opacity(0.15))
+                .cornerRadius(6)
+
+            Text(story.title)
+                .font(.system(size: 16, weight: .bold))
+                .foregroundColor(.white)
+                .lineLimit(1)
+
+            Spacer()
+
+            Button(action: {
+                viewModel.dismissStory()
+            }) {
+                Image(systemName: "xmark")
+                    .font(.title3)
+                    .foregroundColor(.white.opacity(0.8))
+            }
+            .padding(8) // Add some padding to make it easier to tap
+        }
+    }
+
+    @ViewBuilder
+    private func errorView(errorMessage: String) -> some View {
+        VStack(spacing: 20) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 48)).foregroundColor(.red)
+            Text("Unable to load story").font(.headline).foregroundColor(.white)
+            Text(errorMessage).font(.footnote).foregroundColor(.white.opacity(0.8)).multilineTextAlignment(.center)
+            Button("Go Back") { presentationMode.wrappedValue.dismiss() }
+                .padding(.horizontal, 20).padding(.vertical, 8)
+                .background(Color.white.opacity(0.2)).cornerRadius(8)
+        }
+        .padding()
+    }
+
+    @ViewBuilder
+    private func loadingPlaceholder() -> some View {
+        VStack {
+            Text("Loading story...")
+                .foregroundColor(.white.opacity(0.8))
+            ProgressView()
+        }
+    }
+}
+
+// MARK: - Subviews
+
+private struct StoryPageView: View {
+    let page: ProgramStoryPage
+    @ObservedObject var viewModel: ProgramStoryViewModel
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Spacer(minLength: 0)
+
+            // Content based on page type
+            switch page.contentType {
+            case .text:
+                textPageContent(content: page.content)
+            case .image:
+                imagePageContent(imageName: page.content.imageName ?? "")
+            case .tip:
+                tipPageContent(content: page.content)
+            case .milestone:
+                milestonePageContent(content: page.content)
+            case .motivation:
+                motivationPageContent(content: page.content)
+            case .mixed:
+                mixedPageContent(content: page.content)
+            }
+
+            Spacer(minLength: 16)
+
+            // Bottom actions
+            HStack(spacing: 16) {
+                Spacer()
+                
+                // Like button
+                Button(action: {
+                    viewModel.toggleLike()
+                }) {
+                    Image(systemName: viewModel.isLiked ? "heart.fill" : "heart")
+                        .foregroundColor(viewModel.isLiked ? .red : .white)
+                        .font(.system(size: 24))
                 }
             }
         }
+        .padding(.horizontal, 24)
+        .padding(.bottom, 20)
     }
-    
-    // MARK: - Page Content Views
-    
-    private func textPageContent(content: GoalStoryPageContent) -> some View {
+
+    private func textPageContent(content: ProgramStoryPageContent) -> some View {
         VStack(spacing: 16) {
             if let headline = content.headline {
                 Text(headline)
-                    .font(.pip.title2)
+                    .font(.system(size: 24, weight: .bold))
                     .foregroundColor(.white)
             }
-            
+
             if let body = content.body {
                 Text(body)
-                    .font(.pip.body)
-                    .foregroundColor(.gray)
-                    .lineSpacing(4)
+                    .font(.system(size: 15, weight: .regular))
+                    .foregroundColor(.white.opacity(0.9))
+                    .lineSpacing(5)
             }
         }
     }
-    
+
     private func imagePageContent(imageName: String) -> some View {
         VStack {
-            if !imageName.isEmpty {
-                Image(imageName)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(maxHeight: 300)
+            if !imageName.isEmpty, let uiImage = UIImage(named: imageName) {
+                Image(uiImage: uiImage)
+                    .resizable().scaledToFit().cornerRadius(12)
+                    .shadow(color: .black.opacity(0.3), radius: 15, x: 0, y: 10)
+            } else if !imageName.isEmpty {
+                VStack {
+                    Image(systemName: "photo").font(.largeTitle)
+                    Text("Missing asset: \(imageName)").font(.caption)
+                }.foregroundColor(.white.opacity(0.7))
             } else {
                 RoundedRectangle(cornerRadius: 12)
                     .fill(Color.gray.opacity(0.2))
@@ -237,78 +265,76 @@ struct ProgramStoryView: View {
             }
         }
     }
-    
-    private func tipPageContent(content: GoalStoryPageContent) -> some View {
+
+    private func tipPageContent(content: ProgramStoryPageContent) -> some View {
         VStack(spacing: 12) {
             HStack {
                 Image(systemName: "lightbulb.fill")
                     .foregroundColor(.yellow)
                     .font(.system(size: 20))
-                
+
                 Text("Pro Tip")
-                    .font(.pip.title2)
+                    .font(.system(size: 18, weight: .bold))
                     .foregroundColor(.white)
-                
+
                 Spacer()
             }
-            
+
             if let headline = content.headline {
                 Text(headline)
-                    .font(.pip.body)
+                    .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(.white)
-                    .fontWeight(.semibold)
             }
-            
+
             if let body = content.body {
                 Text(body)
-                    .font(.pip.body)
-                    .foregroundColor(.gray)
-                    .lineSpacing(4)
+                    .font(.system(size: 15, weight: .regular))
+                    .foregroundColor(.white.opacity(0.9))
+                    .lineSpacing(5)
             }
         }
-        .padding(12)
+        .padding(20)
         .background(Color.yellow.opacity(0.1))
-        .cornerRadius(8)
+        .cornerRadius(16)
     }
-    
-    private func milestonePageContent(content: GoalStoryPageContent) -> some View {
+
+    private func milestonePageContent(content: ProgramStoryPageContent) -> some View {
         VStack(spacing: 12) {
             HStack {
                 Image(systemName: "flag.fill")
                     .foregroundColor(.green)
                     .font(.system(size: 20))
-                
+
                 Text("Milestone")
-                    .font(.pip.title2)
+                    .font(.system(size: 18, weight: .bold))
                     .foregroundColor(.white)
-                
+
                 Spacer()
             }
-            
+
             if let headline = content.headline {
                 Text(headline)
-                    .font(.pip.body)
+                    .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(.white)
-                    .fontWeight(.semibold)
             }
-            
+
             if let body = content.body {
                 Text(body)
-                    .font(.pip.body)
-                    .foregroundColor(.gray)
+                    .font(.system(size: 15, weight: .regular))
+                    .foregroundColor(.white.opacity(0.9))
             }
         }
-        .padding(12)
+        .padding(20)
         .background(Color.green.opacity(0.1))
-        .cornerRadius(8)
+        .cornerRadius(16)
     }
-    
-    private func motivationPageContent(content: GoalStoryPageContent) -> some View {
+
+    private func motivationPageContent(content: ProgramStoryPageContent) -> some View {
         VStack(spacing: 16) {
             Image(systemName: "sparkles")
                 .font(.system(size: 32))
                 .foregroundColor(.yellow)
-            
+
             if let mantra = content.mantra {
                 Text(mantra)
                     .font(.system(size: 24, weight: .bold))
@@ -318,27 +344,70 @@ struct ProgramStoryView: View {
             }
         }
     }
-    
-    private func mixedPageContent(content: GoalStoryPageContent) -> some View {
+
+    private func mixedPageContent(content: ProgramStoryPageContent) -> some View {
         VStack(spacing: 12) {
             if let headline = content.headline {
                 Text(headline)
-                    .font(.pip.title2)
+                    .font(.system(size: 18, weight: .bold))
                     .foregroundColor(.white)
             }
-            
+
             if let body = content.body {
                 Text(body)
-                    .font(.pip.body)
-                    .foregroundColor(.gray)
-                    .lineSpacing(4)
+                    .font(.system(size: 15, weight: .regular))
+                    .foregroundColor(.white.opacity(0.9))
+                    .lineSpacing(5)
             }
-            
+
             if let mantra = content.mantra {
                 Text(mantra)
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(.accentColor)
                     .italic()
+            }
+        }
+    }
+}
+
+private struct ProgressBar: View {
+    let pageCount: Int
+    @Binding var currentPage: Int
+    @Binding var currentPageProgress: Double
+
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(0..<pageCount, id: \.self) { index in
+                ProgressSegment(
+                    isFilled: index < currentPage,
+                    progress: (index == currentPage) ? currentPageProgress : 0
+                )
+            }
+        }
+        .frame(height: 3)
+        .animation(.linear(duration: 0.05), value: currentPageProgress)
+    }
+}
+
+private struct ProgressSegment: View {
+    let isFilled: Bool
+    let progress: Double
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                // Background
+                RoundedRectangle(cornerRadius: 1.5)
+                    .fill(Color.white.opacity(0.35))
+
+                // Progress
+                if isFilled {
+                    RoundedRectangle(cornerRadius: 1.5).fill(Color.white)
+                } else if progress > 0 {
+                    RoundedRectangle(cornerRadius: 1.5)
+                        .fill(Color.white)
+                        .frame(width: geo.size.width * progress)
+                }
             }
         }
     }

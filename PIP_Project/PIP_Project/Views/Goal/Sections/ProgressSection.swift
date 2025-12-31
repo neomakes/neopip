@@ -8,9 +8,16 @@ struct ProgressSection: View {
         VStack(alignment: .leading, spacing: 16) {
             // MARK: - Header
             HStack {
-                Text("Progress")
-                    .font(.pip.title2)
-                    .foregroundColor(.white)
+                HStack(alignment: .center, spacing:6) {
+                    Image("title_logo_7")  // Assuming appropriate logo for Progress
+                        .resizable()
+                        .scaledToFit()
+                        .frame(height: 24)
+                    
+                    Text("Progress")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(.white)
+                }
                 
                 Spacer()
             }
@@ -20,7 +27,7 @@ struct ProgressSection: View {
             HStack(alignment: .top, spacing: 16) {
                 // MARK: - Left Column (1/3): Program Card + Stories + Radar Chart
                 VStack(spacing: 12) {
-                    // Program Card with Tab Navigation
+                    // Program Card
                     if !viewModel.ongoingPrograms.isEmpty {
                         ProgressProgramCardView(
                             program: viewModel.ongoingPrograms[viewModel.currentProgramIndex],
@@ -29,40 +36,6 @@ struct ProgressSection: View {
                                 showProgramStory = true
                             }
                         )
-                        
-                        // Paging Indicator (dots)
-                        HStack(spacing: 6) {
-                            ForEach(0..<viewModel.ongoingPrograms.count, id: \.self) { index in
-                                Circle()
-                                    .fill(index == viewModel.currentProgramIndex ? Color.accentColor : Color.gray.opacity(0.5))
-                                    .frame(width: 6, height: 6)
-                            }
-                            
-                            Spacer()
-                        }
-                        .padding(.horizontal, 4)
-                        
-                        // Navigation Controls
-                        HStack(spacing: 8) {
-                            Button(action: { viewModel.selectPreviousProgram() }) {
-                                Image(systemName: "chevron.left")
-                                    .foregroundColor(.white)
-                                    .font(.system(size: 14, weight: .semibold))
-                            }
-                            .disabled(viewModel.currentProgramIndex == 0)
-                            .opacity(viewModel.currentProgramIndex == 0 ? 0.5 : 1.0)
-                            
-                            Spacer()
-                            
-                            Button(action: { viewModel.selectNextProgram() }) {
-                                Image(systemName: "chevron.right")
-                                    .foregroundColor(.white)
-                                    .font(.system(size: 14, weight: .semibold))
-                            }
-                            .disabled(viewModel.currentProgramIndex >= viewModel.ongoingPrograms.count - 1)
-                            .opacity(viewModel.currentProgramIndex >= viewModel.ongoingPrograms.count - 1 ? 0.5 : 1.0)
-                        }
-                        .padding(.horizontal, 4)
                         
                         // Radar Chart (Before vs After Metrics)
                         if let progress = viewModel.currentProgramProgress() {
@@ -174,7 +147,7 @@ struct ProgressSection: View {
                                                                 Spacer()
                                                                 RoundedRectangle(cornerRadius: 2)
                                                                     .fill(Color.blue.opacity(0.7))
-                                                                    .frame(width: 4, height: geometry.size.height * point.goalProgress)
+                                                                    .frame(width: 4, height: geometry.size.height * (point.goalProgress.isFinite && point.goalProgress >= 0 ? point.goalProgress : 0))
                                                             }
                                                             
                                                             // Present Progress Line (orange)
@@ -251,7 +224,6 @@ struct ProgressSection: View {
             }
             .padding(.horizontal, 16)
         }
-        .padding(.vertical, 16)
         .sheet(isPresented: $showProgramStory) {
             if !viewModel.ongoingPrograms.isEmpty {
                 ProgramStoryView(
@@ -315,7 +287,7 @@ struct ProgressProgramCardView: View {
                             .tint(.accentColor)
                         
                         HStack(spacing: 8) {
-                            Text("Day \(progress.progressHistory.first?.sessionsCompleted ?? 0)")
+                            Text("Day \(calculateCurrentDay(from: progress.createdAt))")
                                 .font(.pip.overline)
                                 .foregroundColor(.gray)
                             
@@ -334,9 +306,11 @@ struct ProgressProgramCardView: View {
     }
 }
 
-#Preview {
-    ProgressSection(viewModel: GoalViewModel())
-        .background(Color.black)
+// MARK: - Helper Functions
+private func calculateCurrentDay(from startDate: Date) -> Int {
+    let calendar = Calendar.current
+    let components = calendar.dateComponents([.day], from: startDate, to: Date())
+    return max(1, (components.day ?? 0) + 1) // 최소 1일부터 시작
 }
 
 // MARK: - Closures extension

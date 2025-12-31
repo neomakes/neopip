@@ -117,7 +117,7 @@ class GoalViewModel: ObservableObject {
     private func createMockPrograms() {
         availablePrograms = [
             Program(
-                id: UUID(),
+                id: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!,
                 name: "21-Day Emotional Journal Program",
                 description: "A program to understand and manage your emotional patterns through consistent emotional recording for 21 days",
                 category: .emotional,
@@ -154,7 +154,7 @@ class GoalViewModel: ObservableObject {
                 createdAt: Date()
             ),
             Program(
-                id: UUID(),
+                id: UUID(uuidString: "00000000-0000-0000-0000-000000000002")!,
                 name: "Morning Meditation Habit",
                 description: "Build a consistent meditation practice with guided sessions",
                 category: .emotional,
@@ -191,7 +191,7 @@ class GoalViewModel: ObservableObject {
                 createdAt: Date()
             ),
             Program(
-                id: UUID(),
+                id: UUID(uuidString: "00000000-0000-0000-0000-000000000003")!,
                 name: "Weekly Reading Goal",
                 description: "Complete one book per week with reflection notes",
                 category: .emotional,
@@ -277,20 +277,20 @@ class GoalViewModel: ObservableObject {
                     title: "Day 1: Getting Started",
                     subtitle: "Your first step to transformation",
                     pages: [
-                        GoalStoryPage(
+                        ProgramStoryPage(
                             pageNumber: 1,
-                            contentType: GoalStoryPageContentType.text,
-                            content: GoalStoryPageContent(headline: "Welcome", body: "Start your journey today with commitment and enthusiasm.")
+                            contentType: ProgramStoryPageContentType.text,
+                            content: ProgramStoryPageContent(headline: "Welcome", body: "Start your journey today with commitment and enthusiasm.")
                         ),
-                        GoalStoryPage(
+                        ProgramStoryPage(
                             pageNumber: 2,
-                            contentType: GoalStoryPageContentType.tip,
-                            content: GoalStoryPageContent(headline: "Pro Tip", body: "Set a specific time each day for this program.", mantra: "Consistency is key")
+                            contentType: ProgramStoryPageContentType.tip,
+                            content: ProgramStoryPageContent(headline: "Pro Tip", body: "Set a specific time each day for this program.", mantra: "Consistency is key")
                         ),
-                        GoalStoryPage(
+                        ProgramStoryPage(
                             pageNumber: 3,
-                            contentType: GoalStoryPageContentType.motivation,
-                            content: GoalStoryPageContent(mantra: "Every small step leads to great progress!")
+                            contentType: ProgramStoryPageContentType.motivation,
+                            content: ProgramStoryPageContent(mantra: "Every small step leads to great progress!")
                         )
                     ],
                     isViewed: false,

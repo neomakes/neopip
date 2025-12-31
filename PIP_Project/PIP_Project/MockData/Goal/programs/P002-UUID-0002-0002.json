@@ -1,0 +1,45 @@
+{
+  "id": "00000000-0000-0000-0000-000000000004",
+  "programId": "00000000-0000-0000-0000-000000000002",
+  "title": "Welcome to Meditation",
+  "subtitle": "Find your inner peace",
+  "pages": [
+    {
+      "id": "00000000-0000-0000-0000-000000000021",
+      "pageNumber": 1,
+      "contentType": "text",
+      "content": {
+        "headline": "Introduction to Meditation",
+        "body": "Meditation is a powerful tool for mental clarity and stress reduction. This program will guide you through various techniques to help you develop a consistent practice.",
+        "mantra": "Peace begins within"
+      },
+      "visualizations": null
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000022",
+      "pageNumber": 2,
+      "contentType": "tip",
+      "content": {
+        "headline": "Getting Started",
+        "body": "Find a quiet space where you won't be disturbed. Sit comfortably with your back straight. Start with just 5 minutes and gradually increase as you become more comfortable.",
+        "mantra": null
+      },
+      "visualizations": null
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000023",
+      "pageNumber": 3,
+      "contentType": "motivation",
+      "content": {
+        "headline": null,
+        "body": null,
+        "mantra": "Your mind is your greatest ally"
+      },
+      "visualizations": null
+    }
+  ],
+  "isViewed": false,
+  "isLiked": false,
+  "viewedAt": null,
+  "createdAt": "2025-12-15T08:15:30Z"
+}

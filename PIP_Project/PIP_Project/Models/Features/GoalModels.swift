@@ -152,6 +152,21 @@ struct Program: Identifiable, Codable {
     var programIdString: String {
         id.uuidString
     }
+    
+    var storyFileName: String {
+        // Generate filename based on program index or id
+        // For now, use a simple mapping based on name
+        switch name {
+        case "21-Day Emotional Journal Program":
+            return "P001-UUID-0001-0001"
+        case "Morning Meditation Habit":
+            return "P002-UUID-0002-0002"
+        case "Weekly Reading Goal":
+            return "P003-UUID-0003-0003"
+        default:
+            return programIdString
+        }
+    }
 }
 
 struct ProgramIllustration3D: Codable {
@@ -303,27 +318,64 @@ struct ProgramStory: Identifiable, Codable {
     var programId: UUID
     var title: String
     var subtitle: String?
-    var pages: [GoalStoryPage]
+    var pages: [ProgramStoryPage]
     var isViewed: Bool = false
+    var isLiked: Bool = false
     var viewedAt: Date?
     var createdAt: Date
     
     var programIdString: String {
         programId.uuidString
     }
+    
+    // Default initializer
+    init(id: UUID, programId: UUID, title: String, subtitle: String?, pages: [ProgramStoryPage], isViewed: Bool = false, isLiked: Bool = false, viewedAt: Date? = nil, createdAt: Date) {
+        self.id = id
+        self.programId = programId
+        self.title = title
+        self.subtitle = subtitle
+        self.pages = pages
+        self.isViewed = isViewed
+        self.isLiked = isLiked
+        self.viewedAt = viewedAt
+        self.createdAt = createdAt
+    }
+    
+    // Custom decoder for ISO 8601 date strings
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        programId = try container.decode(UUID.self, forKey: .programId)
+        title = try container.decode(String.self, forKey: .title)
+        subtitle = try container.decodeIfPresent(String.self, forKey: .subtitle)
+        pages = try container.decode([ProgramStoryPage].self, forKey: .pages)
+        isViewed = try container.decodeIfPresent(Bool.self, forKey: .isViewed) ?? false
+        isLiked = try container.decodeIfPresent(Bool.self, forKey: .isLiked) ?? false
+        viewedAt = try container.decodeIfPresent(Date.self, forKey: .viewedAt)
+        
+        // Handle createdAt as ISO 8601 string
+        let dateString = try container.decode(String.self, forKey: .createdAt)
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        if let date = formatter.date(from: dateString) {
+            createdAt = date
+        } else {
+            throw DecodingError.dataCorruptedError(forKey: .createdAt, in: container, debugDescription: "Date string does not match expected format")
+        }
+    }
 }
 
 // MARK: - Story Page
 /// 스토리 페이지
-struct GoalStoryPage: Identifiable, Codable {
+struct ProgramStoryPage: Identifiable, Codable {
     var id: UUID = UUID()
     var pageNumber: Int
-    var contentType: GoalStoryPageContentType
-    var content: GoalStoryPageContent
-    var visualizations: [GoalStoryVisualization]?
+    var contentType: ProgramStoryPageContentType
+    var content: ProgramStoryPageContent
+    var visualizations: [ProgramStoryVisualization]?
 }
 
-enum GoalStoryPageContentType: String, Codable {
+enum ProgramStoryPageContentType: String, Codable {
     case text           // 텍스트
     case image          // 이미지
     case tip            // 팁/조언
@@ -332,19 +384,19 @@ enum GoalStoryPageContentType: String, Codable {
     case mixed          // 혼합
 }
 
-struct GoalStoryPageContent: Codable {
+struct ProgramStoryPageContent: Codable {
     var headline: String?
     var body: String?
     var imageName: String?
     var mantra: String?                    // 동기 부여 문구
 }
 
-struct GoalStoryVisualization: Codable {
-    var type: GoalStoryVisualizationType
+struct ProgramStoryVisualization: Codable {
+    var type: ProgramStoryVisualizationType
     var data: [String: String]?            // 그래프 데이터 등
 }
 
-enum GoalStoryVisualizationType: String, Codable {
+enum ProgramStoryVisualizationType: String, Codable {
     case progress      // 진행률
     case metric        // 메트릭
     case comparison    // 비교

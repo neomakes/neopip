@@ -143,9 +143,9 @@ struct GemVizSection: View {
                     }
                 }
             }
+            .frame(height: 200)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
         .onAppear {
             withAnimation(Animation.easeInOut(duration: 2.5).repeatForever(autoreverses: true)) {
                 isAnimating = true
@@ -162,7 +162,7 @@ struct GemCard: View {
     let isAnimating: Bool
     
     var body: some View {
-        let gemSize: CGFloat = isSelected ? 180 : 80  // 뒤에 있는 젬 더 작게
+        let gemSize: CGFloat = isSelected ? 162 : 72  // 10% 줄임
         
         VStack(spacing: isSelected ? 16 : 0) {
             // Gem 3D 시각화
@@ -180,8 +180,8 @@ struct GemCard: View {
                             endRadius: 100
                         )
                     )
-                    .frame(width: isSelected ? 120 : 80, height: isSelected ? 40 : 24)  // 높이 줄임
-                    .offset(y: isSelected ? 120 : 65)  // 선택된 젬 ellipse 거리 늘림
+                    .frame(width: isSelected ? 108 : 72, height: isSelected ? 36 : 22)  // 10% 줄임
+                    .offset(y: isSelected ? 108 : 59)  // 10% 줄임
                     .opacity(isSelected ? 1.0 : 0.6)  // 선택되지 않은 경우 투명도 조정
                 
                 VStack(spacing: 0) {
@@ -212,7 +212,7 @@ struct GemCard: View {
                             ]),
                             center: .center,
                             startRadius: 0,
-                            endRadius: isSelected ? 90 : 60
+                            endRadius: isSelected ? 81 : 54
                         )
                         .opacity(improvementRate * 0.8 + 0.2) // improvementRate에 따라 밝기 조절 (0.2 ~ 1.0)
                         .mask(

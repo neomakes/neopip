@@ -59,7 +59,7 @@ struct InsightStoryView: View {
 
                         // Page content
                         if story.pages.indices.contains(viewModel.currentPageIndex) {
-                            StoryPageView(page: story.pages[viewModel.currentPageIndex])
+                            StoryPageView(page: story.pages[viewModel.currentPageIndex], viewModel: viewModel)
                                 .transition(.opacity.animation(.easeInOut))
                         }
                         
@@ -168,6 +168,7 @@ struct InsightStoryView: View {
 
 private struct StoryPageView: View {
     let page: StoryPage
+    @ObservedObject var viewModel: InsightStoryViewModel
 
     var body: some View {
         VStack(spacing: 16) {
@@ -200,6 +201,22 @@ private struct StoryPageView: View {
             .padding(20)
             .background(Color.black.opacity(0.25))
             .cornerRadius(16)
+
+            Spacer(minLength: 16)
+
+            // Bottom actions
+            HStack(spacing: 16) {
+                Spacer()
+                
+                // Like button
+                Button(action: {
+                    viewModel.toggleLike()
+                }) {
+                    Image(systemName: viewModel.isLiked ? "heart.fill" : "heart")
+                        .foregroundColor(viewModel.isLiked ? .red : .white)
+                        .font(.system(size: 24))
+                }
+            }
         }
         .padding(.horizontal, 24)
         .padding(.bottom, 20)

@@ -1,0 +1,45 @@
+{
+  "id": "00000000-0000-0000-0000-000000000006",
+  "programId": "00000000-0000-0000-0000-000000000003",
+  "title": "Reading Journey Begins",
+  "subtitle": "Expand your mind with books",
+  "pages": [
+    {
+      "id": "00000000-0000-0000-0000-000000000031",
+      "pageNumber": 1,
+      "contentType": "text",
+      "content": {
+        "headline": "The Power of Reading",
+        "body": "Reading expands your knowledge, improves focus, and reduces stress. This program will help you build a reading habit that enriches your life.",
+        "mantra": "Knowledge is the greatest treasure"
+      },
+      "visualizations": null
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000032",
+      "pageNumber": 2,
+      "contentType": "tip",
+      "content": {
+        "headline": "Building the Habit",
+        "body": "Start small - read for just 15-20 minutes a day. Choose books that genuinely interest you. Keep a reading journal to track your progress and thoughts.",
+        "mantra": null
+      },
+      "visualizations": null
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000033",
+      "pageNumber": 3,
+      "contentType": "motivation",
+      "content": {
+        "headline": null,
+        "body": null,
+        "mantra": "Every page turns a new chapter in your life"
+      },
+      "visualizations": null
+    }
+  ],
+  "isViewed": false,
+  "isLiked": false,
+  "viewedAt": null,
+  "createdAt": "2025-12-01T14:20:45Z"
+}

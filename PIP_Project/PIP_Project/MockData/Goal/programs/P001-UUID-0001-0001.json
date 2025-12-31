@@ -1,0 +1,45 @@
+{
+  "id": "00000000-0000-0000-0000-000000000001",
+  "programId": "00000000-0000-0000-0000-000000000001",
+  "title": "Day 1: Getting Started",
+  "subtitle": "Your first step to transformation",
+  "pages": [
+    {
+      "id": "00000000-0000-0000-0000-000000000011",
+      "pageNumber": 1,
+      "contentType": "text",
+      "content": {
+        "headline": "Welcome to Your Journey",
+        "body": "Today marks the beginning of your transformation. You've taken the first step by starting this program. Remember, consistency is key to success.",
+        "mantra": "Every journey begins with a single step"
+      },
+      "visualizations": null
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000012",
+      "pageNumber": 2,
+      "contentType": "tip",
+      "content": {
+        "headline": "Pro Tip for Success",
+        "body": "Set a specific time each day for your activities. Whether it's morning or evening, consistency in timing helps build habits faster.",
+        "mantra": null
+      },
+      "visualizations": null
+    },
+    {
+      "id": "00000000-0000-0000-0000-000000000013",
+      "pageNumber": 3,
+      "contentType": "motivation",
+      "content": {
+        "headline": null,
+        "body": null,
+        "mantra": "You are capable of amazing things"
+      },
+      "visualizations": null
+    }
+  ],
+  "isViewed": false,
+  "isLiked": false,
+  "viewedAt": null,
+  "createdAt": "2025-12-08T10:30:07Z"
+}

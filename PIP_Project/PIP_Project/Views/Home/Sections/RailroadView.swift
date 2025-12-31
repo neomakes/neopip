@@ -197,9 +197,12 @@ struct GemSlot: View {
     private func horizontalOffset(for normalizedY: CGFloat) -> CGFloat {
         guard index < totalCount - 1 else { return 0 }  // Today는 중앙 고정 ✨
         
+        // NaN이나 음수 값 방지
+        let safeNormalizedY = max(0, min(1, normalizedY.isFinite ? normalizedY : 0))
+        
         // 도형의 닮음을 고려한 좌우 퍼짐 (간격 더 벌림)
         // normalizedY가 1에 가까울수록 더 넓게 퍼짐
-        let spreadFactor = normalizedY * 160  // 기존 120 → 160으로 증가 ✨
+        let spreadFactor = safeNormalizedY * 160  // 기존 120 → 160으로 증가 ✨
         
         // 인덱스에 따라 좌우 번갈아 배치
         let direction: CGFloat = index % 2 == 1 ? 1 : -1  // 홀수: 오른쪽, 짝수: 왼쪽
@@ -209,13 +212,17 @@ struct GemSlot: View {
     
     // y 위치에 따른 원근감 계산: 하단(y값 큼)에 가까울수록 크고 밝음
     private func perspectiveScale(for normalizedY: CGFloat) -> CGFloat {
+        // NaN이나 음수 값 방지
+        let safeNormalizedY = max(0, min(1, normalizedY.isFinite ? normalizedY : 0))
         // 더 극적인 변화: 0.1배 ~ 2.5배
-        return 0.1 + (normalizedY * 2.4)
+        return 0.1 + (safeNormalizedY * 2.4)
     }
     
     private func perspectiveOpacity(for normalizedY: CGFloat) -> Double {
+        // NaN이나 음수 값 방지
+        let safeNormalizedY = max(0, min(1, normalizedY.isFinite ? normalizedY : 0))
         // Today(하단, normalizedY≈1)에서 완전 불투명, 위쪽으로 갈수록 투명해짐
-        return normalizedY
+        return Double(safeNormalizedY)
     }
 }
 

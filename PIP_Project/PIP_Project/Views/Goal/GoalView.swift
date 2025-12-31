@@ -9,12 +9,16 @@ struct GoalView: View {
                 .ignoresSafeArea()
             
             ScrollView {
-                VStack(spacing: 20) {
+                VStack(spacing: 0) {
                     // MARK: - Gem Visualization Section
                     GemVizSection(viewModel: viewModel)
+                        .padding(.horizontal, 0)
+                        .padding(.bottom, 30)
                     
                     // MARK: - Progress Section
                     ProgressSection(viewModel: viewModel)
+                        .padding(.horizontal, 0)
+                        .padding(.bottom, 100) // TabBar 높이 고려 + 여유 공간
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.top, 16)
