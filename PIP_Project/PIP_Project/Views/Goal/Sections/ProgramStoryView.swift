@@ -128,30 +128,38 @@ struct ProgramStoryView: View {
 
     @ViewBuilder
     private func storyHeader(story: ProgramStory) -> some View {
-        HStack(alignment: .center, spacing: 8) {
-            Text(cardTypeLabel)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(cardColor)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 4)
-                .background(Color.white.opacity(0.15))
-                .cornerRadius(6)
-
-            Text(story.title)
-                .font(.system(size: 16, weight: .bold))
+        VStack(alignment: .leading, spacing: 8) {
+            // Program name at the top
+            Text(program.name)
+                .font(.system(size: 18, weight: .bold))
                 .foregroundColor(.white)
                 .lineLimit(1)
+            
+            HStack(alignment: .center, spacing: 8) {
+                Text(cardTypeLabel)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(cardColor)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(Color.white.opacity(0.15))
+                    .cornerRadius(6)
 
-            Spacer()
+                Text(story.title)
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(.white.opacity(0.9))
+                    .lineLimit(1)
 
-            Button(action: {
-                viewModel.dismissStory()
-            }) {
-                Image(systemName: "xmark")
-                    .font(.title3)
-                    .foregroundColor(.white.opacity(0.8))
+                Spacer()
+
+                Button(action: {
+                    viewModel.dismissStory()
+                }) {
+                    Image(systemName: "xmark")
+                        .font(.title3)
+                        .foregroundColor(.white.opacity(0.8))
+                }
+                .padding(8) // Add some padding to make it easier to tap
             }
-            .padding(8) // Add some padding to make it easier to tap
         }
     }
 
