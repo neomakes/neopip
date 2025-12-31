@@ -29,33 +29,26 @@ class ProgramStoryViewModel: ObservableObject {
         isLoading = true
         
         print("DEBUG: Loading story for program: \(program.name)")
-        print("DEBUG: Story file name: \(program.storyFileName)")
+        print("DEBUG: Program ID: \(program.id)")
         
-        // Load detailed story from programs JSON file
-        if let filePath = Bundle.main.path(forResource: program.storyFileName, ofType: "json") {
-            print("DEBUG: Found file path: \(filePath)")
-            do {
-                let data = try Data(contentsOf: URL(fileURLWithPath: filePath))
-                print("DEBUG: Successfully loaded data, size: \(data.count) bytes")
-                self.programStory = try JSONDecoder().decode(ProgramStory.self, from: data)
-                self.isLiked = self.programStory?.isLiked ?? false
-                print("DEBUG: Successfully decoded ProgramStory")
-                self.isLoading = false
-                self.startStoryTimer()
-            } catch {
-                print("DEBUG: Failed to decode JSON: \(error)")
-                self.isLoading = false
-                self.errorMessage = "Failed to load story data: \(error.localizedDescription)"
-            }
-        } else {
-            print("DEBUG: File not found for resource: \(program.storyFileName).json")
-            // List all available resources to debug
-            if let bundlePath = Bundle.main.bundlePath as NSString? {
-                let jsonFiles = try? FileManager.default.contentsOfDirectory(atPath: bundlePath as String).filter { $0.hasSuffix(".json") }
-                print("DEBUG: Available JSON files in bundle: \(jsonFiles ?? [])")
-            }
+        // Load story from MockDataService
+        let ongoingStories = MockDataService.shared.loadOngoingProgramStories()
+        print("DEBUG: Found \(ongoingStories.count) ongoing stories")
+        
+        for story in ongoingStories {
+            print("DEBUG: Story programId: \(story.programId)")
+        }
+        
+        if let story = ongoingStories.first(where: { $0.programId == program.id }) {
+            print("DEBUG: Found story in ongoing_programs")
+            self.programStory = story
+            self.isLiked = story.isLiked
             self.isLoading = false
-            self.errorMessage = "No story file found for this program"
+            self.startStoryTimer()
+        } else {
+            print("DEBUG: Story not found for this program")
+            self.isLoading = false
+            self.errorMessage = "Story not found for this program"
         }
     }
 

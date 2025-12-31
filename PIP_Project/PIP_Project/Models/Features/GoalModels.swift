@@ -319,22 +319,30 @@ struct ProgramStory: Identifiable, Codable {
     var title: String
     var subtitle: String?
     var pages: [ProgramStoryPage]
+    var colorTheme: ColorThemeForGoal?  // Add color theme for background
+    var gradientColors: [ColorThemeForGoal]?  // Add gradient colors for richer background
     var isViewed: Bool = false
     var isLiked: Bool = false
     var viewedAt: Date?
     var createdAt: Date
+    
+    enum CodingKeys: String, CodingKey {
+        case id, programId, title, subtitle, pages, colorTheme, gradientColors, isViewed, isLiked, viewedAt, createdAt
+    }
     
     var programIdString: String {
         programId.uuidString
     }
     
     // Default initializer
-    init(id: UUID, programId: UUID, title: String, subtitle: String?, pages: [ProgramStoryPage], isViewed: Bool = false, isLiked: Bool = false, viewedAt: Date? = nil, createdAt: Date) {
+    init(id: UUID, programId: UUID, title: String, subtitle: String?, pages: [ProgramStoryPage], colorTheme: ColorThemeForGoal? = nil, gradientColors: [ColorThemeForGoal]? = nil, isViewed: Bool = false, isLiked: Bool = false, viewedAt: Date? = nil, createdAt: Date) {
         self.id = id
         self.programId = programId
         self.title = title
         self.subtitle = subtitle
         self.pages = pages
+        self.colorTheme = colorTheme
+        self.gradientColors = gradientColors
         self.isViewed = isViewed
         self.isLiked = isLiked
         self.viewedAt = viewedAt
@@ -349,6 +357,8 @@ struct ProgramStory: Identifiable, Codable {
         title = try container.decode(String.self, forKey: .title)
         subtitle = try container.decodeIfPresent(String.self, forKey: .subtitle)
         pages = try container.decode([ProgramStoryPage].self, forKey: .pages)
+        colorTheme = try container.decodeIfPresent(ColorThemeForGoal.self, forKey: .colorTheme)
+        gradientColors = try container.decodeIfPresent([ColorThemeForGoal].self, forKey: .gradientColors)
         isViewed = try container.decodeIfPresent(Bool.self, forKey: .isViewed) ?? false
         isLiked = try container.decodeIfPresent(Bool.self, forKey: .isLiked) ?? false
         viewedAt = try container.decodeIfPresent(Date.self, forKey: .viewedAt)

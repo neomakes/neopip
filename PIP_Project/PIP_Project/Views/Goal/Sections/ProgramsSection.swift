@@ -25,41 +25,11 @@ struct ProgramsSection: View {
             
             // MARK: - Program List
             VStack(spacing: 12) {
-                // TODO: Selected goal's program list
-                ForEach(0..<3, id: \.self) { _ in
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color.white.opacity(0.05))
-                        
-                        HStack(spacing: 12) {
-                            // Program icon
-                            Image(systemName: "star.fill")
-                                .foregroundColor(.accentColor)
-                                .font(.system(size: 20))
-                            
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Program Name")
-                                    .font(.pip.body)
-                                    .foregroundColor(.white)
-                                
-                                Text("Exercise · 3 sessions")
-                                    .font(.pip.caption)
-                                    .foregroundColor(.gray)
-                            }
-                            
-                            Spacer()
-                            
-                            VStack(alignment: .trailing, spacing: 2) {
-                                Text("75%")
-                                    .font(.pip.body)
-                                    .foregroundColor(.accentColor)
-                                
-                                Text("This week")
-                                    .font(.pip.caption)
-                                    .foregroundColor(.gray)
-                            }
-                        }
-                        .padding(12)
+                // Display ongoing programs
+                ForEach(viewModel.ongoingPrograms.indices, id: \.self) { index in
+                    let program = viewModel.ongoingPrograms[index]
+                    if let progress = viewModel.programProgress[program.id.uuidString] {
+                        ProgramRowView(program: program, progress: progress)
                     }
                 }
             }
@@ -72,4 +42,58 @@ struct ProgramsSection: View {
 #Preview {
     ProgramsSection(viewModel: GoalViewModel())
         .background(Color.black)
+}
+
+// MARK: - Program Row View
+struct ProgramRowView: View {
+    let program: Program
+    let progress: ProgramProgress
+    
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.white.opacity(0.05))
+            
+            HStack(spacing: 12) {
+                // Program icon based on gem type
+                Image(systemName: gemIcon(for: program.gemVisualization.gemType))
+                    .foregroundColor(.accentColor)
+                    .font(.system(size: 20))
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(program.name)
+                        .font(.pip.body)
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                    
+                    Text("\(program.category.rawValue.capitalized) · \(program.duration) days")
+                        .font(.pip.caption)
+                        .foregroundColor(.gray)
+                }
+                
+                Spacer()
+                
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("\(Int(progress.improvementRate * 100))%")
+                        .font(.pip.body)
+                        .foregroundColor(.accentColor)
+                    
+                    Text("Day \(progress.progressHistory.count)")
+                        .font(.pip.caption)
+                        .foregroundColor(.gray)
+                }
+            }
+            .padding(12)
+        }
+    }
+    
+    private func gemIcon(for gemType: GemTypeForGoal) -> String {
+        switch gemType {
+        case .diamond: return "diamond.fill"
+        case .sphere: return "circle.fill"
+        case .crystal: return "sparkles"
+        case .prism: return "square.fill"
+        case .custom: return "star.fill"
+        }
+    }
 }

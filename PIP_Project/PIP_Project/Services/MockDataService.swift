@@ -34,6 +34,11 @@ class MockDataService: DataServiceProtocol {
     
     // MARK: - JSON File Names (Subdirectory Structure)
     private enum FileName {
+        // Common data
+        static let dataTypeSchemas = "Common/dataTypeSchemas.json"
+        static let timeSeriesData = "Common/timeSeriesData.json"
+        static let dailyStats = "Common/dailyStats.json"
+        
         // Insight page data
         static let analysisCards = "Insight/analysisCards.json"
         static let dashboardData = "Insight/dashboardData.json"
@@ -48,12 +53,9 @@ class MockDataService: DataServiceProtocol {
         static let achievements = "Status/achievements.json"
         static let valueAnalysis = "Status/valueAnalysis.json"
         
-        // Write page data
-        static let dataTypeSchemas = "Write/dataTypeSchemas.json"
-        
-        // Common data
-        static let timeSeriesData = "Common/timeSeriesData.json"
-        static let dailyStats = "Common/dailyStats.json"
+        // Goal page data
+        static let goalProgramProgress = "Goal/goalProgramProgress.json"
+        static let goalProgressHistory = "Goal/goalProgressHistory.json"
     }
     
     // MARK: - JSON Encoder/Decoder
@@ -94,6 +96,7 @@ class MockDataService: DataServiceProtocol {
     private init() {
         setupDataDirectory()
         copyInsightStoryJSONFilesIfNeeded()
+        copyGoalJSONFilesIfNeeded()
         loadAllData()
     }
     
@@ -355,6 +358,48 @@ class MockDataService: DataServiceProtocol {
         }
         
         return nil
+    }
+    
+    /// Copy Goal JSON files to app's Documents directory
+    private func copyGoalJSONFilesIfNeeded() {
+        let programIds = [
+            "P001-UUID-0001-0001",
+            "P002-UUID-0002-0002", 
+            "P003-UUID-0003-0003"
+        ]
+        
+        // Create ongoing_programs folder
+        let ongoingProgramsFolderURL = mockDataDirectory.appendingPathComponent("Goal/ongoing_programs")
+        try? fileManager.createDirectory(at: ongoingProgramsFolderURL, withIntermediateDirectories: true)
+        
+        print("📁 Goal MockData Directory: \(ongoingProgramsFolderURL.path)")
+        
+        for programId in programIds {
+            let destinationPath = ongoingProgramsFolderURL.appendingPathComponent("\(programId).json")
+            
+            // Skip if already exists
+            if fileManager.fileExists(atPath: destinationPath.path) {
+                print("✅ Already exists: \(programId).json")
+                continue
+            }
+            
+            // Try to find original JSON file in project MockData folder
+            // Since Bundle.main.url() doesn't work, we'll try to load from the project structure
+            let projectMockDataPath = "/Users/neo/ACCEL/PIP_Project/PIP_Project/PIP_Project/MockData/Goal/ongoing_programs/\(programId).json"
+            let projectURL = URL(fileURLWithPath: projectMockDataPath)
+            
+            if fileManager.fileExists(atPath: projectURL.path) {
+                do {
+                    let bundleData = try Data(contentsOf: projectURL)
+                    try bundleData.write(to: destinationPath, options: .atomic)
+                    print("✅ Copied \(programId).json from project to: \(destinationPath.path)")
+                } catch {
+                    print("⚠️ Failed to copy \(programId).json from project: \(error)")
+                }
+            } else {
+                print("⚠️ Original \(programId).json not found in project at: \(projectURL.path)")
+            }
+        }
     }
     
     private func loadAllData() {
@@ -2137,5 +2182,52 @@ class MockDataService: DataServiceProtocol {
             mlModelOutputId: nil,
             createdAt: Date()
         )
+    }
+}
+
+// MARK: - Goal Data Methods
+extension MockDataService {
+    /// Load ongoing program stories from MockData/Goal/ongoing_programs/
+    func loadOngoingProgramStories() -> [ProgramStory] {
+        let ongoingProgramsDir = mockDataDirectory.appendingPathComponent("Goal/ongoing_programs")
+        
+        do {
+            let fileURLs = try fileManager.contentsOfDirectory(at: ongoingProgramsDir, includingPropertiesForKeys: nil)
+                .filter { $0.pathExtension == "json" }
+            
+            var stories: [ProgramStory] = []
+            for fileURL in fileURLs {
+                if let data = try? Data(contentsOf: fileURL),
+                   let story = try? jsonDecoder.decode(ProgramStory.self, from: data) {
+                    stories.append(story)
+                }
+            }
+            return stories.sorted { $0.createdAt < $1.createdAt }
+        } catch {
+            print("Error loading ongoing program stories: \(error)")
+            return []
+        }
+    }
+    
+    /// Load new program recommendations from MockData/Goal/new_programs/
+    func loadNewProgramRecommendations() -> [Program] {
+        let newProgramsDir = mockDataDirectory.appendingPathComponent("Goal/new_programs")
+        
+        do {
+            let fileURLs = try fileManager.contentsOfDirectory(at: newProgramsDir, includingPropertiesForKeys: nil)
+                .filter { $0.pathExtension == "json" }
+            
+            var programs: [Program] = []
+            for fileURL in fileURLs {
+                if let data = try? Data(contentsOf: fileURL),
+                   let program = try? jsonDecoder.decode(Program.self, from: data) {
+                    programs.append(program)
+                }
+            }
+            return programs
+        } catch {
+            print("Error loading new program recommendations: \(error)")
+            return []
+        }
     }
 }

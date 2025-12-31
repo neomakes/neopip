@@ -14,7 +14,8 @@ struct ProgramStoryView: View {
     }
 
     var cardType: AnalysisCardType {
-        switch program.gemVisualization.colorTheme {
+        let theme = viewModel.programStory?.colorTheme ?? program.gemVisualization.colorTheme
+        switch theme {
         case .teal:
             return .explanation
         case .amber:
@@ -27,11 +28,37 @@ struct ProgramStoryView: View {
     }
 
     var cardColor: Color {
-        switch cardType {
-        case .explanation: return Color(red: 0.51, green: 0.92, blue: 0.92) // Teal
-        case .prediction: return Color(red: 1.0, green: 0.65, blue: 0.0)   // Amber
-        case .control: return Color(red: 1.0, green: 0.4, blue: 0.0)    // Tiger
-        case .correlation: return Color(red: 0.0, green: 0.4, blue: 0.8)    // Blue
+        let theme = viewModel.programStory?.colorTheme ?? program.gemVisualization.colorTheme
+        switch theme {
+        case .teal:
+            return Color(red: 0.078, green: 0.722, blue: 0.651) // #14B8A6
+        case .amber:
+            return Color(red: 0.961, green: 0.620, blue: 0.043) // #F59E0B
+        case .tiger:
+            return Color(red: 1.0, green: 0.420, blue: 0.208)   // #FF6B35 (approx)
+        case .blue:
+            return Color(red: 0.231, green: 0.510, blue: 0.965) // #3B82F6
+        }
+    }
+    
+    var gradientColors: [Color] {
+        if let gradientThemes = viewModel.programStory?.gradientColors {
+            return gradientThemes.map { themeToColor($0) }
+        } else {
+            return [cardColor]
+        }
+    }
+    
+    private func themeToColor(_ theme: ColorThemeForGoal) -> Color {
+        switch theme {
+        case .teal:
+            return Color(red: 0.078, green: 0.722, blue: 0.651) // #14B8A6
+        case .amber:
+            return Color(red: 0.961, green: 0.620, blue: 0.043) // #F59E0B
+        case .tiger:
+            return Color(red: 1.0, green: 0.420, blue: 0.208)   // #FF6B35 (approx)
+        case .blue:
+            return Color(red: 0.231, green: 0.510, blue: 0.965) // #3B82F6
         }
     }
 
@@ -43,7 +70,11 @@ struct ProgramStoryView: View {
         GeometryReader { geometry in
             ZStack {
                 // Base gradient background
-                GradientUtils.createCardGradient(themeColor: cardColor).ignoresSafeArea()
+                if gradientColors.count > 1 {
+                    GradientUtils.createCardGradientWithColors(themeColors: gradientColors).ignoresSafeArea()
+                } else {
+                    GradientUtils.createCardGradient(themeColor: gradientColors.first ?? cardColor).ignoresSafeArea()
+                }
 
                 // Neon glow effect
                 VStack {
@@ -117,8 +148,8 @@ struct ProgramStoryView: View {
                         }
                     }
             )
-            .onChange(of: viewModel.shouldDismiss) { shouldDismiss in
-                if shouldDismiss {
+            .onChange(of: viewModel.shouldDismiss) { oldValue, newValue in
+                if newValue {
                     presentationMode.wrappedValue.dismiss()
                 }
             }

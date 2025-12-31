@@ -3,6 +3,8 @@
   "programId": "00000000-0000-0000-0000-000000000001",
   "title": "Day 1: Getting Started",
   "subtitle": "Your first step to transformation",
+  "colorTheme": "teal",
+  "gradientColors": ["teal", "blue"],
   "pages": [
     {
       "id": "00000000-0000-0000-0000-000000000011",

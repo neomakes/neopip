@@ -161,9 +161,22 @@ struct GradientUtils {
     static func createCardGradient(themeColor: Color) -> LinearGradient {
         LinearGradient(
             gradient: Gradient(colors: [
-                Color.black,
-                themeColor.opacity(0.15)
+                themeColor.opacity(0.1),
+                themeColor.opacity(0.2),
+                themeColor.opacity(0.3)
             ]),
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+    
+    /// Creates a gradient with multiple theme colors for richer backgrounds
+    static func createCardGradientWithColors(themeColors: [Color]) -> LinearGradient {
+        let gradientColors = themeColors.flatMap { color in
+            [color.opacity(0.1), color.opacity(0.2), color.opacity(0.3)]
+        }
+        return LinearGradient(
+            gradient: Gradient(colors: gradientColors),
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )

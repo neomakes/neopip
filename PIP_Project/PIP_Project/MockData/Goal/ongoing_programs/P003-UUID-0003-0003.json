@@ -3,6 +3,8 @@
   "programId": "00000000-0000-0000-0000-000000000003",
   "title": "Reading Journey Begins",
   "subtitle": "Expand your mind with books",
+  "colorTheme": "tiger",
+  "gradientColors": ["tiger", "blue", "teal"],
   "pages": [
     {
       "id": "00000000-0000-0000-0000-000000000031",
