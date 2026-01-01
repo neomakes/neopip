@@ -48,59 +48,16 @@ struct ProgressSection: View {
                                     RoundedRectangle(cornerRadius: 12)
                                         .fill(Color.white.opacity(0.05))
                                     
-                                    VStack {
-                                        // Simple radar chart placeholder
-                                        // Actual RadarChart component to be implemented separately
-                                        VStack(spacing: 8) {
-                                            ForEach(progress.radarChartData, id: \.id) { point in
-                                                HStack {
-                                                    Text(point.label)
-                                                        .font(.pip.caption)
-                                                        .foregroundColor(.white)
-                                                        .frame(width: 50, alignment: .leading)
-                                                    
-                                                    GeometryReader { geometry in
-                                                        ZStack(alignment: .leading) {
-                                                            RoundedRectangle(cornerRadius: 2)
-                                                                .fill(Color.gray.opacity(0.3))
-                                                            
-                                                            RoundedRectangle(cornerRadius: 2)
-                                                                .fill(
-                                                                    LinearGradient(
-                                                                        gradient: Gradient(colors: [
-                                                                            Color.accentColor.opacity(0.6),
-                                                                            Color.accentColor
-                                                                        ]),
-                                                                        startPoint: .leading,
-                                                                        endPoint: .trailing
-                                                                    )
-                                                                )
-                                                                .frame(width: geometry.size.width * point.improvement.clamped(to: 0...1))
-                                                        }
-                                                    }
-                                                    .frame(height: 8)
-                                                    
-                                                    HStack(spacing: 4) {
-                                                        Text(String(format: "%.0f%%", point.beforeValue * 100))
-                                                            .font(.pip.caption)
-                                                            .foregroundColor(.gray)
-                                                        
-                                                        Text("→")
-                                                            .font(.pip.caption)
-                                                            .foregroundColor(.gray)
-                                                        
-                                                        Text(String(format: "%.0f%%", point.afterValue * 100))
-                                                            .font(.pip.caption)
-                                                            .foregroundColor(.accentColor)
-                                                    }
-                                                    .frame(width: 70)
-                                                }
-                                            }
-                                        }
-                                        .padding(12)
-                                    }
+                                    RadarChartView(
+                                        dataSet: RadarChartDataSet(
+                                            title: "Progress",
+                                            data: progress.radarChartData.map { RadarChartDataItem(iconName: $0.label.lowercased(), value: $0.afterValue, displayValue: String(format: "%.0f", $0.afterValue * 100)) },
+                                            dataColor: Color.accentColor
+                                        ),
+                                        showIcons: false
+                                    )
                                 }
-                                .frame(height: 160)
+                                .frame(height: 200)
                             }
                         }
                     }
@@ -121,71 +78,170 @@ struct ProgressSection: View {
                                 .fill(Color.white.opacity(0.05))
                             
                             if let progress = viewModel.currentProgramProgress() {
-                                VStack(alignment: .leading, spacing: 16) {
-                                    // Simple BarLineChart simulation
+                                VStack(alignment: .leading, spacing: 8) {
+                                    let recentData = Array(progress.progressHistory.prefix(7))
+                                    let pointSpacing: CGFloat = max(18, min(26, 160 / CGFloat(max(1, recentData.count))))
+                                    let chartHeight = pointSpacing * CGFloat(recentData.count)
+                                    
+                                    // Chart with Grid, Curves, and Nodes
                                     GeometryReader { geometry in
-                                        VStack(alignment: .leading, spacing: 12) {
-                                            // Chart area
-                                            ZStack(alignment: .bottomLeading) {
-                                                // Background grid
-                                                VStack(spacing: 0) {
-                                                    ForEach(0..<5, id: \.self) { _ in
-                                                        Divider()
-                                                            .background(Color.white.opacity(0.1))
+                                        let chartWidth = geometry.size.width - 45 // 좌측 여백 40 + 스페이서 5
+                                        let yAxisX: CGFloat = 40
+                                        
+                                        ZStack(alignment: .topLeading) {
+                                            // Background Grid
+                                            Canvas { context, size in
+                                                // Vertical lines (20% intervals)
+                                                for i in 0...5 {
+                                                    let x = yAxisX + (chartWidth * CGFloat(i) / 5)
+                                                    var path = Path()
+                                                    path.move(to: CGPoint(x: x, y: 0))
+                                                    path.addLine(to: CGPoint(x: x, y: chartHeight))
+                                                    context.stroke(path, with: .color(Color.gray.opacity(0.15)))
+                                                }
+                                                
+                                                // Horizontal lines (point spacing intervals)
+                                                for i in 0..<recentData.count {
+                                                    let y = CGFloat(i) * pointSpacing
+                                                    var path = Path()
+                                                    path.move(to: CGPoint(x: yAxisX, y: y))
+                                                    path.addLine(to: CGPoint(x: yAxisX + chartWidth, y: y))
+                                                    context.stroke(path, with: .color(Color.gray.opacity(0.1)))
+                                                }
+                                            }
+                                            .frame(height: chartHeight)
+                                            
+                                            // Y-axis line
+                                            Path { path in
+                                                path.move(to: CGPoint(x: yAxisX, y: 0))
+                                                path.addLine(to: CGPoint(x: yAxisX, y: chartHeight))
+                                            }
+                                            .stroke(Color.gray.opacity(0.4), lineWidth: 1)
+                                            
+                                            // Goal trend line with nodes
+                                            Canvas { context, size in
+                                                var points: [CGPoint] = []
+                                                for (index, point) in recentData.enumerated() {
+                                                    let x = yAxisX + chartWidth * (point.goalProgress.isFinite && point.goalProgress >= 0 ? point.goalProgress : 0)
+                                                    let y = CGFloat(index) * pointSpacing + 2
+                                                    points.append(CGPoint(x: x, y: y))
+                                                }
+                                                
+                                                // Draw curve
+                                                if !points.isEmpty {
+                                                    var path = Path()
+                                                    path.move(to: points[0])
+                                                    for i in 0..<(points.count - 1) {
+                                                        let current = points[i]
+                                                        let next = points[i + 1]
+                                                        let controlX = (current.x + next.x) / 2
+                                                        path.addQuadCurve(to: next, control: CGPoint(x: controlX, y: current.y))
+                                                    }
+                                                    context.stroke(path, with: .color(Color.blue.opacity(0.7)), lineWidth: 2)
+                                                }
+                                                
+                                                // Draw nodes
+                                                for point in points {
+                                                    context.fill(
+                                                        Path(ellipseIn: CGRect(x: point.x - 5, y: point.y - 5, width: 10, height: 10)),
+                                                        with: .color(Color.blue.opacity(0.9))
+                                                    )
+                                                }
+                                            }
+                                            .frame(height: chartHeight)
+                                            
+                                            // Present trend line with nodes
+                                            Canvas { context, size in
+                                                var points: [CGPoint] = []
+                                                for (index, point) in recentData.enumerated() {
+                                                    let x = yAxisX + chartWidth * (point.presentProgress.isFinite && point.presentProgress >= 0 ? point.presentProgress : 0)
+                                                    let y = CGFloat(index) * pointSpacing + 2
+                                                    points.append(CGPoint(x: x, y: y))
+                                                }
+                                                
+                                                // Draw curve
+                                                if !points.isEmpty {
+                                                    var path = Path()
+                                                    path.move(to: points[0])
+                                                    for i in 0..<(points.count - 1) {
+                                                        let current = points[i]
+                                                        let next = points[i + 1]
+                                                        let controlX = (current.x + next.x) / 2
+                                                        path.addQuadCurve(to: next, control: CGPoint(x: controlX, y: current.y))
+                                                    }
+                                                    context.stroke(path, with: .color(Color.orange.opacity(0.8)), lineWidth: 2)
+                                                }
+                                                
+                                                // Draw nodes
+                                                for point in points {
+                                                    context.fill(
+                                                        Path(ellipseIn: CGRect(x: point.x - 5, y: point.y - 5, width: 10, height: 10)),
+                                                        with: .color(Color.orange.opacity(0.9))
+                                                    )
+                                                }
+                                            }
+                                            .frame(height: chartHeight)
+                                            
+                                            // Y-axis labels (dates)
+                                            VStack(spacing: pointSpacing) {
+                                                ForEach(Array(recentData.enumerated()), id: \.element.id) { index, point in
+                                                    Text(index == 0 ? "Today" : "-\(index)")
+                                                        .font(.pip.overline)
+                                                        .foregroundColor(.gray.opacity(0.6))
+                                                        .frame(width: 35, alignment: .trailing)
+                                                        .frame(height: 0)
+                                                }
+                                            }
+                                            .offset(y: 2)
+                                        }
+                                    }
+                                    .frame(height: chartHeight + 4)
+                                    
+                                    // X-axis labels (percentage)
+                                    HStack(spacing: 0) {
+                                        Text("")
+                                            .frame(width: 40)
+                                        
+                                        GeometryReader { geometry in
+                                            HStack(spacing: 0) {
+                                                ForEach(0...5, id: \.self) { i in
+                                                    VStack(spacing: 0) {
+                                                        Text("\(i * 20)%")
+                                                            .font(.pip.overline)
+                                                            .foregroundColor(.gray.opacity(0.5))
+                                                    }
+                                                    if i < 5 {
                                                         Spacer()
                                                     }
                                                 }
-                                                
-                                                // Chart data (last 7 days)
-                                                let recentData = progress.progressHistory.prefix(7).reversed()
-                                                
-                                                HStack(alignment: .bottom, spacing: 0) {
-                                                    ForEach(Array(recentData.enumerated()), id: \.element.id) { index, point in
-                                                        VStack(alignment: .center, spacing: 4) {
-                                                            // Goal Progress Bar (blue)
-                                                            VStack {
-                                                                Spacer()
-                                                                RoundedRectangle(cornerRadius: 2)
-                                                                    .fill(Color.blue.opacity(0.7))
-                                                                    .frame(width: 4, height: geometry.size.height * (point.goalProgress.isFinite && point.goalProgress >= 0 ? point.goalProgress : 0))
-                                                            }
-                                                            
-                                                            // Present Progress Line (orange)
-                                                            if index < recentData.count - 1 {
-                                                                Circle()
-                                                                    .fill(Color.orange)
-                                                                    .frame(width: 6, height: 6)
-                                                            }
-                                                        }
-                                                        .frame(maxWidth: .infinity)
-                                                    }
-                                                }
-                                            }
-                                            .frame(height: 120)
-                                            
-                                            // Legend
-                                            HStack(spacing: 16) {
-                                                HStack(spacing: 6) {
-                                                    RoundedRectangle(cornerRadius: 2)
-                                                        .fill(Color.blue.opacity(0.7))
-                                                        .frame(width: 8, height: 8)
-                                                    Text("Goal")
-                                                        .font(.pip.caption)
-                                                        .foregroundColor(.gray)
-                                                }
-                                                
-                                                HStack(spacing: 6) {
-                                                    Circle()
-                                                        .fill(Color.orange)
-                                                        .frame(width: 6, height: 6)
-                                                    Text("Present")
-                                                        .font(.pip.caption)
-                                                        .foregroundColor(.gray)
-                                                }
-                                                
-                                                Spacer()
                                             }
                                         }
+                                    }
+                                    .frame(height: 16)
+                                    
+                                    // Legend
+                                    HStack(spacing: 20) {
+                                        Spacer()
+                                        
+                                        HStack(spacing: 6) {
+                                            Circle()
+                                                .fill(Color.blue.opacity(0.9))
+                                                .frame(width: 8, height: 8)
+                                            Text("Goal")
+                                                .font(.pip.caption)
+                                                .foregroundColor(.gray)
+                                        }
+                                        
+                                        HStack(spacing: 6) {
+                                            Circle()
+                                                .fill(Color.orange.opacity(0.9))
+                                                .frame(width: 8, height: 8)
+                                            Text("Present")
+                                                .font(.pip.caption)
+                                                .foregroundColor(.gray)
+                                        }
+                                        
+                                        Spacer()
                                     }
                                     
                                     // Statistics
@@ -311,6 +367,12 @@ private func calculateCurrentDay(from startDate: Date) -> Int {
     let calendar = Calendar.current
     let components = calendar.dateComponents([.day], from: startDate, to: Date())
     return max(1, (components.day ?? 0) + 1) // 최소 1일부터 시작
+}
+
+private func formatDate(_ date: Date) -> String {
+    let formatter = DateFormatter()
+    formatter.dateFormat = "MM/dd"
+    return formatter.string(from: date)
 }
 
 // MARK: - Closures extension

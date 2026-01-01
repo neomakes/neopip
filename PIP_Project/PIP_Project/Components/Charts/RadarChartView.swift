@@ -10,9 +10,18 @@ import SwiftUI
 // MARK: - Main Radar Chart View
 struct RadarChartView: View {
     let dataSet: RadarChartDataSet
-    let gridColor: Color = Color.white.opacity(0.4)
-    let labelColor: Color = .white
-    let levels: Int = 4 // 격자선 개수 (예: 25%, 50%, 75%, 100%)
+    let showIcons: Bool
+    let gridColor: Color
+    let labelColor: Color
+    let levels: Int
+
+    init(dataSet: RadarChartDataSet, showIcons: Bool = true, gridColor: Color = Color.white.opacity(0.4), labelColor: Color = .white, levels: Int = 4) {
+        self.dataSet = dataSet
+        self.showIcons = showIcons
+        self.gridColor = gridColor
+        self.labelColor = labelColor
+        self.levels = levels
+    }
 
     var body: some View {
         GeometryReader { geometry in
@@ -55,12 +64,25 @@ struct RadarChartView: View {
                     let valueLabelRadius = valuePointRadius + (item.value > 0.9 ? 10 : 18) // 값이 높을 때 덜 띄움
                     let valuePoint = pointFor(angle: angle, radius: valueLabelRadius, center: center)
 
-                    // 축 아이콘 표시 (크기를 36x36으로 증가)
-                    Image(item.iconName)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 36, height: 36)
-                        .position(iconPoint)
+                    if showIcons {
+                        // 축 아이콘 표시 (크기를 36x36으로 증가)
+                        let iconRadius = radius + 35
+                        let iconPoint = pointFor(angle: angle, radius: iconRadius, center: center)
+                        Image(item.iconName)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 36, height: 36)
+                            .position(iconPoint)
+                    } else {
+                        // 축 텍스트 표시
+                        let textRadius = radius + 25
+                        let textPoint = pointFor(angle: angle, radius: textRadius, center: center)
+                        Text(item.iconName.capitalized) // iconName을 라벨로 사용 (예: "Mood", "Stress")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(.white)
+                            .shadow(color: .black.opacity(0.7), radius: 2, y: 1)
+                            .position(textPoint)
+                    }
 
                     // 데이터 값 레이블 표시
                     Text(item.displayValue)
