@@ -40,22 +40,57 @@ struct ProgressSection: View {
                         // Radar Chart (Before vs After Metrics)
                         if let progress = viewModel.currentProgramProgress() {
                             VStack(alignment: .leading, spacing: 12) {
-                                Text("Metrics Improvement")
-                                    .font(.pip.caption)
-                                    .foregroundColor(.gray)
-                                
                                 ZStack {
                                     RoundedRectangle(cornerRadius: 12)
                                         .fill(Color.white.opacity(0.05))
                                     
+                                    // Before (past) radar chart - gray outline
                                     RadarChartView(
                                         dataSet: RadarChartDataSet(
-                                            title: "Progress",
+                                            title: "Before",
+                                            data: progress.radarChartData.map { RadarChartDataItem(iconName: $0.label.lowercased(), value: $0.beforeValue, displayValue: String(format: "%.0f", $0.beforeValue * 100)) },
+                                            dataColor: Color.gray.opacity(0.6)
+                                        ),
+                                        showIcons: false
+                                    )
+                                    .frame(height: 160)
+                                    
+                                    // After (current) radar chart - accent color fill
+                                    RadarChartView(
+                                        dataSet: RadarChartDataSet(
+                                            title: "After",
                                             data: progress.radarChartData.map { RadarChartDataItem(iconName: $0.label.lowercased(), value: $0.afterValue, displayValue: String(format: "%.0f", $0.afterValue * 100)) },
                                             dataColor: Color.accentColor
                                         ),
                                         showIcons: false
                                     )
+                                    .frame(height: 160)
+                                    
+                                    // Legend for before/after comparison
+                                    VStack {
+                                        Spacer()
+                                        HStack(spacing: 16) {
+                                            HStack(spacing: 6) {
+                                                Circle()
+                                                    .stroke(Color.gray.opacity(0.6), lineWidth: 2)
+                                                    .fill(Color.clear)
+                                                    .frame(width: 8, height: 8)
+                                                Text("Before")
+                                                    .font(.pip.overline)
+                                                    .foregroundColor(.gray.opacity(0.7))
+                                            }
+                                            
+                                            HStack(spacing: 6) {
+                                                Circle()
+                                                    .fill(Color.accentColor.opacity(0.8))
+                                                    .frame(width: 8, height: 8)
+                                                Text("After")
+                                                    .font(.pip.overline)
+                                                    .foregroundColor(.accentColor)
+                                            }
+                                        }
+                                        .padding(.bottom, 4)
+                                    }
                                 }
                                 .frame(height: 200)
                             }
@@ -68,11 +103,7 @@ struct ProgressSection: View {
                 
                 // MARK: - Right Column (2/3): Bar Line Chart
                 VStack(spacing: 12) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Goal Progress")
-                            .font(.pip.caption)
-                            .foregroundColor(.gray)
-                        
+                    VStack(alignment: .leading, spacing: 8) {                        
                         ZStack {
                             RoundedRectangle(cornerRadius: 12)
                                 .fill(Color.white.opacity(0.05))
@@ -220,7 +251,7 @@ struct ProgressSection: View {
                                     .frame(height: 16)
                                     
                                     // Legend
-                                    HStack(spacing: 20) {
+                                    HStack(spacing: 6) {
                                         Spacer()
                                         
                                         HStack(spacing: 6) {
@@ -246,28 +277,28 @@ struct ProgressSection: View {
                                     
                                     // Statistics
                                     HStack(spacing: 12) {
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            Text("Progress")
-                                                .font(.pip.caption)
-                                                .foregroundColor(.gray)
-                                            Text(String(format: "%.0f%%", (viewModel.currentProgramProgress()?.improvementRate ?? 0) * 100))
-                                                .font(.pip.body)
-                                                .foregroundColor(.accentColor)
+                                        // Progress Ring centered
+                                        ZStack {
+                                            Circle()
+                                                .stroke(Color.white.opacity(0.1), lineWidth: 4)
+                                            
+                                            Circle()
+                                                .trim(from: 0, to: progress.improvementRate)
+                                                .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                                                .rotationEffect(.degrees(-90))
+                                            
+                                            VStack(spacing: 2) {
+                                                Text(String(format: "%.0f%%", progress.improvementRate * 100))
+                                                    .font(.pip.body)
+                                                    .foregroundColor(.accentColor)
+                                                Text("Complete")
+                                                    .font(.pip.overline)
+                                                    .foregroundColor(.gray.opacity(0.7))
+                                            }
                                         }
-                                        
-                                        Divider()
-                                        
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            Text("Sessions")
-                                                .font(.pip.caption)
-                                                .foregroundColor(.gray)
-                                            Text("\(progress.progressHistory.first?.sessionsCompleted ?? 0)/\(progress.progressHistory.first?.sessionsPlanned ?? 30)")
-                                                .font(.pip.body)
-                                                .foregroundColor(.accentColor)
-                                        }
-                                        
-                                        Spacer()
+                                        .frame(width: 80, height: 80)
                                     }
+                                    .frame(maxWidth: .infinity)
                                 }
                                 .padding(12)
                             }
@@ -297,50 +328,52 @@ struct ProgressProgramCardView: View {
     let progress: ProgramProgress?
     let onTap: () -> Void
     
+    var gradientColors: [Color] {
+        if let themeNames = program.gemVisualization.gradientColors, !themeNames.isEmpty {
+            return themeNames.compactMap { themeName in
+                if let theme = ColorThemeForGoal(rawValue: themeName) {
+                    return Color(hex: theme.hexColor).opacity(0.4)
+                } else {
+                    return nil
+                }
+            }
+        } else {
+            return [Color.white.opacity(0.05)]
+        }
+    }
+    
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color.white.opacity(0.05))
+                .fill(
+                    gradientColors.count > 1 ?
+                        AnyShapeStyle(
+                            LinearGradient(
+                                gradient: Gradient(colors: gradientColors),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        ) :
+                        AnyShapeStyle(gradientColors.first ?? Color.white.opacity(0.05))
+                )
             
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
                     VStack(alignment: .leading, spacing: 6) {
                         Text(program.name)
                             .font(.pip.body)
-                            .foregroundColor(.white)
+                            .foregroundColor(Color.pip.goal.textProgram)
                             .lineLimit(2)
-                        
-                        if let progress = progress {
-                            Text(String(format: "%.0f%% Complete", progress.improvementRate * 100))
-                                .font(.pip.caption)
-                                .foregroundColor(.gray)
-                        }
                     }
                     
                     Spacer()
-                    
-                    // Progress Ring
-                    ZStack {
-                        Circle()
-                            .stroke(Color.white.opacity(0.1), lineWidth: 4)
-                        
-                        Circle()
-                            .trim(from: 0, to: progress?.improvementRate ?? 0)
-                            .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 4, lineCap: .round))
-                            .rotationEffect(.degrees(-90))
-                        
-                        Text(String(format: "%.0f%%", (progress?.improvementRate ?? 0) * 100))
-                            .font(.pip.caption)
-                            .foregroundColor(.accentColor)
-                    }
-                    .frame(width: 60, height: 60)
                 }
                 
                 // Progress bar
                 if let progress = progress {
                     VStack(spacing: 4) {
                         ProgressView(value: progress.improvementRate)
-                            .tint(.accentColor)
+                            .tint(Color.pip.goal.textProgram)
                         
                         HStack(spacing: 8) {
                             Text("Day \(calculateCurrentDay(from: progress.createdAt))")
@@ -351,7 +384,7 @@ struct ProgressProgramCardView: View {
                             
                             Text("Tap to view story →")
                                 .font(.pip.overline)
-                                .foregroundColor(.accentColor)
+                                .foregroundColor(Color.pip.goal.textProgram)
                         }
                     }
                 }
