@@ -1,0 +1,49 @@
+{
+  "id": "P005-UUID-0005-0005",
+  "name": "Sleep Quality Enhancement",
+  "description": "Transform your sleep patterns with this 21-day program that combines sleep hygiene education, relaxation techniques, and personalized sleep tracking to help you achieve restful, restorative sleep.",
+  "category": "physical",
+  "duration": 21,
+  "difficulty": "intermediate",
+  "gemVisualization": {
+    "gemType": "sphere",
+    "colorTheme": "blue",
+    "gradientColors": ["blue", "teal"],
+    "brightness": 0.85,
+    "size": 1.0,
+    "customShape": null
+  },
+  "illustration3D": null,
+  "popularity": 0.88,
+  "rating": 4.6,
+  "reviewCount": 203,
+  "userCount": 1247,
+  "steps": [
+    {
+      "id": "step-1",
+      "title": "Sleep Environment Assessment",
+      "description": "Evaluate and optimize your bedroom for better sleep",
+      "day": 1,
+      "content": "Check lighting, temperature, noise levels, and mattress comfort"
+    },
+    {
+      "id": "step-2",
+      "title": "Circadian Rhythm Alignment",
+      "description": "Establish consistent sleep and wake times",
+      "day": 2,
+      "content": "Set a regular sleep schedule and morning light exposure routine"
+    }
+  ],
+  "prerequisites": null,
+  "tags": ["sleep", "rest", "recovery", "health"],
+  "expectedEffects": [
+    "Improved sleep duration and quality",
+    "Increased daytime energy",
+    "Better mood and cognitive function",
+    "Enhanced immune system function"
+  ],
+  "requiredDataTypes": ["sleep", "energy", "mood"],
+  "userReviews": null,
+  "isRecommended": true,
+  "createdAt": "2024-01-01T00:00:00Z"
+}

@@ -18,6 +18,11 @@ struct GoalView: View {
                     // MARK: - Progress Section
                     ProgressSection(viewModel: viewModel)
                         .padding(.horizontal, 0)
+                        .padding(.bottom, 30)
+                    
+                    // MARK: - Programs Section
+                    ProgramsSection(viewModel: viewModel)
+                        .padding(.horizontal, 0)
                         .padding(.bottom, 100) // TabBar 높이 고려 + 여유 공간
                 }
                 .frame(maxWidth: .infinity)

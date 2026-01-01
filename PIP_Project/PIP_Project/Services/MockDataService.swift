@@ -383,21 +383,82 @@ class MockDataService: DataServiceProtocol {
                 continue
             }
             
-            // Try to find original JSON file in project MockData folder
-            // Since Bundle.main.url() doesn't work, we'll try to load from the project structure
-            let projectMockDataPath = "/Users/neo/ACCEL/PIP_Project/PIP_Project/PIP_Project/MockData/Goal/ongoing_programs/\(programId).json"
-            let projectURL = URL(fileURLWithPath: projectMockDataPath)
-            
-            if fileManager.fileExists(atPath: projectURL.path) {
+            // Try to find original JSON file in Bundle first (subdirectory then root)
+            let subdirectory = "MockData/Goal/ongoing_programs"
+            if let bundleUrl = Bundle.main.url(forResource: programId, withExtension: "json", subdirectory: subdirectory) ?? Bundle.main.url(forResource: programId, withExtension: "json") {
                 do {
-                    let bundleData = try Data(contentsOf: projectURL)
+                    let bundleData = try Data(contentsOf: bundleUrl)
                     try bundleData.write(to: destinationPath, options: .atomic)
-                    print("✅ Copied \(programId).json from project to: \(destinationPath.path)")
+                    print("✅ Copied \(programId).json from Bundle to: \(destinationPath.path)")
                 } catch {
-                    print("⚠️ Failed to copy \(programId).json from project: \(error)")
+                    print("⚠️ Failed to copy \(programId).json from Bundle: \(error)")
                 }
             } else {
-                print("⚠️ Original \(programId).json not found in project at: \(projectURL.path)")
+                // Fallback to project path if available (dev only)
+                let projectMockDataPath = "/Users/neo/ACCEL/PIP_Project/PIP_Project/PIP_Project/MockData/Goal/ongoing_programs/\(programId).json"
+                let projectURL = URL(fileURLWithPath: projectMockDataPath)
+                if fileManager.fileExists(atPath: projectURL.path) {
+                    do {
+                        let bundleData = try Data(contentsOf: projectURL)
+                        try bundleData.write(to: destinationPath, options: .atomic)
+                        print("✅ Copied \(programId).json from project to: \(destinationPath.path)")
+                    } catch {
+                        print("⚠️ Failed to copy \(programId).json from project: \(error)")
+                    }
+                } else {
+                    print("⚠️ Original \(programId).json not found in Bundle or project: \(programId)")
+                }
+            }
+        }
+        
+        // Create new_programs folder and copy if available in Bundle or project
+        let newProgramsFolderURL = mockDataDirectory.appendingPathComponent("Goal/new_programs")
+        try? fileManager.createDirectory(at: newProgramsFolderURL, withIntermediateDirectories: true)
+        
+        print("📁 New Programs MockData Directory: \(newProgramsFolderURL.path)")
+        
+        let newProgramIds = [
+            "P004-UUID-0004-0004",
+            "P005-UUID-0005-0005",
+            "P006-UUID-0006-0006",
+            "P007-UUID-0007-0007",
+            "P008-UUID-0008-0008"
+        ]
+        
+        for programId in newProgramIds {
+            let destinationPath = newProgramsFolderURL.appendingPathComponent("\(programId).json")
+            
+            // Skip if already exists
+            if fileManager.fileExists(atPath: destinationPath.path) {
+                print("✅ Already valid: \(programId).json")
+                continue
+            }
+            
+            // Prefer to copy from Bundle
+            let subdirectory = "MockData/Goal/new_programs"
+            if let bundleUrl = Bundle.main.url(forResource: programId, withExtension: "json", subdirectory: subdirectory) ?? Bundle.main.url(forResource: programId, withExtension: "json") {
+                do {
+                    let bundleData = try Data(contentsOf: bundleUrl)
+                    try bundleData.write(to: destinationPath, options: .atomic)
+                    print("✅ Copied \(programId).json from Bundle to: \(destinationPath.path)")
+                } catch {
+                    print("⚠️ Failed to copy \(programId).json from Bundle: \(error)")
+                }
+            } else {
+                // Fallback to project path if available (dev only)
+                let projectMockDataPath = "/Users/neo/ACCEL/PIP_Project/PIP_Project/PIP_Project/MockData/Goal/new_programs/\(programId).json"
+                let projectURL = URL(fileURLWithPath: projectMockDataPath)
+                if fileManager.fileExists(atPath: projectURL.path) {
+                    do {
+                        let bundleData = try Data(contentsOf: projectURL)
+                        try bundleData.write(to: destinationPath, options: .atomic)
+                        print("✅ Copied \(programId).json from project to: \(destinationPath.path)")
+                    } catch {
+                        print("⚠️ Failed to copy \(programId).json from project: \(error)")
+                    }
+                } else {
+                    print("⚠️ Original \(programId).json not found in Bundle or project: \(programId)")
+                }
             }
         }
     }

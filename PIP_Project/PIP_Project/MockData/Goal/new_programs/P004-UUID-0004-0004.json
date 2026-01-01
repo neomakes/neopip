@@ -1,0 +1,49 @@
+{
+  "id": "P004-UUID-0004-0004",
+  "name": "Stress Management Mastery",
+  "description": "A comprehensive 14-day program designed to help you identify, understand, and effectively manage stress through proven techniques including mindfulness, breathing exercises, and cognitive reframing.",
+  "category": "emotional",
+  "duration": 14,
+  "difficulty": "beginner",
+  "gemVisualization": {
+    "gemType": "crystal",
+    "colorTheme": "teal",
+    "gradientColors": ["teal", "blue"],
+    "brightness": 0.8,
+    "size": 1.0,
+    "customShape": null
+  },
+  "illustration3D": null,
+  "popularity": 0.92,
+  "rating": 4.7,
+  "reviewCount": 156,
+  "userCount": 892,
+  "steps": [
+    {
+      "id": "step-1",
+      "title": "Understanding Your Stress",
+      "description": "Learn to identify your personal stress triggers and patterns",
+      "day": 1,
+      "content": "Track your stress levels throughout the day and identify common triggers"
+    },
+    {
+      "id": "step-2",
+      "title": "Breathing Techniques",
+      "description": "Master the 4-7-8 breathing method for instant stress relief",
+      "day": 2,
+      "content": "Practice deep breathing exercises to calm your nervous system"
+    }
+  ],
+  "prerequisites": null,
+  "tags": ["stress", "mindfulness", "breathing", "mental-health"],
+  "expectedEffects": [
+    "Reduced anxiety levels",
+    "Better emotional regulation",
+    "Improved sleep quality",
+    "Enhanced focus and concentration"
+  ],
+  "requiredDataTypes": ["mood", "stress", "sleep"],
+  "userReviews": null,
+  "isRecommended": true,
+  "createdAt": "2024-01-01T00:00:00Z"
+}

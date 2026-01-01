@@ -6,8 +6,24 @@
 //
 
 import Foundation
+import CryptoKit
 
 // MARK: - Enums (Re-define for GoalModels)
+
+/// Generate deterministic UUIDs from arbitrary strings (used for legacy/mock IDs)
+extension UUID {
+    static func deterministicUUID(from string: String) -> UUID {
+        let data = Data(string.utf8)
+        let hash = SHA256.hash(data: data)
+        let bytes: [UInt8] = Array(hash.prefix(16))
+        let uuid: uuid_t = (
+            bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
+            bytes[8], bytes[9], bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15]
+        )
+        return UUID(uuid: uuid)
+    }
+}
+
 public enum GemTypeForGoal: String, Codable {
     case sphere
     case diamond
@@ -168,7 +184,112 @@ struct Program: Identifiable, Codable {
             return programIdString
         }
     }
-}
+
+    // Custom Decoding: allow string IDs that are not standard UUIDs (legacy/mock data)
+    enum CodingKeys: String, CodingKey {
+        case id, name, description, category, duration, difficulty, gemVisualization, illustration3D, popularity, rating, reviewCount, userCount, steps, prerequisites, tags, expectedEffects, requiredDataTypes, userReviews, isRecommended, createdAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let idString = try container.decode(String.self, forKey: .id)
+        if let uuid = UUID(uuidString: idString) {
+            id = uuid
+        } else {
+            id = UUID.deterministicUUID(from: idString)
+        }
+
+        name = try container.decode(String.self, forKey: .name)
+        description = try container.decode(String.self, forKey: .description)
+        category = try container.decode(GoalCategory.self, forKey: .category)
+        duration = try container.decode(Int.self, forKey: .duration)
+        difficulty = try container.decode(DifficultyLevel.self, forKey: .difficulty)
+        gemVisualization = try container.decode(GemVisualization.self, forKey: .gemVisualization)
+        illustration3D = try container.decodeIfPresent(ProgramIllustration3D.self, forKey: .illustration3D)
+        popularity = try container.decode(Double.self, forKey: .popularity)
+        rating = try container.decodeIfPresent(Double.self, forKey: .rating)
+        reviewCount = try container.decode(Int.self, forKey: .reviewCount)
+        userCount = try container.decode(Int.self, forKey: .userCount)
+        steps = try container.decodeIfPresent([ProgramStep].self, forKey: .steps) ?? []
+        prerequisites = try container.decodeIfPresent([String].self, forKey: .prerequisites)
+        tags = try container.decodeIfPresent([String].self, forKey: .tags) ?? []
+        expectedEffects = try container.decodeIfPresent([String].self, forKey: .expectedEffects) ?? []
+        requiredDataTypes = try container.decodeIfPresent([String].self, forKey: .requiredDataTypes) ?? []
+        userReviews = try container.decodeIfPresent([ProgramReview].self, forKey: .userReviews)
+        isRecommended = try container.decodeIfPresent(Bool.self, forKey: .isRecommended) ?? false
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+    }
+
+    // Preserve Encodable conformance explicitly and implement encoding
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id.uuidString, forKey: .id)
+        try container.encode(name, forKey: .name)
+        try container.encode(description, forKey: .description)
+        try container.encode(category, forKey: .category)
+        try container.encode(duration, forKey: .duration)
+        try container.encode(difficulty, forKey: .difficulty)
+        try container.encode(gemVisualization, forKey: .gemVisualization)
+        try container.encodeIfPresent(illustration3D, forKey: .illustration3D)
+        try container.encode(popularity, forKey: .popularity)
+        try container.encodeIfPresent(rating, forKey: .rating)
+        try container.encode(reviewCount, forKey: .reviewCount)
+        try container.encode(userCount, forKey: .userCount)
+        try container.encode(steps, forKey: .steps)
+        try container.encodeIfPresent(prerequisites, forKey: .prerequisites)
+        try container.encode(tags, forKey: .tags)
+        try container.encode(expectedEffects, forKey: .expectedEffects)
+        try container.encode(requiredDataTypes, forKey: .requiredDataTypes)
+        try container.encodeIfPresent(userReviews, forKey: .userReviews)
+        try container.encode(isRecommended, forKey: .isRecommended)
+        try container.encode(createdAt, forKey: .createdAt)
+    }
+
+    // Explicit memberwise initializer to preserve previous usage sites (Program(...))
+    init(
+        id: UUID,
+        name: String,
+        description: String,
+        category: GoalCategory,
+        duration: Int,
+        difficulty: DifficultyLevel,
+        gemVisualization: GemVisualization,
+        illustration3D: ProgramIllustration3D?,
+        popularity: Double,
+        rating: Double?,
+        reviewCount: Int,
+        userCount: Int,
+        steps: [ProgramStep],
+        prerequisites: [String]?,
+        tags: [String],
+        expectedEffects: [String],
+        requiredDataTypes: [String],
+        userReviews: [ProgramReview]?,
+        isRecommended: Bool,
+        createdAt: Date
+    ) {
+        self.id = id
+        self.name = name
+        self.description = description
+        self.category = category
+        self.duration = duration
+        self.difficulty = difficulty
+        self.gemVisualization = gemVisualization
+        self.illustration3D = illustration3D
+        self.popularity = popularity
+        self.rating = rating
+        self.reviewCount = reviewCount
+        self.userCount = userCount
+        self.steps = steps
+        self.prerequisites = prerequisites
+        self.tags = tags
+        self.expectedEffects = expectedEffects
+        self.requiredDataTypes = requiredDataTypes
+        self.userReviews = userReviews
+        self.isRecommended = isRecommended
+        self.createdAt = createdAt
+    }
+} 
 
 struct ProgramIllustration3D: Codable {
     var modelId: String            // 3D 모델 ID
@@ -204,7 +325,38 @@ struct ProgramStep: Identifiable, Codable {
     var duration: Int?             // 분 단위
     var isCompleted: Bool
     var completedDate: Date?
-}
+
+    enum CodingKeys: String, CodingKey {
+        case id, order, title, description, duration, isCompleted, completedDate, day
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let idString = try container.decode(String.self, forKey: .id)
+        if let uuid = UUID(uuidString: idString) {
+            id = uuid
+        } else {
+            id = UUID.deterministicUUID(from: idString)
+        }
+        order = (try? container.decode(Int.self, forKey: .order)) ?? (try? container.decode(Int.self, forKey: .day)) ?? 0
+        title = try container.decode(String.self, forKey: .title)
+        description = try container.decode(String.self, forKey: .description)
+        duration = try container.decodeIfPresent(Int.self, forKey: .duration)
+        isCompleted = try container.decodeIfPresent(Bool.self, forKey: .isCompleted) ?? false
+        completedDate = try container.decodeIfPresent(Date.self, forKey: .completedDate)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id.uuidString, forKey: .id)
+        try container.encode(order, forKey: .order)
+        try container.encode(title, forKey: .title)
+        try container.encode(description, forKey: .description)
+        try container.encodeIfPresent(duration, forKey: .duration)
+        try container.encode(isCompleted, forKey: .isCompleted)
+        try container.encodeIfPresent(completedDate, forKey: .completedDate)
+    }
+} 
 
 // MARK: - Goal Progress
 /// 목표 진행 상황
@@ -326,9 +478,10 @@ struct ProgramStory: Identifiable, Codable {
     var isLiked: Bool = false
     var viewedAt: Date?
     var createdAt: Date
+    var isGenerated: Bool = false
     
     enum CodingKeys: String, CodingKey {
-        case id, programId, title, subtitle, pages, colorTheme, gradientColors, isViewed, isLiked, viewedAt, createdAt
+        case id, programId, title, subtitle, pages, colorTheme, gradientColors, isViewed, isLiked, viewedAt, createdAt, isGenerated
     }
     
     var programIdString: String {
@@ -336,7 +489,7 @@ struct ProgramStory: Identifiable, Codable {
     }
     
     // Default initializer
-    init(id: UUID, programId: UUID, title: String, subtitle: String?, pages: [ProgramStoryPage], colorTheme: ColorThemeForGoal? = nil, gradientColors: [ColorThemeForGoal]? = nil, isViewed: Bool = false, isLiked: Bool = false, viewedAt: Date? = nil, createdAt: Date) {
+    init(id: UUID, programId: UUID, title: String, subtitle: String?, pages: [ProgramStoryPage], colorTheme: ColorThemeForGoal? = nil, gradientColors: [ColorThemeForGoal]? = nil, isViewed: Bool = false, isLiked: Bool = false, viewedAt: Date? = nil, createdAt: Date, isGenerated: Bool = false) {
         self.id = id
         self.programId = programId
         self.title = title
@@ -348,6 +501,7 @@ struct ProgramStory: Identifiable, Codable {
         self.isLiked = isLiked
         self.viewedAt = viewedAt
         self.createdAt = createdAt
+        self.isGenerated = isGenerated
     }
     
     // Custom decoder for ISO 8601 date strings
@@ -363,6 +517,7 @@ struct ProgramStory: Identifiable, Codable {
         isViewed = try container.decodeIfPresent(Bool.self, forKey: .isViewed) ?? false
         isLiked = try container.decodeIfPresent(Bool.self, forKey: .isLiked) ?? false
         viewedAt = try container.decodeIfPresent(Date.self, forKey: .viewedAt)
+        isGenerated = try container.decodeIfPresent(Bool.self, forKey: .isGenerated) ?? false
         
         // Handle createdAt as ISO 8601 string
         let dateString = try container.decode(String.self, forKey: .createdAt)

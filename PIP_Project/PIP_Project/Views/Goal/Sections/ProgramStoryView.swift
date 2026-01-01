@@ -13,6 +13,13 @@ struct ProgramStoryView: View {
         _viewModel = StateObject(wrappedValue: ProgramStoryViewModel(program: program, progress: progress))
     }
 
+    // Backwards-compatible initializer that accepts an optional `onSelect` callback.
+    // Kept for binary-compatibility with call sites introduced earlier; the callback is
+    // intentionally ignored here because selection is handled in the parent view model.
+    init(program: Program, progress: ProgramProgress?, onSelect: (() -> Void)? = nil) {
+        self.init(program: program, progress: progress)
+    }
+
     var cardType: AnalysisCardType {
         let theme = viewModel.programStory?.colorTheme ?? program.gemVisualization.colorTheme
         switch theme {
@@ -154,6 +161,9 @@ struct ProgramStoryView: View {
                 }
             }
             .onDisappear(perform: viewModel.stopStoryTimer)
+        }
+        .onAppear {
+            viewModel.loadStory()
         }
     }
 

@@ -1,0 +1,49 @@
+{
+  "id": "P006-UUID-0006-0006",
+  "name": "Daily Movement Builder",
+  "description": "Build sustainable exercise habits with this flexible 30-day program that adapts to your fitness level and schedule, focusing on consistency over intensity for long-term health benefits.",
+  "category": "physical",
+  "duration": 30,
+  "difficulty": "beginner",
+  "gemVisualization": {
+    "gemType": "diamond",
+    "colorTheme": "tiger",
+    "gradientColors": ["tiger", "amber"],
+    "brightness": 0.9,
+    "size": 1.0,
+    "customShape": null
+  },
+  "illustration3D": null,
+  "popularity": 0.95,
+  "rating": 4.8,
+  "reviewCount": 312,
+  "userCount": 2156,
+  "steps": [
+    {
+      "id": "step-1",
+      "title": "Movement Assessment",
+      "description": "Evaluate your current activity level and set realistic goals",
+      "day": 1,
+      "content": "Track your daily steps and identify opportunities for more movement"
+    },
+    {
+      "id": "step-2",
+      "title": "Finding Your Rhythm",
+      "description": "Discover the best times and types of movement for your lifestyle",
+      "day": 2,
+      "content": "Experiment with different activities and timing to find what works best"
+    }
+  ],
+  "prerequisites": null,
+  "tags": ["exercise", "fitness", "movement", "health"],
+  "expectedEffects": [
+    "Increased daily activity levels",
+    "Improved cardiovascular health",
+    "Better strength and flexibility",
+    "Enhanced mental well-being"
+  ],
+  "requiredDataTypes": ["activity", "energy", "mood"],
+  "userReviews": null,
+  "isRecommended": true,
+  "createdAt": "2024-01-01T00:00:00Z"
+}

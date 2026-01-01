@@ -21,6 +21,7 @@ class ProgramStoryViewModel: ObservableObject {
     init(program: Program, progress: ProgramProgress?) {
         self.program = program
         self.progress = progress
+        // original behavior: load story immediately (may run in app runtime contexts)
         loadStory()
     }
 
@@ -46,9 +47,13 @@ class ProgramStoryViewModel: ObservableObject {
             self.isLoading = false
             self.startStoryTimer()
         } else {
-            print("DEBUG: Story not found for this program")
+            print("DEBUG: Story not found for this program — generating default story")
+            // Fallback: generate a default ProgramStory based on Program metadata so UI can present something
+            let defaultStory = createDefaultStoryFromProgram(program: program)
+            self.programStory = defaultStory
+            self.isLiked = defaultStory.isLiked
             self.isLoading = false
-            self.errorMessage = "Story not found for this program"
+            self.startStoryTimer()
         }
     }
 
@@ -140,5 +145,42 @@ class ProgramStoryViewModel: ObservableObject {
     func dismissStory() {
         stopStoryTimer()
         shouldDismiss = true
+    }
+
+    // MARK: - Fallback story generation
+    private func createDefaultStoryFromProgram(program: Program) -> ProgramStory {
+        let page1 = ProgramStoryPage(
+            pageNumber: 1,
+            contentType: .text,
+            content: ProgramStoryPageContent(headline: "Welcome to \(program.name)", body: program.description, imageName: nil, mantra: nil)
+        )
+
+        let stepDescriptions = program.steps.prefix(3).map { "• \($0.title)" }.joined(separator: "\n")
+        let page2 = ProgramStoryPage(
+            pageNumber: 2,
+            contentType: .tip,
+            content: ProgramStoryPageContent(headline: "Key Steps", body: stepDescriptions.isEmpty ? "Follow the program steps to progress." : stepDescriptions, imageName: nil, mantra: "Consistency is key")
+        )
+
+        let page3 = ProgramStoryPage(
+            pageNumber: 3,
+            contentType: .motivation,
+            content: ProgramStoryPageContent(headline: nil, body: nil, imageName: nil, mantra: "You are capable of amazing things")
+        )
+
+        let story = ProgramStory(
+            id: UUID(),
+            programId: program.id,
+            title: program.name,
+            subtitle: program.description,
+            pages: [page1, page2, page3],
+            colorTheme: program.gemVisualization.colorTheme,
+            gradientColors: program.gemVisualization.gradientColors?.compactMap { ColorThemeForGoal(rawValue: $0) },
+            isViewed: false,
+            createdAt: Date(),
+            isGenerated: true
+        )
+
+        return story
     }
 }

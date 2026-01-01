@@ -1,0 +1,49 @@
+{
+  "id": "P007-UUID-0007-0007",
+  "name": "Mindfulness Practice Journey",
+  "description": "Develop a deep mindfulness practice with this 28-day program that guides you through various meditation techniques, mindful awareness exercises, and daily reflection practices.",
+  "category": "emotional",
+  "duration": 28,
+  "difficulty": "intermediate",
+  "gemVisualization": {
+    "gemType": "prism",
+    "colorTheme": "amber",
+    "gradientColors": ["amber", "teal"],
+    "brightness": 0.75,
+    "size": 1.0,
+    "customShape": null
+  },
+  "illustration3D": null,
+  "popularity": 0.91,
+  "rating": 4.9,
+  "reviewCount": 278,
+  "userCount": 1834,
+  "steps": [
+    {
+      "id": "step-1",
+      "title": "Mindfulness Foundations",
+      "description": "Learn the basics of mindfulness and present-moment awareness",
+      "day": 1,
+      "content": "Understand what mindfulness is and begin simple awareness exercises"
+    },
+    {
+      "id": "step-2",
+      "title": "Breath Awareness",
+      "description": "Develop focused attention through breath observation",
+      "day": 2,
+      "content": "Practice various breathing techniques to anchor your awareness"
+    }
+  ],
+  "prerequisites": null,
+  "tags": ["mindfulness", "meditation", "awareness", "mental-health"],
+  "expectedEffects": [
+    "Reduced stress and anxiety",
+    "Improved emotional regulation",
+    "Enhanced focus and concentration",
+    "Greater self-awareness"
+  ],
+  "requiredDataTypes": ["mood", "focus", "stress"],
+  "userReviews": null,
+  "isRecommended": true,
+  "createdAt": "2024-01-01T00:00:00Z"
+}

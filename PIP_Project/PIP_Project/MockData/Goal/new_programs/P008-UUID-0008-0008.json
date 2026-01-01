@@ -1,0 +1,49 @@
+{
+  "id": "P008-UUID-0008-0008",
+  "name": "Social Connection Catalyst",
+  "description": "Strengthen your social relationships and build meaningful connections with this 21-day program that combines communication skills, active listening techniques, and relationship-building strategies.",
+  "category": "social",
+  "duration": 21,
+  "difficulty": "beginner",
+  "gemVisualization": {
+    "gemType": "crystal",
+    "colorTheme": "blue",
+    "gradientColors": ["blue", "teal"],
+    "brightness": 0.8,
+    "size": 1.0,
+    "customShape": null
+  },
+  "illustration3D": null,
+  "popularity": 0.86,
+  "rating": 4.5,
+  "reviewCount": 145,
+  "userCount": 967,
+  "steps": [
+    {
+      "id": "step-1",
+      "title": "Social Inventory",
+      "description": "Assess your current social connections and identify areas for growth",
+      "day": 1,
+      "content": "Map out your social network and evaluate relationship quality"
+    },
+    {
+      "id": "step-2",
+      "title": "Communication Skills",
+      "description": "Learn effective communication techniques for better interactions",
+      "day": 2,
+      "content": "Practice active listening and clear expression skills"
+    }
+  ],
+  "prerequisites": null,
+  "tags": ["social", "relationships", "communication", "connection"],
+  "expectedEffects": [
+    "Stronger social relationships",
+    "Improved communication skills",
+    "Reduced feelings of loneliness",
+    "Enhanced empathy and understanding"
+  ],
+  "requiredDataTypes": ["social", "mood", "communication"],
+  "userReviews": null,
+  "isRecommended": true,
+  "createdAt": "2024-01-01T00:00:00Z"
+}

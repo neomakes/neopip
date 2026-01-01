@@ -9,7 +9,7 @@ struct ProgressSection: View {
             // MARK: - Header
             HStack {
                 HStack(alignment: .center, spacing:6) {
-                    Image("title_logo_7")  // Assuming appropriate logo for Progress
+                    Image("title_logo_1")  // Assuming appropriate logo for Progress
                         .resizable()
                         .scaledToFit()
                         .frame(height: 24)
