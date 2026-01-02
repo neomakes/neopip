@@ -18,7 +18,38 @@ class HomeViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var last7Days: [GemRecord] = []
     @Published var userName: String?
-    
+
+    // MARK: - Computed stats (derived from `dailyGems`)
+    /// Total number of unique days with gems (derived from `dailyGems`). Use set of startOfDay to avoid duplicates.
+    var totalGemsCreated: Int {
+        let calendar = Calendar.current
+        let days = Set(dailyGems.map { calendar.startOfDay(for: $0.date) })
+        return days.count
+    }
+
+    /// Current streak computed from `dailyGems`.
+    /// Streak counts consecutive days with data ending at yesterday (today excluded unless you prefer otherwise).
+    var currentStreak: Int {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        guard !dailyGems.isEmpty else { return 0 }
+
+        // Build a set of days that have data
+        let presentDays = Set(dailyGems.map { calendar.startOfDay(for: $0.date) })
+
+        // Start counting from yesterday
+        guard let yesterday = calendar.date(byAdding: .day, value: -1, to: today) else { return 0 }
+        var streak = 0
+        var dayToCheck = yesterday
+
+        while presentDays.contains(dayToCheck) {
+            streak += 1
+            guard let prev = calendar.date(byAdding: .day, value: -1, to: dayToCheck) else { break }
+            dayToCheck = prev
+        }
+
+        return streak
+    }    
     // MARK: - Dependencies
     let dataService: DataServiceProtocol
     var cancellables = Set<AnyCancellable>()
@@ -332,27 +363,5 @@ class HomeViewModel: ObservableObject {
             .store(in: &self.cancellables)
     }
 
-    /// 현재 스트릭 계산 (연속된 완성된 날짜 수, 반드시 오늘부터 시작)
-    var currentStreak: Int {
-        // 오늘을 제외한 어제까지의 데이터로만 streak 계산
-        // (오늘은 아직 24시간이 완성되지 않았으므로)
-        guard last7Days.count > 1 else { return 0 }
-        
-        // last7Days는 6일전부터 오늘 순서로 정렬되어 있으므로,
-        // 마지막 요소(오늘)를 제외하고 그 이전 요소(어제)부터 시작
-        let yesterday = last7Days[last7Days.count - 2]
-        guard yesterday.isCompleted == true else { return 0 }
-        
-        // 어제부터 과거로 거슬러 올라가며 연속된 완성 기록 세기
-        var streak = 0
-        for i in (0..<(last7Days.count - 1)).reversed() {  // 오늘 제외
-            if last7Days[i].isCompleted {
-                streak += 1
-            } else {
-                break  // 연속이 끊기면 중단
-            }
-        }
-        return streak
-    }
-
 }
+

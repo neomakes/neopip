@@ -122,25 +122,23 @@ struct HomeView: View {
                 .padding(.horizontal, 20)
             
             // VStack: Records와 Streaks를 위아래로 배치
-            if let stats = viewModel.userStats {
-                VStack(alignment: .leading, spacing: 12) {
-                    // Records (HStack: Icon + Value)
-                    StatItem(
-                        iconName: "icon_records",
-                        value: "\(stats.totalDataPoints)",
-                        valueColor: .pip.home.numRecords
-                    )
-                    
-                    // Streaks (HStack: Icon + Value)
-                    StatItem(
-                        iconName: "icon_streaks",
-                        value: "\(stats.currentStreak)",
-                        valueColor: .pip.home.numStreaks
-                    )
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 20)
+            VStack(alignment: .leading, spacing: 12) {
+                // Records (HStack: Icon + Value) — computed from dailyGems
+                StatItem(
+                    iconName: "icon_records",
+                    value: "\(viewModel.totalGemsCreated)",
+                    valueColor: .pip.home.numRecords
+                )
+
+                // Streaks (HStack: Icon + Value) — computed from dailyGems
+                StatItem(
+                    iconName: "icon_streaks",
+                    value: "\(viewModel.currentStreak)",
+                    valueColor: .pip.home.numStreaks
+                )
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 20)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, 16)
