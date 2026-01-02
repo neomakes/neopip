@@ -196,32 +196,76 @@ struct ProgramCard: View {
     
     var cardColor: Color {
         if let themeNames = program.gemVisualization.gradientColors, !themeNames.isEmpty {
-            if let themeName = themeNames.first, let theme = ColorThemeForGoal(rawValue: themeName) {
+            let first = themeNames[0].trimmingCharacters(in: .whitespacesAndNewlines)
+            // Hex value
+            if first.hasPrefix("#") {
+                return Color(hex: first)
+            }
+            // Known ColorTheme
+            if let theme = ColorThemeForGoal(rawValue: first) {
                 return Color(hex: theme.hexColor)
+            }
+            // Common system color names fallback
+            switch first.lowercased() {
+            case "teal": return Color.teal
+            case "blue": return Color.blue
+            case "green": return Color.green
+            case "red": return Color.red
+            case "purple": return Color.purple
+            default: return Color.accentColor
             }
         }
         return Color.accentColor // Default accent color
     }
+
+    /// Computed gradient colors for the card background (supports hex, theme names, and common color names)
+    var gradientColors: [Color] {
+        if let values = program.gemVisualization.gradientColors, !values.isEmpty {
+            return values.map { raw in
+                let s = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+                if s.hasPrefix("#") {
+                    return Color(hex: s)
+                }
+                if let theme = ColorThemeForGoal(rawValue: s) {
+                    return Color(hex: theme.hexColor)
+                }
+                switch s.lowercased() {
+                case "teal": return Color.teal
+                case "blue": return Color.blue
+                case "green": return Color.green
+                case "red": return Color.red
+                case "purple": return Color.purple
+                case "amber": return Color(hex: ColorThemeForGoal.amber.hexColor)
+                case "tiger": return Color(hex: ColorThemeForGoal.tiger.hexColor)
+                default: return Color.accentColor
+                }
+            }
+        } else {
+            return [cardColor.opacity(0.12), cardColor.opacity(0.28)]
+        }
+    }
     
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
-            // Background with gradient
+            // Background with multi-color gradient (use provided gradient hexs if available)
             LinearGradient(
-                gradient: Gradient(colors: [
-                    Color.black,
-                    cardColor.opacity(0.15)
-                ]),
+                gradient: Gradient(colors: gradientColors),
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
+            // subtle dark overlay to keep the card moody and readable
+            .overlay(
+                LinearGradient(gradient: Gradient(colors: [Color.black.opacity(0.48), Color.clear]), startPoint: .bottomTrailing, endPoint: .topLeading)
+            )
+            .overlay(Color.black.opacity(0.08))
             
-            // Neon glow effect (bottom-right corner)
+            // Neon glow effect (bottom-right corner) using gradient primary color (dimmed)
             Circle()
-                .fill(cardColor.opacity(0.4))
+                .fill((gradientColors.first ?? cardColor).opacity(0.35))
                 .frame(width: 120 * scaleFactor, height: 120 * scaleFactor)
-                .blur(radius: 25 * scaleFactor)
-                .offset(x: 40 * scaleFactor, y: 40 * scaleFactor)
-            
+                .blur(radius: 20 * scaleFactor)
+                .offset(x: 40 * scaleFactor, y: 40 * scaleFactor) 
+
             // Content
             VStack(alignment: .leading, spacing: 8 * scaleFactor) {
                 Text(program.name)
@@ -240,7 +284,7 @@ struct ProgramCard: View {
                         .foregroundColor(.white)
                         .padding(.horizontal, 8 * scaleFactor)
                         .padding(.vertical, 4 * scaleFactor)
-                        .background(cardColor.opacity(0.3))
+                        .background(cardColor.opacity(0.22))
                         .cornerRadius(4 * scaleFactor)
                     
                     Spacer()
@@ -248,15 +292,15 @@ struct ProgramCard: View {
             }
             .padding(16 * scaleFactor)
             
-            // Border with theme color
+            // Border with theme color derived from gradient
             RoundedRectangle(cornerRadius: 12 * scaleFactor)
-                .stroke(cardColor.opacity(0.5), lineWidth: 1 * scaleFactor)
+                .stroke((gradientColors.first ?? cardColor).opacity(0.5), lineWidth: 1 * scaleFactor)
         }
         .frame(width: size, height: size)
         .cornerRadius(12 * scaleFactor)
         .overlay(
             RoundedRectangle(cornerRadius: 12 * scaleFactor)
-                .stroke(cardColor.opacity(0.3), lineWidth: 0.5 * scaleFactor)
+                .stroke((gradientColors.first ?? cardColor).opacity(0.28), lineWidth: 0.5 * scaleFactor)
         )
         .opacity(opacity)
     }
