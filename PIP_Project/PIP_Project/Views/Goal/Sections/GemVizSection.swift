@@ -75,7 +75,7 @@ struct GemVizSection: View {
                                 .zIndex(1)
                             }
                         }
-                        .frame(width: geometry.size.width - 80, height: 200) // 높이 줄임
+                        .frame(width: geometry.size.width - 80, height: 170) // 높이 줄임
                         .gesture(
                             DragGesture()
                                 .onChanged { value in

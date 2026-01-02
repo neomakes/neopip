@@ -91,8 +91,8 @@ struct HomeView: View {
 
                             Image("icon_write")
                                 .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(width: 28, height: 28)
+                                .scaledToFit()
+                                .frame(width: CGFloat.PIPLayout.tabbarAddButtonSize * 0.75, height: CGFloat.PIPLayout.tabbarAddButtonSize * 0.75)
                                 .foregroundColor(.white)
                         }
                     }

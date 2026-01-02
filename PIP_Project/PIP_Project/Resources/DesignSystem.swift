@@ -218,8 +218,8 @@ extension CGFloat {
         
         static let tabbarHorizontalPadding: CGFloat = 20
         static let tabbarCornerRadius: CGFloat = 40
-        static let tabbarAddButtonSize: CGFloat = 56
-        static let tabbarAddButtonCornerRadius: CGFloat = 28
+        static let tabbarAddButtonSize: CGFloat = 64
+        static let tabbarAddButtonCornerRadius: CGFloat = 32
 
         // Home Railroad
         static let railroadWidth: CGFloat = 402

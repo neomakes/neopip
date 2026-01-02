@@ -45,6 +45,8 @@ struct RailroadView: View {
     let onGemTap: ((GemRecord) -> Void)?
     let onWriteRequested: (() -> Void)
     let currentStreak: Int  // DB 설계에 따라 UserStats에서 가져온 현재 streak
+    /// Optional binding to directly present the Write overlay from this view (preferred)
+    let showWriteBinding: Binding<Bool>? = nil
     
     @State private var scrollViewHeight: CGFloat = 0
     
@@ -72,6 +74,7 @@ struct RailroadView: View {
                             gemRecord: gemRecords[index],
                             onTap: onGemTap,
                             onWriteRequested: onWriteRequested,
+                            showWriteBinding: showWriteBinding,
                             scrollViewHeight: scrollViewHeight,
                             index: index,  // 젬의 인덱스 전달
                             totalCount: gemRecords.count
@@ -115,6 +118,7 @@ struct GemSlot: View {
     let gemRecord: GemRecord
     let onTap: ((GemRecord) -> Void)?
     let onWriteRequested: (() -> Void)
+    let showWriteBinding: Binding<Bool>?
     let scrollViewHeight: CGFloat
     let index: Int  // 젬의 인덱스 (0 = 과거, 6 = Today)
     let totalCount: Int  // 전체 젬 개수
@@ -134,7 +138,14 @@ struct GemSlot: View {
             // Move the top boundary slightly upward so the fully opaque zone starts higher
             let midScreenStart: CGFloat = 0.30
             let midScreenEnd: CGFloat = 0.88
+            // If this is today's gem and not completed, force it to be significantly transparent
+            let isTodayEmpty = (index == totalCount - 1 && !gemRecord.isCompleted)
             let finalOpacity: Double = {
+                if isTodayEmpty {
+                    // Even in the mid region, keep today's empty gem faint; apply fades for top/bottom too
+                    let emptyBase: Double = 0.22
+                    return min(1.0, emptyBase * Double(topFade * endFade))
+                }
                 if normalizedY >= midScreenStart && normalizedY <= midScreenEnd {
                     // Fully opaque in the mid region (respect completion factor)
                     return min(1.0, Double(completionFactor))
@@ -177,7 +188,12 @@ struct GemSlot: View {
                 if gemRecord.isCompleted {
                     onTap?(gemRecord)
                 } else {
-                    onWriteRequested()
+                    // Prefer direct binding to present overlay if available
+                    if let binding = showWriteBinding {
+                        binding.wrappedValue = true
+                    } else {
+                        onWriteRequested()
+                    }
                 }
             }
         }
@@ -193,7 +209,7 @@ struct GemSlot: View {
     private func radialGradient(for gemRecord: GemRecord, index: Int, totalCount: Int) -> RadialGradient {
         let centerColor: Color
         if index == totalCount - 1 && !gemRecord.isCompleted {
-            centerColor = .white  // 오늘 젬이 비어있는 경우 가운데 흰색
+            centerColor = Color.white.opacity(0.15)  // 오늘 젬 비어있으면 훨씬 더 연하고 투명하게
         } else {
             centerColor = Color.black.opacity(0.45)  // 그 외 가운데 색상을 덜 어둡게
         }
