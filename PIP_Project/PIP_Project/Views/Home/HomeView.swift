@@ -4,9 +4,11 @@ import SwiftUI
 struct HomeView: View {
     @StateObject private var viewModel = HomeViewModel()
     @State private var selectedGem: GemRecord?
+    let showWriteOverlay: Binding<Bool>?
     let onWriteRequested: (() -> Void)?
     
-    init(onWriteRequested: (() -> Void)? = nil) {
+    init(showWriteOverlay: Binding<Bool>? = nil, onWriteRequested: (() -> Void)? = nil) {
+        self.showWriteOverlay = showWriteOverlay
         self.onWriteRequested = onWriteRequested
     }
     
@@ -14,7 +16,7 @@ struct HomeView: View {
         ZStack(alignment: .top) {
             // 고정 헤더: "Hi, User" + Records/Streaks
             fixedStatsHeader
-            
+
             // 세로 스크롤 RailRoad (과거 6일 + 오늘 = 7개)
             // 헤더 아래부터 하단까지 확장
             VStack(spacing: 0) {
@@ -40,6 +42,65 @@ struct HomeView: View {
                 Spacer()  // TabBar 위까지 확장
             }
             .ignoresSafeArea(edges: .bottom)
+
+            // Write overlay (shown when binding is true)
+            if let overlay = showWriteOverlay, overlay.wrappedValue {
+                ZStack {
+                    Color.black.opacity(0.5)
+                        .ignoresSafeArea()
+                        .onTapGesture {
+                            overlay.wrappedValue = false
+                        }
+
+                    WriteView(isPresented: overlay)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .transition(.move(edge: .bottom))
+                        .zIndex(1)
+                }
+                .animation(.easeInOut, value: overlay.wrappedValue)
+            }
+
+            // Floating write button (bottom-right) — visible on Home
+            VStack {
+                Spacer()
+                HStack {
+                    Spacer()
+                    Button(action: {
+                        if let overlay = showWriteOverlay {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                overlay.wrappedValue = true
+                            }
+                        } else {
+                            onWriteRequested?()
+                        }
+                    }) {
+                        ZStack {
+                            Circle()
+                                .fill(
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [
+                                            Color.pip.tabBar.buttonAddGrad1,
+                                            Color.pip.tabBar.buttonAddGrad2
+                                        ]),
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .frame(width: CGFloat.PIPLayout.tabbarAddButtonSize, height: CGFloat.PIPLayout.tabbarAddButtonSize)
+                                .shadow(radius: 6)
+
+                            Image("icon_write")
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(width: 28, height: 28)
+                                .foregroundColor(.white)
+                        }
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .padding(.trailing, CGFloat.PIPLayout.tabbarHorizontalPadding)
+                    .padding(.bottom, CGFloat.PIPLayout.safeAreaBottomHeight + 80)
+                }
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .sheet(item: $selectedGem) { gem in

@@ -15,15 +15,17 @@ struct MainTabView: View {
             VStack(spacing: 0) {
                 ZStack {
                     switch selectedTab {
-                    case 0: HomeView(onWriteRequested: {
-                        selectedTab = 2  // Switch to Write tab
+                    case 0: HomeView(showWriteOverlay: $showWriteSheet, onWriteRequested: {
+                        showWriteSheet = true
                     })
                     case 1: InsightView(viewModel: insightViewModel)
-                    case 2: WriteView()
+                    case 2: HomeView(showWriteOverlay: $showWriteSheet, onWriteRequested: {
+                        showWriteSheet = true
+                    })
                     case 3: GoalView(viewModel: goalViewModel)
                     case 4: StatusView()
-                    default: HomeView(onWriteRequested: {
-                        selectedTab = 2
+                    default: HomeView(showWriteOverlay: $showWriteSheet, onWriteRequested: {
+                        showWriteSheet = true
                     })
                     }
                 }
@@ -36,7 +38,9 @@ struct MainTabView: View {
             // Bottom TabBar Area (overlaps HomeView)
             VStack(spacing: 0) {
                 Spacer()
-                TabBar(selectedTab: $selectedTab, showWriteSheet: $showWriteSheet)
+                TabBar(selectedTab: $selectedTab, onCenterButtonTapped: {
+                    showWriteSheet = true
+                })
             }
             .ignoresSafeArea(edges: .bottom)
         }

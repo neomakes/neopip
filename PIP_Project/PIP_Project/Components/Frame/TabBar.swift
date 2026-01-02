@@ -3,7 +3,7 @@ import SwiftUI
 
 struct TabBar: View {
     @Binding var selectedTab: Int
-    @Binding var showWriteSheet: Bool
+    var onCenterButtonTapped: (() -> Void)? = nil
     private let tabs = ["home", "insight", "write", "goal", "status"]
     
     var body: some View {
@@ -64,43 +64,7 @@ struct TabBar: View {
                             Spacer()
                         }
                         .frame(maxWidth: .infinity)
-                        
-                        // Section 3: Center Write Button
-                        VStack {
-                            ZStack {
-                                Circle()
-                                    .fill(
-                                        LinearGradient(
-                                            gradient: Gradient(colors: [
-                                                Color.pip.tabBar.buttonAddGrad1,
-                                                Color.pip.tabBar.buttonAddGrad2
-                                            ]),
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        )
-                                    )
-                                    .frame(width: 64, height: 64)
-                                
-                                Button(action: {
-                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                        selectedTab = 2
-                                    }
-                                }) {
-                                    let isSelected = selectedTab == 2
-                                    Image(isSelected ? "icon_write" : "icon_write_deactivated")
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fit)
-                                        .frame(width: 48, height: 48)
-                                        .opacity(isSelected ? 1.0 : 0.6)
-                                }
-                                .buttonStyle(PlainButtonStyle())
-                            }
-                            .offset(y: -12)
-                            .zIndex(1)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .padding(.horizontal, 16)
-                        
+
                         // Section 4: Goal Icon
                         VStack {
                             Spacer()
