@@ -60,45 +60,81 @@ struct HomeView: View {
                 .animation(.easeInOut, value: overlay.wrappedValue)
             }
 
-            // Floating write button (bottom-right) — visible on Home
-            VStack {
-                Spacer()
-                HStack {
-                    Spacer()
-                    Button(action: {
-                        if let overlay = showWriteOverlay {
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                overlay.wrappedValue = true
-                            }
-                        } else {
-                            onWriteRequested?()
-                        }
-                    }) {
-                        ZStack {
-                            Circle()
-                                .fill(
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [
-                                            Color.pip.tabBar.buttonAddGrad1,
-                                            Color.pip.tabBar.buttonAddGrad2
-                                        ]),
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
-                                .frame(width: CGFloat.PIPLayout.tabbarAddButtonSize, height: CGFloat.PIPLayout.tabbarAddButtonSize)
-                                .shadow(radius: 6)
+            // Floating write button (bottom-right) — visible on Home; hidden while Write overlay is presented
+            if let overlay = showWriteOverlay {
+                if !overlay.wrappedValue {
+                    VStack {
+                        Spacer()
+                        HStack {
+                            Spacer()
+                            Button(action: {
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                    overlay.wrappedValue = true
+                                }
+                            }) {
+                                ZStack {
+                                    Circle()
+                                        .fill(
+                                            LinearGradient(
+                                                gradient: Gradient(colors: [
+                                                    Color.pip.tabBar.buttonAddGrad1,
+                                                    Color.pip.tabBar.buttonAddGrad2
+                                                ]),
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            )
+                                        )
+                                        .frame(width: CGFloat.PIPLayout.tabbarAddButtonSize, height: CGFloat.PIPLayout.tabbarAddButtonSize)
+                                        .shadow(radius: 6)
 
-                            Image("icon_write")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: CGFloat.PIPLayout.tabbarAddButtonSize * 0.75, height: CGFloat.PIPLayout.tabbarAddButtonSize * 0.75)
-                                .foregroundColor(.white)
+                                    Image("icon_write")
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(width: CGFloat.PIPLayout.tabbarAddButtonSize * 0.75, height: CGFloat.PIPLayout.tabbarAddButtonSize * 0.75)
+                                        .foregroundColor(.white)
+                                }
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            .padding(.trailing, CGFloat.PIPLayout.tabbarHorizontalPadding)
+                            .padding(.bottom, CGFloat.PIPLayout.safeAreaBottomHeight + 80)
                         }
                     }
-                    .buttonStyle(PlainButtonStyle())
-                    .padding(.trailing, CGFloat.PIPLayout.tabbarHorizontalPadding)
-                    .padding(.bottom, CGFloat.PIPLayout.safeAreaBottomHeight + 80)
+                }
+            } else {
+                // No binding provided — fall back to callback behavior (show button)
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        Button(action: {
+                            onWriteRequested?()
+                        }) {
+                            ZStack {
+                                Circle()
+                                    .fill(
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [
+                                                Color.pip.tabBar.buttonAddGrad1,
+                                                Color.pip.tabBar.buttonAddGrad2
+                                            ]),
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                    .frame(width: CGFloat.PIPLayout.tabbarAddButtonSize, height: CGFloat.PIPLayout.tabbarAddButtonSize)
+                                    .shadow(radius: 6)
+
+                                Image("icon_write")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: CGFloat.PIPLayout.tabbarAddButtonSize * 0.75, height: CGFloat.PIPLayout.tabbarAddButtonSize * 0.75)
+                                    .foregroundColor(.white)
+                            }
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .padding(.trailing, CGFloat.PIPLayout.tabbarHorizontalPadding)
+                        .padding(.bottom, CGFloat.PIPLayout.safeAreaBottomHeight + 80)
+                    }
                 }
             }
         }

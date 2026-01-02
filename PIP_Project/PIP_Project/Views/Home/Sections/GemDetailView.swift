@@ -167,9 +167,10 @@ struct GemDetailView: View {
             }
             .padding(.bottom, 20)
 
-            // 닫기 버튼
+            // 닫기 버튼 (우측 상단)
             VStack {
                 HStack {
+                    Spacer()
                     Button(action: { dismiss() }) {
                         Image(systemName: "xmark")
                             .font(.system(size: 18, weight: .semibold))
@@ -179,7 +180,6 @@ struct GemDetailView: View {
                             .clipShape(Circle())
                     }
                     .padding()
-                    Spacer()
                 }
                 Spacer()
             }
