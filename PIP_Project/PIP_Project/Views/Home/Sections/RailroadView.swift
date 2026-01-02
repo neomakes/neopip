@@ -55,8 +55,8 @@ struct RailroadView: View {
                 .fill(
                     LinearGradient(
                         gradient: Gradient(colors: [
-                            Color.black,
-                            Color("railroad_front")
+                            Color.black.opacity(0.28),
+                            Color("railroad_front").opacity(0.95)
                         ]),
                         startPoint: .top,
                         endPoint: .bottom
@@ -123,6 +123,25 @@ struct GemSlot: View {
         GeometryReader { geometry in
             let yPosition = geometry.frame(in: .global).midY
             let normalizedY = yPosition / max(1, scrollViewHeight)  // 0~1 사이 값
+            // Opacity pipeline: raw -> completion factor -> top fade -> bottom fade
+            let rawOpacity = gemRecord.opacity * perspectiveOpacity(for: normalizedY)
+            let completionFactor = gemRecord.isCompleted ? 1.0 : 0.8
+            // Fade near top when gems move away; 0..start -> 0..1 -> pow to increase steepness
+            let topFade = topFadeMultiplier(for: normalizedY, start: 0.12, exponent: 2.5)
+            // Exponential fade near the bottom: multiplier goes from 1 -> 0 as y -> bottom
+            let endFade = endFadeMultiplier(for: normalizedY, start: 0.88, exponent: 3.0)
+            // Ensure full opacity between mid-screen and before bottom fade start
+            // Move the top boundary slightly upward so the fully opaque zone starts higher
+            let midScreenStart: CGFloat = 0.30
+            let midScreenEnd: CGFloat = 0.88
+            let finalOpacity: Double = {
+                if normalizedY >= midScreenStart && normalizedY <= midScreenEnd {
+                    // Fully opaque in the mid region (respect completion factor)
+                    return min(1.0, Double(completionFactor))
+                } else {
+                    return min(1.0, Double(rawOpacity * completionFactor * topFade * endFade))
+                }
+            }()
             
             ZStack {
                 // 타원형 그림자 (모든 젬 하단) - 크기 변화 적용 ✨
@@ -133,7 +152,7 @@ struct GemSlot: View {
                 }
                 .scaleEffect(perspectiveScale(for: normalizedY))  // 위치에 따라 크기 변화 적용 ✨
                 .offset(y: 40)  // 젬 이미지 아래로 더 낮게 위치
-                .opacity(gemRecord.opacity * perspectiveOpacity(for: normalizedY) * (gemRecord.isCompleted ? 1 : 0.6))  // 젬의 투명도와 동일하게 적용
+                .opacity(finalOpacity)  // 젬의 투명도와 동일하게 적용
                 
                 VStack(spacing: 12) {
                     // 날짜 라벨 (투명도 적용)
@@ -147,8 +166,7 @@ struct GemSlot: View {
                         .aspectRatio(contentMode: .fit)
                         .frame(height: 100)
                         .scaleEffect(perspectiveScale(for: normalizedY))  // 크기 조절 적용 ✨
-                        .opacity(gemRecord.opacity * perspectiveOpacity(for: normalizedY))  // y 위치에 따라 투명도 조절
-                        .opacity(gemRecord.isCompleted ? 1 : 0.6)  // 기록 안 된 경우 전체 투명도 낮춤
+                        .opacity(finalOpacity)  // y 위치에 따라 투명도 조절
                     
 
                 }
@@ -177,7 +195,7 @@ struct GemSlot: View {
         if index == totalCount - 1 && !gemRecord.isCompleted {
             centerColor = .white  // 오늘 젬이 비어있는 경우 가운데 흰색
         } else {
-            centerColor = .black  // 그 외 가운데 검은색
+            centerColor = Color.black.opacity(0.45)  // 그 외 가운데 색상을 덜 어둡게
         }
         return RadialGradient(
             colors: [centerColor, Color("railroad_front")],
@@ -235,6 +253,26 @@ private func formatDate(_ date: Date) -> String {
         formatter.locale = Locale(identifier: "en_US")
         return formatter.string(from: date)
     }
+}
+
+/// Exponential fade multiplier applied near the bottom of the RailroadView.
+/// - `normalizedY` expects a 0..1 value (0 top, 1 bottom).
+/// - `start` is the normalized Y at which fading begins (default 0.88).
+/// - `exponent` controls how sharply it falls off (higher → steeper).
+private func endFadeMultiplier(for normalizedY: CGFloat, start: CGFloat = 0.88, exponent: Double = 3.0) -> Double {
+    let safe = max(0, min(1, normalizedY.isFinite ? normalizedY : 0))
+    guard safe > start else { return 1.0 }
+    let t = (safe - start) / (1 - start) // 0..1 over fade region
+    return 1.0 - pow(Double(t), exponent)
+}
+
+/// Fade multiplier for gems moving toward the top (normalizedY near 0).
+/// Returns 1.0 when normalizedY >= start; otherwise returns pow(normalizedY/start, exponent).
+private func topFadeMultiplier(for normalizedY: CGFloat, start: CGFloat = 0.12, exponent: Double = 2.5) -> Double {
+    let safe = max(0, min(1, normalizedY.isFinite ? normalizedY : 0))
+    guard safe < start else { return 1.0 }
+    let t = safe / start // 0..1 over top fade region
+    return pow(Double(t), exponent)
 }
 
 // MARK: - Preview
