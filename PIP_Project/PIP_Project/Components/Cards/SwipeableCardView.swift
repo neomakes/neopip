@@ -10,7 +10,11 @@ import SwiftUI
 struct SwipeableCardView: View {
     let card: CardData
     let index: Int
+    let positionFromTop: Int
     let isLast: Bool
+    let isTop: Bool
+    let currentPage: Int?
+    let totalPages: Int?
     let onSwipeLeft: () -> Void
     let onSwipeRight: () -> Void
     let onCheck: () -> Void
@@ -22,10 +26,14 @@ struct SwipeableCardView: View {
     @State private var dragOffset = CGSize.zero
     @FocusState private var isTextFieldFocused: Bool
     
-    init(card: CardData, index: Int, isLast: Bool = false, onSwipeLeft: @escaping () -> Void, onSwipeRight: @escaping () -> Void, onCheck: @escaping () -> Void, onReturn: (() -> Void)?, cardInputs: Binding<[String: Any]>, textInput: Binding<String>) {
+    init(card: CardData, index: Int, positionFromTop: Int = 0, isLast: Bool = false, isTop: Bool = false, currentPage: Int? = nil, totalPages: Int? = nil, onSwipeLeft: @escaping () -> Void, onSwipeRight: @escaping () -> Void, onCheck: @escaping () -> Void, onReturn: (() -> Void)?, cardInputs: Binding<[String: Any]>, textInput: Binding<String>) {
         self.card = card
         self.index = index
+        self.positionFromTop = positionFromTop
         self.isLast = isLast
+        self.isTop = isTop
+        self.currentPage = currentPage
+        self.totalPages = totalPages
         self.onSwipeLeft = onSwipeLeft
         self.onSwipeRight = onSwipeRight
         self.onCheck = onCheck
@@ -38,6 +46,10 @@ struct SwipeableCardView: View {
         CardContentView(
             card: card,
             isLast: isLast,
+            isTop: isTop,
+            positionFromTop: positionFromTop,
+            currentPage: currentPage,
+            totalPages: totalPages,
             inputs: $cardInputs,
             textInput: $textInput,
             isTextFieldFocused: _isTextFieldFocused,
@@ -57,15 +69,32 @@ struct SwipeableCardView: View {
                 }
                 .onEnded { value in
                     let threshold: CGFloat = 100
-                    if abs(value.translation.width) > threshold && !isTextFieldFocused {
-                        if value.translation.width > 0 {
-                            onSwipeRight()
-                        } else {
-                            onSwipeLeft()
-                        }
+                    guard !isTextFieldFocused else {
+                        withAnimation(.spring()) { dragOffset = .zero }
+                        return
                     }
-                    withAnimation(.spring()) {
-                        dragOffset = .zero
+
+                    let horizontal = value.translation.width
+                    if abs(horizontal) > threshold {
+                        // Animate card off-screen, then call handler
+                        withAnimation(.interpolatingSpring(stiffness: 200, damping: 22)) {
+                            dragOffset = CGSize(width: horizontal > 0 ? 900 : -900, height: value.translation.height)
+                        }
+
+                        // Delay to allow animation to play before mutating data
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.24) {
+                            if horizontal > 0 {
+                                onSwipeRight()
+                            } else {
+                                onSwipeLeft()
+                            }
+                            // Reset dragOffset quickly after action
+                            dragOffset = .zero
+                        }
+                    } else {
+                        withAnimation(.spring()) {
+                            dragOffset = .zero
+                        }
                     }
                 }
         )
@@ -76,6 +105,10 @@ struct SwipeableCardView: View {
 struct CardContentView: View {
     let card: CardData
     let isLast: Bool
+    let isTop: Bool
+    let positionFromTop: Int
+    let currentPage: Int?
+    let totalPages: Int?
     @Binding var inputs: [String: Any]
     @Binding var textInput: String
     @FocusState var isTextFieldFocused: Bool
@@ -89,7 +122,7 @@ struct CardContentView: View {
                 .font(.pip.title1)
                 .foregroundColor(.white)
                 .multilineTextAlignment(.center)
-                .padding(.top, 32)
+                .padding(.top, 32) // title top padding
                 .padding(.horizontal, 20)
             
             // Input fields
@@ -149,35 +182,47 @@ struct CardContentView: View {
                     }
                 }
                 
-                // Save/Check button
-                Button(action: {
-                    isTextFieldFocused = false
-                    onCheck()
-                }) {
-                    HStack(spacing: 8) {
-                        Image(systemName: isLast ? "checkmark.circle.fill" : "arrow.right")
-                        Text(isLast ? "Save" : "Next")
-                    }
-                    .font(.pip.body)
-                    .foregroundColor(.pip.home.buttonCheck)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(Color.white.opacity(0.1))
-                    .cornerRadius(12)
-                }
             }
             .padding(.horizontal, 24)
-            .padding(.bottom, 24)
+            .padding(.bottom, 12)
+
+            // Page indicator inside card (display only for top card)
+            if let current = currentPage, let total = totalPages, isTop {
+                Text("\(current) / \(total)")
+                    .font(.pip.body)
+                    .foregroundColor(.white.opacity(0.9))
+                    .padding(.top, 8)
+                    .padding(.bottom, 12)
+            }
         }
-        .frame(width: CGFloat.PIPLayout.writeSheetWidth, height: CGFloat.PIPLayout.writeSheetHeight)
+        .frame(width: CGFloat.PIPLayout.writeSheetWidth, height: CGFloat.PIPLayout.writeSheetHeight - CGFloat(positionFromTop) * 22 - (isTop ? 24 : 0))
         .background(
             RoundedRectangle(cornerRadius: CGFloat.PIPLayout.writeSheetCornerRadius)
-                .fill(Color.black.opacity(0.8))
+                .fill(Color.black.opacity(clampedOpacity()))
+                .overlay(
+                    // Neon stroke for the front-most card
+                    Group {
+                        if isTop {
+                            RoundedRectangle(cornerRadius: CGFloat.PIPLayout.writeSheetCornerRadius)
+                                .stroke(LinearGradient(colors: [Color.pip.tabBar.buttonAddGrad1, Color.pip.tabBar.buttonAddGrad2], startPoint: .leading, endPoint: .trailing), lineWidth: 3)
+                                .shadow(color: Color.pip.tabBar.buttonAddGrad1.opacity(0.5), radius: 8, x: 0, y: 0)
+                                .blur(radius: 4)
+                        }
+                    }
+                )
         )
         .onTapGesture {
             // Dismiss keyboard on tap outside
             isTextFieldFocused = false
         }
+    }
+    
+    private func clampedOpacity() -> Double {
+        // Top card fully opaque. Deeper cards darker and slightly less opaque to show depth.
+        if isTop { return 1.0 }
+        let base: Double = 0.88
+        let opacity = base - Double(positionFromTop - 1) * 0.06
+        return max(0.56, opacity)
     }
 }
 

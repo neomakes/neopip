@@ -239,7 +239,8 @@ extension CGFloat {
 
         // Write View
         static let writeSheetWidth: CGFloat = 380
-        static let writeSheetHeight: CGFloat = 715
+        // Reduced height so stacked cards peek through behind the top card
+        static let writeSheetHeight: CGFloat = 620
         static let writeSheetCornerRadius: CGFloat = 33
         static let writeTextBoxWidth: CGFloat = 339
         static let writeTextBoxHeight: CGFloat = 129

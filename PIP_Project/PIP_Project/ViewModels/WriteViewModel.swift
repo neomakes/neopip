@@ -154,7 +154,7 @@ class WriteViewModel: ObservableObject {
             notes: textInput.isEmpty ? nil : textInput
         )
         
-        // DataService를 통해 저장
+        // DataService를 통해 저장 (기존 동기 wrapper)
         Task {
             do {
                 try await dataService.saveData(dataPoint, for: card.type.toDataCategory())
@@ -163,6 +163,35 @@ class WriteViewModel: ObservableObject {
                 print("Error saving card data: \(error)")
             }
         }
+    }
+
+    /// 비동기 블록으로 저장 동작을 노출합니다. 오류는 호출자에게 전달됩니다.
+    func saveCard(_ card: CardData, inputs: [String: Any], textInput: String) async throws {
+        let now = Date()
+        var values: [String: DataValue] = [:]
+
+        for (key, value) in inputs {
+            if let doubleValue = value as? Double {
+                values[key] = .double(doubleValue)
+            } else if let intValue = value as? Int {
+                values[key] = .integer(intValue)
+            } else if let stringValue = value as? String {
+                values[key] = .string(stringValue)
+            }
+        }
+
+        if !textInput.isEmpty {
+            values["notes"] = .string(textInput)
+        }
+
+        let dataPoint = TimeSeriesDataPoint(
+            timestamp: now,
+            category: card.type.toDataCategory(),
+            values: values,
+            notes: textInput.isEmpty ? nil : textInput
+        )
+
+        try await dataService.saveData(dataPoint, for: card.type.toDataCategory())
     }
 }
 
