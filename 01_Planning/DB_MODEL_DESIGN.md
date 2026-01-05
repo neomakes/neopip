@@ -16,6 +16,7 @@
 6. [데이터 수집 시나리오](#6-데이터-수집-시나리오)
 7. [재설계 요약](#7-재설계-요약)
 8. [마이그레이션 고려사항](#8-마이그레이션-고려사항)
+9. [dbdiagram.io 스키마 가이드](#9-dbdiagramio-스키마-가이드)
 
 ---
 
@@ -243,44 +244,110 @@ sequenceDiagram
 
 ```mermaid
 erDiagram
-    UserAccount ||--o{ DailyGem : "has"
-    UserAccount ||--o{ Goal : "has"
-    UserAccount ||--|| UserProfile : "has<br/>프로필/배경 이미지"
-    UserAccount ||--|| UserDataCollectionSettings : "has"
-    UserAccount ||--|| UserStats : "has<br/>totalDataPoints"
+    %% Identity Layer
+    UserAccount ||--|| IdentityMapping : "accountId"
+    AnonymousUserIdentity ||--|| IdentityMapping : "anonymousUserId"
+    UserAccount ||--o{ ConsentRecord : "has"
     
+    %% User Profile Layer
+    UserAccount ||--|| UserProfile : "has"
+    UserAccount ||--|| UserDataCollectionSettings : "has"
+    UserAccount ||--|| UserStats : "has"
+    UserProfile ||--|| OnboardingState : "has"
+    UserProfile ||--|| PIPScore : "has"
+    
+    %% Data Collection Layer (PII 영역)
+    UserAccount ||--o{ DailyGem : "accountId"
+    UserAccount ||--o{ DailyStats : "accountId"
+    
+    %% Data Collection Layer (익명화 영역)
     AnonymousUserIdentity ||--o{ TimeSeriesDataPoint : "has"
+    TimeSeriesDataPoint ||--|| DataTypeSchema : "follows"
+    
+    %% Aggregation Layer
+    TimeSeriesDataPoint ||--o{ DailyGem : "dataPointIds"
+    TimeSeriesDataPoint ||--o{ DailyStats : "aggregated to"
+    
+    %% ML Layer
+    TimeSeriesDataPoint ||--o{ MLFeatureVector : "extracted from"
+    MLFeatureVector ||--o{ MLModelOutput : "inputs to"
+    
+    %% Insight Layer
     AnonymousUserIdentity ||--o{ Insight : "has"
-    AnonymousUserIdentity ||--o{ OrbVisualization : "has<br/>brightness/borderBrightness<br/>uniqueFeatures"
+    AnonymousUserIdentity ||--o{ OrbVisualization : "has"
     AnonymousUserIdentity ||--o{ TrendData : "has"
     AnonymousUserIdentity ||--o{ InsightAnalysisCard : "has"
     
     TimeSeriesDataPoint ||--o{ Insight : "basedOnDataPoints"
     TimeSeriesDataPoint ||--o{ OrbVisualization : "dataPointIds"
-    TimeSeriesDataPoint ||--o{ DailyStats : "aggregated to"
-    TimeSeriesDataPoint ||--o{ DailyGem : "dataPointIds array"
+    TimeSeriesDataPoint ||--o{ TrendData : "aggregated from"
     
-    MLModelOutput ||--o| Insight : "mlModelOutputId"
-    MLModelOutput ||--o| OrbVisualization : "mlModelOutputId<br/>재생성 성능/예측 정확도"
+    MLModelOutput ||--|| Insight : "mlModelOutputId"
+    MLModelOutput ||--|| OrbVisualization : "mlModelOutputId"
     
-    Insight ||--o{ InsightAnalysisCard : "has<br/>카드뉴스 형식"
-    InsightAnalysisCard ||--o{ ActionProposal : "has<br/>행동 제안"
-    
-    Goal ||--o{ GoalProgress : "has"
+    Insight ||--o{ InsightAnalysisCard : "insightId"
     Insight ||--o{ GoalRecommendation : "basedOnInsights"
+    InsightAnalysisCard ||--o{ ActionProposal : "has"
     
-    Program ||--o{ Goal : "recommends"
-    Program ||--o{ ProgramReview : "has<br/>인기도/평점"
-    Program ||--|| ProgramIllustration3D : "has<br/>3D 일러스트"
+    %% Goal Layer (PII 영역)
+    UserAccount ||--o{ Goal : "accountId"
+    Goal ||--o{ GoalProgress : "has"
     
-    UserAccount ||--o{ Achievement : "has<br/>3D 일러스트<br/>색상 스키마"
+    %% Program Layer (공유 영역)
+    Program ||--o{ ProgramReview : "has"
+    Program ||--|| ProgramIllustration3D : "has"
+    
+    %% Achievement Layer (PII 영역)
+    UserAccount ||--o{ Achievement : "accountId"
+    UserAccount ||--o{ Badge : "accountId"
+    UserAccount ||--o{ ValueAnalysis : "accountId"
     Achievement ||--|| AchievementIllustration3D : "has"
     
-    UserAccount ||--|| IdentityMapping : "mapped"
-    AnonymousUserIdentity ||--|| IdentityMapping : "mapped"
+    %% ML Training (관리자 전용)
+    TimeSeriesDataPoint ||--o{ MLTrainingDataset : "training data"
 ```
 
-### 2.5. 데이터 카테고리별 구조
+### 2.5. Cloud Functions 처리 흐름 (자동화 레이어)
+
+**Cloud Functions의 역할**:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ 1. Daily Aggregation (Cloud Scheduler: 매일 00:00 KST)  │
+├─────────────────────────────────────────────────────────┤
+│ TimeSeriesDataPoint (어제) →                            │
+│   집계 계산 (마음, 행동, 신체 점수)                      │
+│   → DailyStats 생성                                     │
+│   → DailyGem 업데이트                                   │
+└─────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────┐
+│ 2. Weekly ML Model Execution                            │
+│    (Cloud Scheduler: 매주 일요일 10:00 KST)             │
+├─────────────────────────────────────────────────────────┤
+│ TimeSeriesDataPoint (최근 7일) →                        │
+│   MLFeatureVector 추출                                  │
+│   → ML 모델 실행 (재생성 성능, 예측 정확도)             │
+│   → MLModelOutput 저장                                  │
+│   → Insight 생성                                        │
+│   → OrbVisualization 생성                              │
+│   → InsightAnalysisCard 생성                           │
+│   → 선택사항: Firebase Cloud Messaging 푸시             │
+└─────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────┐
+│ 3. PII Cleanup (Cloud Scheduler: 매월 1일 00:00 KST)   │
+├─────────────────────────────────────────────────────────┤
+│ DataDeletionRequest (요청 완료됨) →                     │
+│   관련 TimeSeriesDataPoint 삭제                         │
+│   → Goal, Achievement 삭제                             │
+│   → IdentityMapping 비활성화                           │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 2.6. 데이터 카테고리별 구조
 
 ```mermaid
 mindmap
@@ -1696,7 +1763,251 @@ func migrateJournalEntriesToNotes() async throws {
 
 ---
 
-## 9. 구현 체크리스트
+## 9. dbdiagram.io 스키마 가이드
+
+### 9.1. 개요
+
+PIP 프로젝트의 완전한 데이터베이스 스키마가 `DATABASE_SCHEMA_DBDIAGRAM.sql` 파일로 제공됩니다. 이 파일은 dbdiagram.io의 DSL 형식으로 작성되어 있어 다음을 지원합니다:
+
+- ✅ **자동 시각화**: SQL 코드 → 다이어그램 자동 생성
+- ✅ **관계 표시**: 모든 Foreign Key 자동 감지 및 시각화
+- ✅ **필드 상세정보**: 데이터 타입, 제약조건, 인덱스 표시
+- ✅ **주석**: 각 테이블/필드의 설명 및 Firestore 경로 명시
+- ✅ **내보내기**: PNG, PDF, SQL, JSON 등 다양한 형식 지원
+
+### 9.2. 포함된 내용
+
+#### 32개 테이블 정의
+
+**1. Identity Layer (프라이버시 분리) - 7 테이블**
+```
+- user_accounts: PII 사용자 계정 정보
+- anonymous_user_identities: 익명화된 분석 ID
+- identity_mappings: 암호화된 ID 매핑
+- consent_records: 데이터 사용 동의 기록
+- data_deletion_requests: GDPR 삭제권 요청
+```
+
+**2. User Profile Layer (사용자 정보) - 4 테이블**
+```
+- user_profiles: 프로필 정보 (프로필/배경 이미지)
+- user_data_collection_settings: 데이터 수집 설정
+- onboarding_states: 온보딩 진행 상황
+- pip_scores: 종합 점수
+```
+
+**3. Time Series Data Layer (시계열 데이터) - 4 테이블**
+```
+- data_type_schemas: 데이터 타입 정의
+- time_series_data_points: ⭐ 핵심 데이터 포인트
+- ml_feature_vectors: ML 특징 벡터
+- ml_model_outputs: ML 모델 실행 결과
+```
+
+**4. Aggregation Layer (집계 데이터) - 3 테이블**
+```
+- daily_gems: 일일 Gem 시각화
+- daily_stats: 일일 통계 (Cloud Functions 자동 생성)
+- trend_data: 트렌드 분석
+```
+
+**5. Insight Layer (인사이트) - 5 테이블**
+```
+- insights: 생성된 인사이트
+- orb_visualizations: Orb 시각화
+  - brightness: 재생성 성능 (0.0~1.0)
+  - border_brightness: 예측 정확도 (0.0~1.0)
+  - color_gradient: 고유 특징 기반 색상
+- insight_analysis_cards: 카드뉴스 형식
+- prediction_data: 예측 데이터
+```
+
+**6. Goal & Program Layer (목표 & 프로그램) - 5 테이블**
+```
+- goals: 사용자 목표
+- goal_progress: 목표 진행 기록
+- goal_recommendations: AI 기반 목표 추천
+- programs: 프로그램 카탈로그
+- program_reviews: 프로그램 리뷰
+```
+
+**7. Achievement & Status Layer (성취 & 통계) - 4 테이블**
+```
+- user_stats: 사용자 통계
+- achievements: 달성 배지
+- badges: 뱃지 시스템
+- value_analysis: 개인 핵심 가치 분석
+```
+
+#### 250+ 필드 정의
+
+각 필드마다 다음이 명시되어 있습니다:
+- **데이터 타입**: uuid, string, double, integer, timestamp, date, boolean
+- **제약조건**: pk (Primary Key), fk (Foreign Key), unique, not null
+- **기본값**: default 값 지정
+- **주석**: 필드 설명 및 예시
+
+#### 30+ 외래키 관계
+
+모든 테이블 간 참조 관계가 명시적으로 정의되어 있어 다이어그램에서 자동으로 연결선이 그려집니다.
+
+#### 8+ 인덱스 전략
+
+쿼리 성능 최적화를 위한 인덱스가 정의되어 있습니다:
+- **복합 인덱스**: `(anonymous_user_id, date)`, `(account_id, date)` 등
+- **단일 인덱스**: `timestamp`, `category`, `source` 등
+
+### 9.3. 사용 방법
+
+#### Step 1: dbdiagram.io 접속
+```
+https://dbdiagram.io 접속
+→ "New Diagram" 클릭
+```
+
+#### Step 2: DATABASE_SCHEMA_DBDIAGRAM.sql 복사
+```bash
+# 로컬에서 전체 파일 내용 복사
+cat DATABASE_SCHEMA_DBDIAGRAM.sql | pbcopy
+
+# 또는 에디터에서 직접 복사
+```
+
+#### Step 3: dbdiagram.io에 붙여넣기
+```
+좌측 에디터 선택 → 기존 텍스트 삭제
+→ DATABASE_SCHEMA_DBDIAGRAM.sql 내용 붙여넣기
+```
+
+#### Step 4: 자동 시각화 확인
+```
+우측에 자동으로 다이어그램 생성됨
+→ 32개 테이블 + 모든 관계 표시
+→ 색상, 레이아웃 자동 조정
+```
+
+#### Step 5: 내보내기 및 공유
+```
+우측 상단 "Export" 메뉴 클릭
+├── PNG: 문서/슬라이드에 삽입 (권장)
+├── PDF: 회의 자료 또는 인쇄용
+├── SQL: 데이터베이스 초기화 스크립트
+└── JSON: 자동화 도구용 구조 데이터
+```
+
+### 9.4. 주요 특징
+
+#### Firestore 경로 명시
+각 테이블 주석에 Firestore 저장 경로가 명시되어 있습니다:
+```
+users/{accountId}/*             - PII 영역
+anonymous_users/{anonymousUserId}/*  - 익명화 영역
+identity_mappings/*              - 매핑 영역
+programs/*                        - 공유 영역
+```
+
+#### JSON 필드 구조 설명
+복잡한 JSON 필드의 구조가 상세히 설명되어 있습니다:
+```
+values: JSON: {
+  "mood": {"type": "double", "value": 75},
+  "stress": {"type": "double", "value": 30},
+  ...
+}
+
+color_theme: JSON: {
+  "primary": "#RRGGBB",
+  "secondary": "#RRGGBB"
+}
+```
+
+#### Cloud Functions 자동화 표기
+어떤 테이블이 Cloud Functions로 자동 생성되는지 명시:
+```
+daily_stats: "Cloud Functions 자동 생성"
+insights: "Cloud Functions 자동 생성"
+orb_visualizations: "Cloud Functions 생성"
+```
+
+#### 데이터 보안 정책
+각 테이블의 보안 특성이 명시되어 있습니다:
+```
+읽기 전용 (읽기 권한만):
+- IdentityMapping
+
+쓰기 제한 (Cloud Functions만):
+- DailyStats, MLModelOutput, Insight, ...
+
+사용자 접근 제한:
+- PII 영역은 본인 accountId만 접근
+```
+
+### 9.5. 활용 시나리오
+
+#### 시나리오 1: 새로운 기능 추가 계획
+
+**상황**: "사용자 환경설정을 추가하고 싶어요"
+
+1. dbdiagram.io에서 다이어그램 확인
+2. UserProfile 또는 UserDataCollectionSettings 테이블 확인
+3. 새로운 필드 추가 시 Database_Schema_DBDIAGRAM.sql 업데이트
+4. dbdiagram.io에 다시 복사하여 관계 검증
+5. Swift 모델에 새 필드 추가
+
+#### 시나리오 2: 쿼리 성능 최적화
+
+**상황**: "TimeSeriesDataPoint 쿼리가 느려요"
+
+1. DATABASE_SCHEMA_DBDIAGRAM.sql에서 인덱스 확인
+   - `(anonymous_user_id, date)` 복합 인덱스 있음
+   - `timestamp` 단일 인덱스 있음
+2. Firestore 쿼리 작성 시 이 인덱스 활용
+3. 필요시 추가 인덱스 추가
+
+#### 시나리오 3: 팀 온보딩
+
+**상황**: "새로운 개발자가 왔어요"
+
+1. DATABASE_SCHEMA_DBDIAGRAM.sql을 dbdiagram.io에서 시각화
+2. PNG 내보내기 → 팀 문서에 삽입
+3. "여기가 PII 영역, 여기가 익명화 영역" 설명
+4. 각 섹션의 역할 설명
+5. 2시간 내에 완전한 이해 가능!
+
+### 9.6. 주의사항
+
+#### 1. 파일 업데이트 시
+DATABASE_SCHEMA_DBDIAGRAM.sql을 수정한 후:
+```
+1. dbdiagram.io에서 "Update" 클릭
+2. 좌측 에디터 모두 삭제
+3. 새로운 내용 붙여넣기
+4. 자동으로 리렌더링됨
+```
+
+#### 2. Firestore 구조와의 동기화
+- SQL 스키마는 개념적 설계
+- 실제 Firestore는 다음을 고려:
+  - 서브컬렉션 vs 배열 (배열은 크기 제한 고려)
+  - 문서 크기 제한 (1MB)
+  - 읽기 성능 (정규화 vs 역정규화)
+
+#### 3. 보안 규칙과의 조화
+- DATABASE_SCHEMA_DBDIAGRAM.sql은 구조만 정의
+- 실제 Firestore 보안 규칙은 별도로 작성 필요
+- Identity Separation은 보안 규칙으로 강제
+
+### 9.7. 다음 단계
+
+1. **즉시**: dbdiagram.io에서 시각화 → PNG 내보내기
+2. **1주일 내**: 팀과 함께 검증 및 피드백 수집
+3. **2주일 내**: Models 구현 시 이 스키마 참고
+4. **3주일 내**: Firebase 실제 연동 및 테스트
+5. **1개월 내**: Cloud Functions 배포 및 자동화
+
+---
+
+## 11. 구현 체크리스트
 
 ### Phase 1: 기본 구조
 - [x] 모델 파일 생성
@@ -1730,24 +2041,24 @@ func migrateJournalEntriesToNotes() async throws {
 
 ---
 
-## 10. 주의사항
+## 12. 주의사항
 
-### 10.1. 비용 관리
+### 12.1. 비용 관리
 - Firestore는 읽기/쓰기/저장에 따라 과금
 - 불필요한 읽기 최소화
 - 인덱스 생성 시 비용 고려
 
-### 10.2. 데이터 일관성
+### 12.2. 데이터 일관성
 - 트랜잭션 사용 (필요시)
 - 배치 쓰기 활용
 - 오프라인 캐시 활용
 
-### 10.3. 성능 최적화
+### 12.3. 성능 최적화
 - 페이지네이션: 큰 컬렉션은 `limit()` 사용
 - 캐싱: 자주 읽는 데이터는 로컬 캐시 활용
 - 서브컬렉션 vs 배열: 작은 데이터는 배열, 큰 데이터는 서브컬렉션
 
-### 10.4. 보안
+### 12.4. 보안
 - Identity Separation 유지
 - PII 제거 로직 검증
 - 보안 규칙 정기 검토
@@ -1755,6 +2066,6 @@ func migrateJournalEntriesToNotes() async throws {
 ---
 
 **작성일**: 2025.12  
-**버전**: 2.0  
-**상태**: 설계 완료  
+**버전**: 3.0  
+**상태**: 설계 + dbdiagram.io 스키마 완료  
 **다음 단계**: MockData 생성 및 ViewModel 구현
