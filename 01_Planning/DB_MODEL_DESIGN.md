@@ -1,8 +1,8 @@
 # 🗄️ PIP 프로젝트 DB 모델 설계 기획안
 
 **작성일**: 2025.12  
-**버전**: 2.0  
-**상태**: 설계 완료
+**버전**: 4.0 (4개 View 데이터 모델 통합)  
+**상태**: 설계 + 구현 준비 완료
 
 ---
 
@@ -2065,7 +2065,80 @@ DATABASE_SCHEMA_DBDIAGRAM.sql을 수정한 후:
 
 ---
 
+## 13. 4개 View 데이터 모델 최종 통합 (v4.0)
+
+### 13.1. Home View: 데이터 수집 & 시각화
+
+| 섹션 | 주요 테이블 | 데이터 흐름 |
+|------|----------|----------|
+| **WriteView** | `time_series_data_points` | 사용자가 Mind/Behavior/Physical 데이터 입력 (0-100 범위, 선택적 confidence) |
+| **GemDetailView** | `daily_gems` | 일별 자동 생성 (Cloud Functions 00:00) |
+| **RailroadView** | `period_reports` | 기간별 리포트 자동 생성 & 통합 (7d/30d/90d/180d/365d+) |
+
+**auto-consolidation 로직**:
+- 월간 리포트 생성 시 → 해당 월의 주간 리포트 삭제
+- 분기별 리포트 생성 시 → 해당 분기의 월간 리포트 삭제
+- Gem 최대 유지: ~30개 (11년 사용 가정)
+
+### 13.2. Goal View: 프로그램 진행률 추적
+
+| 섹션 | 주요 테이블 | 데이터 흐름 |
+|------|----------|----------|
+| **ProgramsSection** | `user_program_enrollments`, `programs` | 프로그램 선택 & 시작 (status 추적) |
+| **GemVizSection** | `orb_visualizations` | 프로그램별 특화 시각화 |
+| **ProgressSection** | `program_specific_data_points` | 개선도 계산 (초기값 vs 현재값) |
+| **ProgramStoryView** | `program_success_metrics` | 성공 기준 & 메타데이터 |
+
+**success_progress 계산** (Cloud Functions 01:00):
+- `program_specific_data_points` 수집
+- `program_success_metrics`의 목표값과 비교
+- 가중합 계산 → `user_program_enrollments.success_progress` 업데이트
+- 완료 시 `badges` 자동 unlock
+
+### 13.3. Insights View: 데이터 분석 & AI 스토리
+
+| 섹션 | 주요 테이블 | 데이터 흐름 |
+|------|----------|----------|
+| **OrbVizSection** | `orb_visualizations` | 모델 정확성 시각화 (상단) |
+| **DashboardSection** | `prediction_data` | 오늘 예측값 & 불확실성 시각화 |
+| **AnalysisSection** | `insights`, `insight_analysis_cards` | 중요 패턴 감지 (상위 N개만) |
+| **InsightStoryView** | `insight_analysis_cards` | Instagram story 형식 페이지 |
+
+**데이터 분석 로직** (Cloud Functions Sunday 10:00):
+- Bayesian 관점: 데이터 수가 적을수록 빠르게 업데이트
+- 7+ 데이터 포인트 시 ML 실행 시작
+- `time_series_data_points` → feature extraction → `ml_model_outputs`
+- `prediction_accuracy` 기반 OrbViz 색상/밝기 결정
+- PredictionData → Dashboard 시각화 수치 결정
+
+### 13.4. Status View: 프로필 & 성취
+
+| 섹션 | 주요 테이블 | 데이터 흐름 |
+|------|----------|----------|
+| **ProfileHeaderSection** | `user_stats`, `user_profiles` | 기록 수, 연속 기록 수, feature_color |
+| **AchievementsSection** | `badges` | 프로그램 완료 & 조건 달성 배지 |
+| **ValuesSection** | `value_analysis` | 월간 자동 생성 가치 분석 |
+
+**월간 가치 분석 로직** (Cloud Functions 1st, 03:00):
+- 모든 `time_series_data_points` 분석
+- ML 모델로 사용자 특성 벡터 추출
+- Feature vector → RGB 색상 변환 → `user_profiles.feature_color` 저장
+- 개인 핵심 가치 점수 계산 → `value_analysis` 저장
+
+### 13.5. Cloud Functions 자동화 정리
+
+| 순번 | 작업 | 시간 | 주기 | 입력 | 출력 |
+|------|------|------|------|------|------|
+| 1 | Daily Aggregation | 00:00 | 매일 | TimeSeriesDataPoint (어제) | DailyStats, DailyGem |
+| 2 | Program Monitoring | 01:00 | 매일 | ProgramSpecificDataPoints | success_progress 업데이트, Badge unlock |
+| 3 | Period Report Generation | 02:00 | 매일 | TimeSeriesDataPoint | PeriodReports (milestone 기반) |
+| 4 | Monthly Value Analysis | 01:03 (1st) | 월 1회 | TimeSeriesDataPoint (전체) | ValueAnalysis, feature_color |
+| 5 | Weekly ML Execution | 10:00 (Sun) | 주 1회 | TimeSeriesDataPoint (7일) | MLModelOutput, Insight, OrbViz, PredictionData |
+| 6 | PII Cleanup | 04:00 (1st) | 월 1회 | DataDeletionRequest | PII 데이터 삭제 |
+
+---
+
 **작성일**: 2025.12  
-**버전**: 3.0  
-**상태**: 설계 + dbdiagram.io 스키마 완료  
-**다음 단계**: MockData 생성 및 ViewModel 구현
+**버전**: 4.0 (4개 View 데이터 모델 통합)  
+**상태**: 설계 + dbdiagram.io 스키마 + Cloud Functions 자동화 완료  
+**다음 단계**: MockData 생성 및 ViewModel 구현, Cloud Functions 배포

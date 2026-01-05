@@ -22,7 +22,7 @@ Table user_accounts {
 
 Table anonymous_user_identities {
   id uuid [pk, note: "Firestore Doc ID"]
-  account_id uuid [not null, fk: 'user_accounts.id']
+  account_id uuid [not null, ref: > user_accounts.id]
   created_at timestamp [not null]
   is_active boolean [default: true]
   
@@ -35,8 +35,8 @@ Table anonymous_user_identities {
 
 Table identity_mappings {
   id uuid [pk, note: "Firestore Doc ID"]
-  account_id uuid [not null, fk: 'user_accounts.id']
-  anonymous_user_id uuid [not null, fk: 'anonymous_user_identities.id']
+  account_id uuid [not null, ref: > user_accounts.id]
+  anonymous_user_id uuid [not null, ref: > anonymous_user_identities.id]
   encrypted_mapping string [not null, note: "암호화된 매핑"]
   created_at timestamp [not null]
   is_active boolean [default: true]
@@ -51,7 +51,7 @@ Table identity_mappings {
 
 Table consent_records {
   id uuid [pk, note: "Firestore Doc ID"]
-  account_id uuid [not null, fk: 'user_accounts.id']
+  account_id uuid [not null, ref: > user_accounts.id]
   consent_type string [not null, note: "analytics|ml_training|data_sharing"]
   given_at timestamp [not null]
   version string [not null]
@@ -66,7 +66,7 @@ Table consent_records {
 
 Table data_deletion_requests {
   id uuid [pk, note: "Firestore Doc ID"]
-  account_id uuid [not null, fk: 'user_accounts.id']
+  account_id uuid [not null, ref: > user_accounts.id]
   requested_at timestamp [not null]
   completed_at timestamp [null]
   status string [not null, note: "pending|completed|failed"]
@@ -83,9 +83,10 @@ Table data_deletion_requests {
 
 Table user_profiles {
   id uuid [pk, note: "Firestore Doc ID"]
-  account_id uuid [not null, unique, fk: 'user_accounts.id']
+  account_id uuid [not null, unique, ref: > user_accounts.id]
   profile_image_url string [null]
   background_image_url string [null]
+  feature_color string [null, note: "JSON: {primary: #RRGGBB, secondary: #RRGGBB, tertiary: #RRGGBB} - ML feature vector 기반 색상"]
   onboarding_state string [null, note: "JSON: {completedSteps: [...], selectedGoals: [...]}"]
   created_at timestamp [not null]
   updated_at timestamp [not null]
@@ -95,7 +96,7 @@ Table user_profiles {
 
 Table user_data_collection_settings {
   id uuid [pk, note: "Firestore Doc ID"]
-  account_id uuid [not null, unique, fk: 'user_accounts.id']
+  account_id uuid [not null, unique, ref: > user_accounts.id]
   enabled_data_types string [not null, note: "JSON array: [mood, stress, energy, focus, sleep_score, ...]"]
   anonymization_level string [not null, note: "full|partial|none"]
   permissions string [not null, note: "JSON: {location: true, healthKit: false, ...}"]
@@ -107,7 +108,7 @@ Table user_data_collection_settings {
 
 Table onboarding_states {
   id uuid [pk, note: "Firestore Doc ID"]
-  account_id uuid [not null, unique, fk: 'user_accounts.id']
+  account_id uuid [not null, unique, ref: > user_accounts.id]
   completed_steps string [not null, note: "JSON array: step names"]
   selected_goals string [null, note: "JSON array: goal IDs"]
   is_completed boolean [default: false]
@@ -119,7 +120,7 @@ Table onboarding_states {
 
 Table pip_scores {
   id uuid [pk, note: "Firestore Doc ID"]
-  account_id uuid [not null, unique, fk: 'user_accounts.id']
+  account_id uuid [not null, unique, ref: > user_accounts.id]
   overall_score double [not null, note: "0.0 ~ 1.0"]
   mind_score double [not null]
   behavior_score double [not null]
@@ -150,7 +151,7 @@ Table data_type_schemas {
 
 Table time_series_data_points {
   id uuid [pk, note: "Firestore Doc ID"]
-  anonymous_user_id uuid [not null, fk: 'anonymous_user_identities.id']
+  anonymous_user_id uuid [not null, ref: > anonymous_user_identities.id]
   timestamp timestamp [not null]
   date date [not null, note: "YYYY-MM-DD"]
   
@@ -181,7 +182,7 @@ Table time_series_data_points {
 
 Table ml_feature_vectors {
   id uuid [pk, note: "Firestore Doc ID"]
-  anonymous_user_id uuid [not null, fk: 'anonymous_user_identities.id']
+  anonymous_user_id uuid [not null, ref: > anonymous_user_identities.id]
   time_period_start date [not null]
   time_period_end date [not null]
   
@@ -200,8 +201,8 @@ Table ml_feature_vectors {
 
 Table ml_model_outputs {
   id uuid [pk, note: "Firestore Doc ID"]
-  anonymous_user_id uuid [not null, fk: 'anonymous_user_identities.id']
-  ml_feature_vector_id uuid [not null, fk: 'ml_feature_vectors.id']
+  anonymous_user_id uuid [not null, ref: > anonymous_user_identities.id]
+  ml_feature_vector_id uuid [not null, ref: > ml_feature_vectors.id]
   model_version string [not null]
   
   reconstruction_performance double [not null, note: "0.0 ~ 1.0 - 재생성 성능"]
@@ -223,8 +224,8 @@ Table ml_model_outputs {
 
 Table daily_gems {
   id uuid [pk, note: "Firestore Doc ID"]
-  account_id uuid [not null, fk: 'user_accounts.id']
-  anonymous_user_id uuid [not null, fk: 'anonymous_user_identities.id']
+  account_id uuid [not null, ref: > user_accounts.id]
+  anonymous_user_id uuid [not null, ref: > anonymous_user_identities.id]
   date date [not null, note: "YYYY-MM-DD"]
   
   gem_type string [not null, note: "standard|rare|epic|legendary"]
@@ -245,8 +246,8 @@ Table daily_gems {
 
 Table daily_stats {
   id uuid [pk, note: "Firestore Doc ID"]
-  account_id uuid [not null, fk: 'user_accounts.id']
-  anonymous_user_id uuid [not null, fk: 'anonymous_user_identities.id']
+  account_id uuid [not null, ref: > user_accounts.id]
+  anonymous_user_id uuid [not null, ref: > anonymous_user_identities.id]
   date date [not null, note: "YYYY-MM-DD"]
   
   total_data_points integer [not null, note: "그날 입력한 데이터 수"]
@@ -273,7 +274,7 @@ Table daily_stats {
 
 Table trend_data {
   id uuid [pk, note: "Firestore Doc ID"]
-  anonymous_user_id uuid [not null, fk: 'anonymous_user_identities.id']
+  anonymous_user_id uuid [not null, ref: > anonymous_user_identities.id]
   metric_name string [not null, note: "mood|stress|energy|focus|..."]
   time_period string [not null, note: "week|month|month_3|year"]
   
@@ -294,8 +295,8 @@ Table trend_data {
 
 Table insights {
   id uuid [pk, note: "Firestore Doc ID"]
-  anonymous_user_id uuid [not null, fk: 'anonymous_user_identities.id']
-  ml_model_output_id uuid [not null, fk: 'ml_model_outputs.id']
+  anonymous_user_id uuid [not null, ref: > anonymous_user_identities.id]
+  ml_model_output_id uuid [not null, ref: > ml_model_outputs.id]
   
   type string [not null, note: "pattern|anomaly|prediction|recommendation"]
   title string [not null]
@@ -318,9 +319,9 @@ Table insights {
 
 Table orb_visualizations {
   id uuid [pk, note: "Firestore Doc ID"]
-  anonymous_user_id uuid [not null, fk: 'anonymous_user_identities.id']
-  ml_model_output_id uuid [not null, fk: 'ml_model_outputs.id']
-  insight_id uuid [not null, fk: 'insights.id']
+  anonymous_user_id uuid [not null, ref: > anonymous_user_identities.id]
+  ml_model_output_id uuid [not null, ref: > ml_model_outputs.id]
+  insight_id uuid [not null, ref: > insights.id]
   
   brightness double [not null, note: "0.0 ~ 1.0, 재생성 성능 (reconstruction_performance)"]
   border_brightness double [not null, note: "0.0 ~ 1.0, 예측 정확도 (prediction_accuracy)"]
@@ -340,8 +341,8 @@ Table orb_visualizations {
 
 Table insight_analysis_cards {
   id uuid [pk, note: "Firestore Doc ID"]
-  anonymous_user_id uuid [not null, fk: 'anonymous_user_identities.id']
-  insight_id uuid [not null, fk: 'insights.id']
+  anonymous_user_id uuid [not null, ref: > anonymous_user_identities.id]
+  insight_id uuid [not null, ref: > insights.id]
   
   title string [not null]
   description string [not null]
@@ -363,8 +364,8 @@ Table insight_analysis_cards {
 
 Table prediction_data {
   id uuid [pk, note: "Firestore Doc ID"]
-  anonymous_user_id uuid [not null, fk: 'anonymous_user_identities.id']
-  ml_model_output_id uuid [not null, fk: 'ml_model_outputs.id']
+  anonymous_user_id uuid [not null, ref: > anonymous_user_identities.id]
+  ml_model_output_id uuid [not null, ref: > ml_model_outputs.id]
   
   metric_name string [not null]
   predicted_values string [not null, note: "JSON array: predicted values"]
@@ -385,7 +386,7 @@ Table prediction_data {
 
 Table goals {
   id uuid [pk, note: "Firestore Doc ID"]
-  account_id uuid [not null, fk: 'user_accounts.id']
+  account_id uuid [not null, ref: > user_accounts.id]
   
   title string [not null]
   description string [not null]
@@ -412,7 +413,7 @@ Table goals {
 
 Table goal_progress {
   id uuid [pk, note: "Firestore Doc ID"]
-  goal_id uuid [not null, fk: 'goals.id']
+  goal_id uuid [not null, ref: > goals.id]
   
   date date [not null]
   progress_value double [not null, note: "0.0 ~ 1.0"]
@@ -429,8 +430,8 @@ Table goal_progress {
 
 Table goal_recommendations {
   id uuid [pk, note: "Firestore Doc ID"]
-  account_id uuid [not null, fk: 'user_accounts.id']
-  insight_id uuid [not null, fk: 'insights.id']
+  account_id uuid [not null, ref: > user_accounts.id]
+  insight_id uuid [not null, ref: > insights.id]
   
   recommended_goal string [not null, note: "추천 목표 제목"]
   reason string [not null]
@@ -475,8 +476,8 @@ Table programs {
 
 Table program_reviews {
   id uuid [pk, note: "Firestore Doc ID"]
-  program_id uuid [not null, fk: 'programs.id']
-  account_id uuid [not null, fk: 'user_accounts.id']
+  program_id uuid [not null, ref: > programs.id]
+  account_id uuid [not null, ref: > user_accounts.id]
   
   rating double [not null, note: "1.0 ~ 5.0"]
   review_text string [not null]
@@ -495,7 +496,7 @@ Table program_reviews {
 
 Table user_stats {
   id uuid [pk, note: "Firestore Doc ID"]
-  account_id uuid [not null, unique, fk: 'user_accounts.id']
+  account_id uuid [not null, unique, ref: > user_accounts.id]
   
   total_data_points integer [not null]
   total_gems integer [not null]
@@ -508,46 +509,124 @@ Table user_stats {
   Note: "PII 영역 (users/{accountId}/stats) - 사용자 통계"
 }
 
-Table achievements {
+// ==================== 6-1. HOME VIEW - PROGRAM ENROLLMENT ====================
+
+Table user_program_enrollments {
   id uuid [pk, note: "Firestore Doc ID"]
-  account_id uuid [not null, fk: 'user_accounts.id']
+  account_id uuid [not null, ref: > user_accounts.id]
+  anonymous_user_id uuid [not null, ref: > anonymous_user_identities.id]
+  program_id uuid [not null, ref: > programs.id]
   
-  title string [not null]
+  enrollment_status string [not null, note: "active|completed|paused|abandoned"]
+  start_date date [not null]
+  target_completion_date date [null]
+  actual_completion_date date [null]
+  
+  initial_metrics string [not null, note: "JSON: {metric_1: 75, metric_2: 30, ...} - 프로그램 시작 시 초기값"]
+  success_progress double [not null, note: "0.0 ~ 1.0 - Cloud Functions 자동 계산"]
+  success_rate double [null, note: "0.0 ~ 1.0 - 프로그램 완료 후 계산"]
+  
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+  
+  Indexes {
+    (account_id, enrollment_status) [type: composite]
+    (program_id, enrollment_status) [type: composite]
+  }
+  
+  Note: "PII 영역 (users/{accountId}/program_enrollments/*) - 프로그램 참여 기록"
+}
+
+Table program_specific_data_points {
+  id uuid [pk, note: "Firestore Doc ID"]
+  anonymous_user_id uuid [not null, ref: > anonymous_user_identities.id]
+  user_program_enrollment_id uuid [not null, ref: > user_program_enrollments.id]
+  
+  timestamp timestamp [not null]
+  date date [not null, note: "YYYY-MM-DD"]
+  
+  values string [not null, note: "JSON: {program_metric_1: {type: double, value: 65}, program_metric_2: {...}, ...}"]
+  notes string [null, note: "프로그램 특화 메모, 최대 1000자"]
+  
+  confidence double [not null, note: "0.0 ~ 1.0"]
+  completeness double [not null, note: "0.0 ~ 1.0"]
+  
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+  
+  Indexes {
+    (user_program_enrollment_id, date) [type: composite]
+    (timestamp)
+  }
+  
+  Note: "익명화 영역 (anonymous_users/{anonymousUserId}/program_data_points/*) - 프로그램 특화 시계열 데이터"
+}
+
+Table period_reports {
+  id uuid [pk, note: "Firestore Doc ID"]
+  account_id uuid [not null, ref: > user_accounts.id]
+  anonymous_user_id uuid [not null, ref: > anonymous_user_identities.id]
+  
+  period_type string [not null, note: "weekly|monthly|quarterly|semi_annual|yearly"]
+  period_start_date date [not null]
+  period_end_date date [not null]
+  
+  summary_metrics string [not null, note: "JSON: aggregated statistics for period"]
+  insight_ids string [not null, note: "JSON array: related insight IDs"]
+  
+  created_at timestamp [not null]
+  
+  Indexes {
+    (account_id, period_type, period_start_date) [type: composite]
+  }
+  
+  Note: "PII 영역 (users/{accountId}/period_reports/*) - 기간별 자동 생성 리포트"
+}
+
+Table program_success_metrics {
+  id uuid [pk, note: "Firestore Doc ID"]
+  program_id uuid [not null, ref: > programs.id]
+  
+  metric_name string [not null, note: "프로그램별 성공 지표 (예: addiction_symptom_reduction)"]
+  target_value double [not null, note: "목표값"]
+  metric_type string [not null, note: "improvement|threshold"]
+  weight double [not null, note: "여러 지표의 가중치 (합 = 1.0)"]
+  
   description string [not null]
+  created_at timestamp [not null]
   
-  achievement_type string [not null, note: "milestone|streak|category_master"]
+  Indexes {
+    (program_id)
+  }
+  
+  Note: "글로벌 영역 (program_success_metrics/*) - 프로그램별 성공 정의"
+}
+Table badges {
+  id uuid [pk, note: "Firestore Doc ID"]
+  account_id uuid [not null, ref: > user_accounts.id]
+  
+  name string [not null]
+  description string [not null]
+  badge_type string [not null, note: "program_completion|milestone|streak|hidden_condition"]
+  
   illustration_3d_url string [not null, note: "3D 일러스트 URL"]
   color_scheme string [not null, note: "JSON: {primary: #RRGGBB, secondary: #RRGGBB}"]
   
-  unlocked_at timestamp [not null]
-  
-  Indexes {
-    (account_id)
-  }
-  
-  Note: "PII 영역 (users/{accountId}/achievements/*) - 달성 배지"
-}
-
-Table badges {
-  id uuid [pk, note: "Firestore Doc ID"]
-  account_id uuid [not null, fk: 'user_accounts.id']
-  
-  name string [not null]
-  icon_url string [not null]
   condition string [not null, note: "unlock 조건 설명"]
+  unlock_rule string [not null, note: "JSON: 프로그램 ID, 기준값 등 unlock 규칙"]
   
   unlocked_at timestamp [null]
   
   Indexes {
-    (account_id)
+    (account_id, badge_type) [type: composite]
   }
   
-  Note: "PII 영역 (users/{accountId}/badges/*) - 뱃지 시스템"
+  Note: "PII 영역 (users/{accountId}/badges/*) - 배지 시스템 (프로그램 완료 및 조건 달성)"
 }
 
 Table value_analysis {
   id uuid [pk, note: "Firestore Doc ID"]
-  account_id uuid [not null, fk: 'user_accounts.id']
+  account_id uuid [not null, ref: > user_accounts.id]
   
   value_name string [not null, note: "예: 창의성, 공감, 자기관리"]
   value_score double [not null, note: "0.0 ~ 1.0"]
@@ -562,61 +641,7 @@ Table value_analysis {
   Note: "PII 영역 (users/{accountId}/values/*) - 개인의 핵심 가치 분석"
 }
 
-// ==================== 8. FOREIGN KEY RELATIONSHIPS ====================
-
-Ref: user_accounts.id < anonymous_user_identities.account_id
-
-Ref: user_accounts.id < identity_mappings.account_id
-Ref: anonymous_user_identities.id < identity_mappings.anonymous_user_id
-
-Ref: user_accounts.id < consent_records.account_id
-Ref: user_accounts.id < data_deletion_requests.account_id
-
-Ref: user_accounts.id < user_profiles.account_id
-Ref: user_accounts.id < user_data_collection_settings.account_id
-Ref: user_accounts.id < onboarding_states.account_id
-Ref: user_accounts.id < pip_scores.account_id
-
-Ref: anonymous_user_identities.id < time_series_data_points.anonymous_user_id
-Ref: anonymous_user_identities.id < ml_feature_vectors.anonymous_user_id
-Ref: anonymous_user_identities.id < ml_model_outputs.anonymous_user_id
-Ref: ml_feature_vectors.id < ml_model_outputs.ml_feature_vector_id
-
-Ref: user_accounts.id < daily_gems.account_id
-Ref: anonymous_user_identities.id < daily_gems.anonymous_user_id
-Ref: user_accounts.id < daily_stats.account_id
-Ref: anonymous_user_identities.id < daily_stats.anonymous_user_id
-
-Ref: anonymous_user_identities.id < trend_data.anonymous_user_id
-
-Ref: anonymous_user_identities.id < insights.anonymous_user_id
-Ref: ml_model_outputs.id < insights.ml_model_output_id
-
-Ref: anonymous_user_identities.id < orb_visualizations.anonymous_user_id
-Ref: ml_model_outputs.id < orb_visualizations.ml_model_output_id
-Ref: insights.id < orb_visualizations.insight_id
-
-Ref: anonymous_user_identities.id < insight_analysis_cards.anonymous_user_id
-Ref: insights.id < insight_analysis_cards.insight_id
-
-Ref: anonymous_user_identities.id < prediction_data.anonymous_user_id
-Ref: ml_model_outputs.id < prediction_data.ml_model_output_id
-
-Ref: user_accounts.id < goals.account_id
-Ref: goals.id < goal_progress.goal_id
-
-Ref: user_accounts.id < goal_recommendations.account_id
-Ref: insights.id < goal_recommendations.insight_id
-
-Ref: programs.id < program_reviews.program_id
-Ref: user_accounts.id < program_reviews.account_id
-
-Ref: user_accounts.id < user_stats.account_id
-Ref: user_accounts.id < achievements.account_id
-Ref: user_accounts.id < badges.account_id
-Ref: user_accounts.id < value_analysis.account_id
-
-// ==================== 9. NOTES ====================
+// ==================== 8. NOTES ====================
 
 // Authentication & Identity
 // - All users must authenticate via Firebase Auth
@@ -641,10 +666,29 @@ Ref: user_accounts.id < value_analysis.account_id
 // 2. Weekly ML Execution (Sunday 10:00 KST)
 //    - Input: TimeSeriesDataPoint (7 days)
 //    - Process: Feature extraction → Model inference
-//    - Output: MLModelOutput → Insight → OrbVisualization
+//    - Output: MLModelOutput → Insight → OrbVisualization + PredictionData
 //    - Frequency: Once per week
 
-// 3. PII Cleanup (1st of month, 00:00 KST)
+// 3. Program Enrollment Monitoring (Daily 01:00 KST)
+//    - Input: ProgramSpecificDataPoints + UserProgramEnrollment
+//    - Output: Update success_progress based on ProgramSuccessMetrics
+//    - Auto-unlock badges on completion
+//    - Frequency: Once per day
+
+// 4. Period Report Generation (Daily 02:00 KST)
+//    - Input: TimeSeriesDataPoint, DailyGems (past 7/30/90/180/365+ days)
+//    - Trigger: Milestone-based (7d, 30d, 90d, 180d, 365d+)
+//    - Process: Aggregate data, consolidate old reports when gems exceed 7
+//    - Output: PeriodReports (auto-delete old weekly/monthly when new period created)
+//    - Frequency: Once per day (on milestone dates)
+
+// 5. Monthly Value Analysis (1st of month, 03:00 KST)
+//    - Input: TimeSeriesDataPoint (all historical)
+//    - Process: ML-based value extraction and scoring
+//    - Output: ValueAnalysis + UserProfile.feature_color update
+//    - Frequency: Once per month
+
+// 6. PII Cleanup (1st of month, 04:00 KST)
 //    - Input: DataDeletionRequest (completed)
 //    - Actions: Delete related data, disable IdentityMapping
 //    - Frequency: Once per month
