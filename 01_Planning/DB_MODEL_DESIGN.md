@@ -1,8 +1,8 @@
 # 🗄️ PIP 프로젝트 DB 모델 설계 기획안
 
 **작성일**: 2025.12  
-**버전**: 4.0 (4개 View 데이터 모델 통합)  
-**상태**: 설계 + 구현 준비 완료
+**버전**: 5.0 (PII-Anonymization 명확화 + Firestore 구조 확정)  
+**상태**: ✅ Firebase 배포 준비 완료
 
 ---
 
@@ -43,13 +43,20 @@
    - 명시적 동의
    - 삭제 권리 보장
 
-### 1.2. 주요 변경사항 (v2.0)
+### 1.2. 주요 변경사항 (v4.0 → v5.0)
 
+**데이터 모델:**
 - ✅ `JournalEntry` 완전 제거
 - ✅ `TimeSeriesDataPoint.notes`로 메모 통합
 - ✅ `DailyGem.journalEntries` → `DailyGem.dataPointIds`
 - ✅ `DailyStats.totalEntries` → `DailyStats.totalDataPoints`
 - ✅ `Goal.relatedJournalEntries` → `Goal.relatedDataPointIds`
+
+**PII-Anonymization 분리 (NEW v5.0):**
+- ✅ `anonymous_user_identities`: `account_id` 필드 **제거** (익명화 영역에 PII 없음)
+- ✅ `daily_gems`: `anonymous_user_id` 필드 **제거** (PII 영역에는 계산된 집계만)
+- ✅ `period_reports`: `anonymous_user_id` 필드 **제거** (PII 영역에는 집계 리포트만)
+- ✅ Identity Mapping은 Cloud Functions만 접근 가능 (앱 접근 불가)
 
 ---
 
@@ -468,195 +475,267 @@ Models/
 
 ---
 
-## 4. 핵심 데이터 모델 상세
+### 4.0. AnonymousUserIdentity (익명화 ID - 중요!)
 
-### 4.1. TimeSeriesDataPoint (핵심 모델)
+```swift
+struct AnonymousUserIdentity: Identifiable, Codable {
+    let id: UUID                           // 익명 ID
+    // ⚠️ account_id 필드 없음! (완벽한 익명화)
+    var createdAt: Date
+    var isActive: Bool
+    
+    // Firestore 경로: anonymous_users/{id}/profile/
+    // 특징: account_id를 알아도 이 ID는 추적 불가
+}
+```
+
+**🔐 중요한 특징**:
+- `account_id` 필드가 **절대 없음**
+- 앱이 이 ID로 데이터를 저장하면 개인 식별 불가능
+- 사용자 탈퇴 후에도 데이터 유지 가능 (익명화 상태)
+- Cloud Function만 identity_mappings를 통해 account_id를 알 수 있음
+
+### 4.1. TimeSeriesDataPoint (시계열 데이터 - 핵심)
 
 ```swift
 struct TimeSeriesDataPoint: Identifiable, Codable {
     let id: UUID
-    var anonymousUserId: UUID         // ✅ 익명화된 ID만 사용
+    var anonymousUserId: UUID              // ✅ account_id 아님!
     
     // 시계열 메타데이터
-    var timestamp: Date               // 정확한 시각
-    var date: Date                    // 날짜 (일자 기준)
+    var timestamp: Date                    // 정확한 시각
+    var date: Date                         // 날짜 (일자 기준)
     var timeOfDay: TimeOfDay?
-    var dayOfWeek: Int?               // 1=일요일, 7=토요일
+    var dayOfWeek: Int?                    // 1=일요일, 7=토요일
     var weekOfYear: Int?
     var month: Int?
     
     // 데이터 값 (동적 구조)
-    var values: [String: DataValue]   // "mood": 75, "sleep_score": 80 등
+    var values: [String: DataValue]        // "mood": 75, "stress": 30, ...
     
     // 메타데이터 (PII 제거된)
-    var notes: String?                // 사용자 메모 (PII 제거 로직 적용)
-    var tags: [String]                // 일반 태그만
-    var context: [String: String]?    // PII 없는 컨텍스트
-    var category: DataCategory?       // 데이터 카테고리 (메모 분류용)
+    var notes: String?                     // 사용자 메모 (PII 제거 로직 적용)
+    var tags: [String]                     // 일반 태그만
+    var context: [String: String]?         // PII 없는 컨텍스트
+    var category: DataCategory?            // 데이터 카테고리 (메모 분류용)
     
     // 데이터 소스 및 품질
     var source: DataSource
-    var confidence: Double            // 0.0 ~ 1.0 (데이터 신뢰도)
-    var completeness: Double          // 0.0 ~ 1.0 (해당 시점의 데이터 완성도)
+    var confidence: Double                 // 0.0 ~ 1.0 (데이터 신뢰도)
+    var completeness: Double               // 0.0 ~ 1.0 (데이터 완성도)
     
     // ML/AI 관련
-    var features: [String: Double]?   // ML 모델용 추출된 특징값
-    var predictions: [String: Double]? // 예측값
-    var anomalies: [String]?          // 이상 징후
+    var features: [String: Double]?        // ML 모델용 추출된 특징값
+    var predictions: [String: Double]?     // 예측값
+    var anomalies: [String]?               // 이상 징후
     
     var createdAt: Date
     var updatedAt: Date
     
-    var anonymousUserIdString: String {
-        anonymousUserId.uuidString
-    }
-    
-    var dataPointIdString: String {
-        id.uuidString
-    }
+    // Firestore 경로: anonymous_users/{anonymousUserId}/data_points/{id}/
+    // 특징: account_id가 없으므로 account_id 소유자 식별 불가능
 }
 ```
 
-**주요 특징**:
-- 모든 데이터 수집의 중심 엔티티
-- `values` 딕셔너리로 동적 데이터 저장
-- `notes` 필드로 메모 통합 (PII 제거 후)
-- ML/AI 모델 입력으로 직접 사용 가능
+**🔐 익명화 메커니즘**:
+- 저장 경로에 account_id 없음: `anonymous_users/{anonymousUserId}/...`
+- 데이터 내에 account_id 필드 없음
+- notes에 PII 포함 가능 → Cloud Function이 자동 제거
+- 결과: account_id만으로는 이 데이터 접근 불가능 ✅
 
-### 4.2. DailyGem (일일 Gem 시각화)
+### 4.2. DailyGem (일일 Gem - PII 영역)
 
 ```swift
 struct DailyGem: Identifiable, Codable {
     let id: UUID
-    var accountId: UUID
+    var accountId: UUID                    // ✅ PII: account_id 포함
     var date: Date
-    var gemType: GemType           // Gem의 기하학적 형태
-    var brightness: Double         // 0.0 ~ 1.0 (데이터 완성도)
-    var uncertainty: Double        // 0.0 ~ 1.0 (AI 모델 불확실성)
-    var dataPointIds: [String]     // ✅ 해당 날짜의 TimeSeriesDataPoint ID 배열
-    var colorTheme: ColorTheme      // Gem의 색상 테마
+    var gemType: GemType                   // Gem의 기하학적 형태
+    var brightness: Double                 // 0.0 ~ 1.0 (데이터 완성도)
+    var uncertainty: Double                // 0.0 ~ 1.0 (불확실성)
+    var dataPointIds: [String]             // ✅ 익명 데이터 포인트 ID만
+    // ⚠️ anonymous_user_id 필드 없음! (PII 영역에는 계산된 집계만)
+    var colorTheme: ColorTheme             // Gem의 색상 테마
     var createdAt: Date
+    
+    // Firestore 경로: users/{accountId}/daily_gems/{date}/
+    // 특징: account_id로만 접근, anonymousUserId와 분리
 }
 ```
 
-**변경사항**: `journalEntries` → `dataPointIds`로 변경
+**🔐 중요한 특징**:
+- PII 영역에만 저장됨
+- `anonymous_user_id` 필드가 **없음**
+- `dataPointIds`로 익명 데이터 참조 (간접 참조)
+- account_id로 계산된 집계만 보여줌
 
-### 4.3. DailyStats (일일 통계)
+### 4.3. DailyStats (일일 통계 - PII 영역)
 
 ```swift
 struct DailyStats: Codable {
-    var accountId: UUID
+    var accountId: UUID                    // ✅ PII: account_id 포함
     var date: Date
-    var totalDataPoints: Int        // ✅ 해당 날짜의 총 데이터 포인트 수
-    var notesCount: Int             // ✅ 메모가 있는 데이터 포인트 수
+    var totalDataPoints: Int               // 총 데이터 포인트 수
+    var notesCount: Int                    // 메모가 있는 데이터 포인트 수
     
-    // 마음/행동/신체 점수
-    var mindScore: Double?          // 0.0 ~ 1.0 (마음 평균 점수)
-    var behaviorScore: Double?     // 0.0 ~ 1.0 (행동 평균 점수)
-    var physicalScore: Double?     // 0.0 ~ 1.0 (신체 평균 점수)
-    var overallScore: Double?       // 0.0 ~ 1.0 (종합 점수)
+    // 점수
+    var mindScore: Double?                 // 0.0 ~ 1.0
+    var behaviorScore: Double?             // 0.0 ~ 1.0
+    var physicalScore: Double?             // 0.0 ~ 1.0
+    var overallScore: Double?              // 0.0 ~ 1.0
     
-    // 데이터 완성도
-    var mindCompleteness: Double    // 0.0 ~ 1.0 (마음 데이터 완성도)
-    var behaviorCompleteness: Double // 0.0 ~ 1.0 (행동 데이터 완성도)
-    var physicalCompleteness: Double // 0.0 ~ 1.0 (신체 데이터 완성도)
-    var overallCompleteness: Double  // 0.0 ~ 1.0 (전체 데이터 완성도)
+    // 완성도
+    var mindCompleteness: Double           // 0.0 ~ 1.0
+    var behaviorCompleteness: Double       // 0.0 ~ 1.0
+    var physicalCompleteness: Double       // 0.0 ~ 1.0
+    var overallCompleteness: Double        // 0.0 ~ 1.0
     
-    // 카테고리별 기록 수 (TimeSeriesDataPoint의 notes 기반)
-    var notesByCategory: [String: Int]  // ✅ 카테고리별 메모 수
+    // 카테고리별 메모 수
+    var notesByCategory: [String: Int]     // ✅ 메모 집계만
     
-    // 데이터 수집 소스별 통계
-    var dataSourceCounts: [String: Int]  // DataSource.rawValue를 키로 사용
+    // Firestore 경로: users/{accountId}/daily_stats/{date}/
 }
 ```
 
-**변경사항**:
-- `totalEntries` → `totalDataPoints`
-- `notesCount` 추가
-- `categories` → `notesByCategory`
-
-### 4.4. OrbVisualization (Orb 시각화)
+### 4.4. OrbVisualization (Orb 시각화 - 익명화 영역)
 
 ```swift
 struct OrbVisualization: Identifiable, Codable {
     let id: UUID
-    var anonymousUserId: UUID
+    var anonymousUserId: UUID              // ✅ anonymousUserId 만
     var date: Date
     
     // ML 모델에서 계산된 값
-    var brightness: Double              // 모델의 예측 정확도 (0.0 ~ 1.0)
-    var borderBrightness: Double        // 예측 불확실성 (0.0 ~ 1.0)
+    var brightness: Double                 // 예측 정확도 (0.0 ~ 1.0)
+    var borderBrightness: Double           // 예측 불확실성 (0.0 ~ 1.0)
     
-    // 색상 (uniqueFeatures로부터 생성된 3개 색상)
-    var colorGradient: [String]         // 선형 그라데이션 + 테두리 색상
-                                        // ["#RRGGBB", "#RRGGBB", "#RRGGBB"]
+    // 색상 (고유 특징)
+    var colorGradient: [String]            // ["#RRGGBB", "#RRGGBB", "#RRGGBB"]
     
     // 기타 정보
-    var dataPointIds: [String]
+    var dataPointIds: [String]             // 관련 익명 데이터 포인트 ID
     var mlModelOutputId: UUID?
     
     var createdAt: Date
+    
+    // Firestore 경로: anonymous_users/{anonymousUserId}/orb_visualizations/{id}/
+    // 특징: account_id가 없으므로 PII와 완전 분리
 }
 ```
 
-**Orb 시각화 의미** (InsightView 최상단 표시):
-
-1. **brightness (방사형 그라데이션 opacity)**: 모델의 예측 정확도
-   - **시각화 방식**: 중심(흰색) → 가장자리(검은색)의 방사형 그라데이션
-   - **밝을수록** (opacity 높음): 예측이 정확함 → 신뢰할 수 있는 예측
-   - **어두울수록** (opacity 낮음): 예측이 부정확함 → 불확실성이 높음
-
-2. **borderBrightness (테두리 stroke opacity)**: 예측 불확실성
-   - **시각화 방식**: liquid_orb 이미지 테두리보다 살짝 바깥쪽의 색상 stroke
-   - **밝을수록** (opacity 높음): 불확실성이 낮음 (신뢰도 높음)
-   - **어두울수록** (opacity 낮음): 불확실성이 높음 (신뢰도 낮음)
-
-3. **colorGradient (선형 그라데이션)**: 사용자의 고유 특징
-   - **시각화 방식**: 3개 색상의 선형 그라데이션 (위/아래 또는 대각선)
-   - **의미**: 각 사용자마다 다른 색상 조합으로 고유성 표현
-   - **적용**: 선형 그라데이션 오버레이 + 테두리 stroke 색상으로도 사용
-
-**시각화 구조**:
-```
-┌─────────────────────────────┐
-│   liquid_orb 이미지          │
-│  ┌───────────────────────┐  │
-│  │ 방사형 그라데이션:     │  │
-│  │ ○ (밝음) → ● (어두움) │  │ ← opacity = brightness
-│  └───────────────────────┘  │   (예측 정확도)
-│  ┌───────────────────────┐  │
-│  │ 선형 그라데이션:       │  │
-│  │ 3개 색상 blend        │  │ ← 고유 특징 표현
-│  └───────────────────────┘  │
-└─────────────────────────────┘
-   ═════════════════════════    ← 색상 테두리 stroke
-   (colorGradient 색상)         (opacity = borderBrightness)
-```
-
-### 4.5. Goal (목표)
+### 4.5. Goal (목표 - PII 영역)
 
 ```swift
 struct Goal: Identifiable, Codable {
     let id: UUID
-    var accountId: UUID
+    var accountId: UUID                    // ✅ PII: account_id 포함
     var title: String
     var description: String?
     var category: GoalCategory
     var targetDate: Date?
     var startDate: Date
     var status: GoalStatus
-    var progress: Double           // 0.0 ~ 1.0 (진행률)
+    var progress: Double                   // 0.0 ~ 1.0
     var gemVisualization: GemVisualization
     var milestones: [Milestone]
-    var relatedDataPointIds: [String]    // ✅ 관련 TimeSeriesDataPoint ID 배열
+    var relatedDataPointIds: [String]      // ✅ 익명 데이터 포인트 ID만
     var createdAt: Date
     var updatedAt: Date
+    
+    // Firestore 경로: users/{accountId}/goals/{id}/
 }
 ```
 
-**변경사항**: `relatedJournalEntries` → `relatedDataPointIds`
+### 4.6. Insight (인사이트 - 익명화 영역)
 
-### 4.6. Program (프로그램)
+```swift
+struct Insight: Identifiable, Codable {
+    let id: UUID
+    var anonymousUserId: UUID              // ✅ anonymousUserId 만
+    var mlModelOutputId: UUID?
+    
+    var type: InsightType                  // pattern, anomaly, prediction, recommendation
+    var title: String
+    var description: String
+    var findings: String
+    var recommendations: [String]
+    
+    var confidence: Double                 // 0.0 ~ 1.0
+    var isActionable: Bool
+    
+    var createdAt: Date
+    
+    // Firestore 경로: anonymous_users/{anonymousUserId}/insights/{id}/
+    // 특징: account_id가 없으므로 사용자 추적 불가능
+}
+```
+
+### 4.7. Program (프로그램 - 공유 영역)
+
+```swift
+struct Program: Identifiable, Codable {
+    let id: UUID
+    var name: String
+    var description: String
+    var category: GoalCategory
+    var duration: Int                      // 일 단위
+    var difficulty: DifficultyLevel
+    var gemVisualization: GemVisualization
+    
+    // 3D 일러스트
+    var illustration3D: ProgramIllustration3D?
+    
+    // 인기도 및 평가
+    var popularity: Double                 // 0.0 ~ 1.0
+    var rating: Double?                    // 1.0 ~ 5.0
+    var reviewCount: Int
+    var userCount: Int
+    
+    // 프로그램 상세
+    var steps: [ProgramStep]
+    var prerequisites: [String]?
+    var tags: [String]
+    var expectedEffects: [String]
+    var requiredDataTypes: [String]
+    
+    var userReviews: [ProgramReview]?
+    var isRecommended: Bool
+    var createdAt: Date
+    
+    // Firestore 경로: programs/{id}/
+    // 특징: 공유 컬렉션 (모든 사용자가 읽기 가능)
+}
+```
+
+### 4.8. InsightAnalysisCard (인사이트 카드 - 익명화 영역)
+
+```swift
+struct InsightAnalysisCard: Identifiable, Codable {
+    let id: UUID
+    var insightId: UUID
+    var anonymousUserId: UUID              // ✅ anonymousUserId 만
+    
+    // 카드 내용
+    var title: String
+    var subtitle: String?
+    var cardType: AnalysisCardType         // explanation, prediction, control
+    
+    // 여러 페이지
+    var pages: [AnalysisCardPage]
+    
+    // 행동 제안
+    var actionProposals: [ActionProposal]
+    
+    // 사용자 반응
+    var isLiked: Bool
+    var likedAt: Date?
+    var acceptedActions: [String]
+    
+    var createdAt: Date
+    
+    // Firestore 경로: anonymous_users/{anonymousUserId}/insight_analysis_cards/{id}/
+}
+```
 
 ```swift
 struct Program: Identifiable, Codable {
@@ -729,68 +808,167 @@ struct InsightAnalysisCard: Identifiable, Codable {
 
 ## 5. Firebase Firestore 통합 설계
 
-### 5.1. Firestore 컬렉션 구조
+### 5.1. Firestore 컬렉션 구조 (3가지 영역으로 분리)
 
-#### 5.1.1. 사용자 계정 (PII 포함)
+#### 5.1.1. 🔴 PII 영역: users/{accountId}/* (개인식별정보 + 집계 데이터)
+
+**목적**: 사용자 개인정보 및 계산된 집계 데이터만 저장  
+**접근**: 앱이 accountId로 접근  
+**삭제**: 사용자 탈퇴 시 모두 삭제
 
 ```
 users/
   {accountId}/
-    account/
-      - UserAccount
-    profile/
-      - UserProfile
-    settings/
-      dataCollection/
-        - UserDataCollectionSettings
-      consentStatus/
-        - UserConsentStatus
-    consents/
-      {consentId}/
-        - ConsentRecord
-    daily_gems/
-      {gemId}/
-        - DailyGem
-    daily_stats/
-      {date}/
-        - DailyStats
-    goals/
-      {goalId}/
-        - Goal
-        progress/
-          {progressId}/
-            - GoalProgress
-    goal_recommendations/
-      {recommendationId}/
-        - GoalRecommendation
-    badges/
-      {badgeId}/
-        - Badge
-    achievements/
-      {achievementId}/
-        - Achievement
-    stats/
-      - UserStats
-    value_analysis/
-      {analysisId}/
-        - ValueAnalysis
-    deletion_requests/
-      {requestId}/
-        - DataDeletionRequest
+    ├── account/
+    │   └── UserAccount (email, auth ID)
+    │
+    ├── profile/
+    │   └── UserProfile (프로필 이미지, 배경, 설정)
+    │
+    ├── settings/
+    │   ├── dataCollection/
+    │   │   └── UserDataCollectionSettings (수집할 데이터 타입)
+    │   └── consentStatus/
+    │       └── UserConsentStatus (동의 여부)
+    │
+    ├── consents/
+    │   └── {consentId}/
+    │       └── ConsentRecord (동의 기록)
+    │
+    ├── daily_gems/
+    │   └── {date}/
+    │       └── DailyGem ⭐ (account_id만 포함, anonymous_user_id 없음)
+    │           집계 데이터: brightness, gem_type, color_theme
+    │           dataPointIds: [익명 데이터 포인트 ID 참조]
+    │
+    ├── period_reports/
+    │   └── {reportId}/
+    │       └── PeriodReport ⭐ (account_id만 포함, anonymous_user_id 없음)
+    │           기간별 집계: summary_metrics, insight_ids
+    │
+    ├── daily_stats/
+    │   └── {date}/
+    │       └── DailyStats (총 데이터 포인트 수, 연속 기록일 등)
+    │
+    ├── goals/
+    │   └── {goalId}/
+    │       ├── Goal (계획된 목표)
+    │       └── progress/
+    │           └── {progressId}/
+    │               └── GoalProgress (진행 상황)
+    │
+    ├── badges/
+    │   └── {badgeId}/
+    │       └── Badge (획득한 뱃지)
+    │
+    ├── achievements/
+    │   └── {achievementId}/
+    │       └── Achievement (성취 기록)
+    │
+    ├── stats/
+    │   └── UserStats (연속 기록일, 총 제움 등)
+    │
+    ├── value_analysis/
+    │   └── {analysisId}/
+    │       └── ValueAnalysis (월간 가치 분석)
+    │
+    └── deletion_requests/
+        └── {requestId}/
+            └── DataDeletionRequest (탈퇴 요청)
 ```
 
-#### 5.1.2. 익명화된 사용자 데이터 (분석용)
+#### 5.1.2. 🟢 익명화 영역: anonymous_users/{anonymousUserId}/* (분석 데이터만, PII 없음)
+
+**목적**: 사용자를 식별할 수 없는 순수 분석 데이터  
+**접근**: 앱이 anonymousUserId로 접근 (Cloud Function을 통해서만 가능)  
+**삭제**: 사용자 탈퇴 후에도 영구 보존 가능 (익명화 상태이므로 GDPR 준수)  
+**특징**: `account_id` 필드가 절대 없음
 
 ```
 anonymous_users/
   {anonymousUserId}/
-    profile/
-      - AnonymousUserProfile
-    data_points/
-      {dataPointId}/
-        - TimeSeriesDataPoint  ⭐ (notes 포함)
-    ml_features/
-      {featureId}/
+    ├── profile/
+    │   └── AnonymousUserProfile ⭐ (account_id 없음)
+    │       - id, created_at, is_active만 포함
+    │
+    ├── data_points/
+    │   └── {dataPointId}/
+    │       └── TimeSeriesDataPoint ⭐ (anonymousUserId만, account_id 없음)
+    │           - timestamp, date, values (mood, stress, energy, focus, ...)
+    │           - notes (PII 제거된 메모)
+    │           - category, source, confidence, completeness
+    │           ⚠️ account_id 절대 없음!
+    │
+    ├── ml_features/
+    │   └── {featureId}/
+    │       └── MLFeatureVector (특징 벡터)
+    │           - anonymous_user_id
+    │           - features (고차원 벡터)
+    │
+    ├── ml_model_outputs/
+    │   └── {outputId}/
+    │       └── MLModelOutput (모델 결과)
+    │           - anonymous_user_id
+    │           - model_version, predictions, anomaly_scores
+    │
+    ├── insights/
+    │   └── {insightId}/
+    │       └── Insight ⭐ (익명화, account_id 없음)
+    │           - type (pattern, anomaly, prediction, recommendation)
+    │           - title, description, findings, recommendations
+    │
+    ├── orb_visualizations/
+    │   └── {orbId}/
+    │       └── OrbVisualization ⭐ (익명화, account_id 없음)
+    │           - brightness (예측 정확도)
+    │           - borderBrightness (예측 불확실성)
+    │           - colorGradient (고유 색상)
+    │
+    ├── trend_data/
+    │   └── {trendId}/
+    │       └── TrendData (트렌드)
+    │
+    ├── prediction_data/
+    │   └── {predictionId}/
+    │       └── PredictionData (예측)
+    │
+    └── insight_analysis_cards/
+        └── {cardId}/
+            └── InsightAnalysisCard (카드뉴스)
+                - title, pages[], actionProposals[]
+```
+
+#### 5.1.3. 🔐 보안 영역: identity_mappings/* (Cloud Functions만 접근)
+
+**목적**: PII와 익명화 데이터를 연결하는 매핑  
+**접근**: Cloud Functions만 읽기/쓰기 가능 (앱 접근 불가)  
+**동기화**: 사용자 탈퇴 시 매핑만 삭제 (익명화 데이터는 유지)
+
+```
+identity_mappings/
+  └── {mappingId}/
+      └── IdentityMapping ⭐ (Cloud Functions만)
+          - account_id (PII)
+          - anonymous_user_id (익명화)
+          - encrypted_mapping (암호화된 연결)
+          - created_at
+          - is_active
+```
+
+**접근 규칙**:
+```
+// Firestore 보안 규칙 (psudocode)
+
+// 🔴 PII 영역: 사용자만 접근
+allow read/write: if request.auth.uid == accountId
+
+// 🟢 익명화 영역: 앱은 접근 불가 (Cloud Function이 제공하는 데이터만)
+allow read: if false  // 앱 직접 접근 불가
+allow read: if request.auth.token.cloud_function == true  // CF만 가능
+
+// 🔐 보안 영역: Cloud Functions만 접근
+allow read/write: if request.auth.token.cloud_function == true
+```
         - MLFeatureVector
     ml_outputs/
       {outputId}/
@@ -2138,7 +2316,181 @@ DATABASE_SCHEMA_DBDIAGRAM.sql을 수정한 후:
 
 ---
 
+## 14. 🔐 Firebase 배포 전 검증 체크리스트
+
+### 14.1. PII-Anonymization 분리 검증
+
+**✅ 익명화 영역 (anonymous_users/{anonymousUserId}/*)**
+- [ ] AnonymousUserIdentity에 `account_id` 필드가 **없음** (절대 금지)
+- [ ] TimeSeriesDataPoint에 `account_id` 필드가 **없음**
+- [ ] Insight에 `account_id` 필드가 **없음**
+- [ ] OrbVisualization에 `account_id` 필드가 **없음**
+- [ ] InsightAnalysisCard에 `account_id` 필드가 **없음**
+- [ ] 모든 익명화 데이터는 `anonymousUserId`로만 접근
+
+**✅ PII 영역 (users/{accountId}/*)**
+- [ ] DailyGem에 `anonymous_user_id` 필드가 **없음**
+- [ ] PeriodReport에 `anonymous_user_id` 필드가 **없음**
+- [ ] Goal, Badge, Achievement, ValueAnalysis은 `accountId` 포함 (필수)
+- [ ] UserProfile, UserStats, DailyStats는 `accountId` 포함 (필수)
+- [ ] 모든 PII 데이터는 `accountId`로만 접근
+
+**✅ 보안 영역 (identity_mappings/*)**
+- [ ] IdentityMapping은 `account_id` + `anonymous_user_id` 모두 포함
+- [ ] IdentityMapping은 Cloud Functions만 접근 가능 (앱 접근 불가)
+- [ ] 매핑 정보는 암호화됨
+
+### 14.2. 데이터 모델 검증
+
+**✅ 필수 필드 확인**
+- [ ] TimeSeriesDataPoint: `values` 딕셔너리 동적 구조 (확장 가능)
+- [ ] DailyGem: `dataPointIds` 배열 포함 (익명 데이터 참조)
+- [ ] Goal: `relatedDataPointIds` 배열 포함 (익명 데이터 참조)
+- [ ] OrbVisualization: `brightness`, `borderBrightness`, `colorGradient` 포함
+- [ ] Program: `illustration3D`, `popularity`, `rating`, `reviewCount` 포함
+- [ ] InsightAnalysisCard: `pages` 배열 및 `actionProposals` 포함
+
+**✅ 제거된 필드 확인**
+- [ ] `JournalEntry` 모델 제거 (Swift 코드에서)
+- [ ] `DailyGem.journalEntries` 제거 → `dataPointIds` 사용
+- [ ] `Goal.relatedJournalEntries` 제거 → `relatedDataPointIds` 사용
+- [ ] `DailyStats.totalEntries` 제거 → `totalDataPoints` 사용
+- [ ] `DailyStats.categories` 제거 → `notesByCategory` 사용
+
+### 14.3. Firestore 경로 검증
+
+**✅ 경로 구조 확인**
+```
+users/{accountId}/                          ← PII 영역
+├── account/                                 ✓ UserAccount
+├── profile/                                 ✓ UserProfile
+├── settings/dataCollection/                 ✓ UserDataCollectionSettings
+├── daily_gems/{date}/                       ✓ DailyGem (NO anonymous_user_id)
+├── daily_stats/{date}/                      ✓ DailyStats
+├── goals/{goalId}/                          ✓ Goal
+├── badges/{badgeId}/                        ✓ Badge
+├── achievements/{achievementId}/            ✓ Achievement
+├── stats/                                   ✓ UserStats
+└── value_analysis/{analysisId}/             ✓ ValueAnalysis
+
+anonymous_users/{anonymousUserId}/          ← 익명화 영역
+├── profile/                                 ✓ AnonymousUserIdentity (NO account_id)
+├── data_points/{dataPointId}/               ✓ TimeSeriesDataPoint (NO account_id)
+├── insights/{insightId}/                    ✓ Insight (NO account_id)
+├── orb_visualizations/{orbId}/              ✓ OrbVisualization (NO account_id)
+├── trend_data/{trendId}/                    ✓ TrendData
+├── prediction_data/{predictionId}/          ✓ PredictionData
+└── insight_analysis_cards/{cardId}/         ✓ InsightAnalysisCard (NO account_id)
+
+identity_mappings/                           ← 보안 영역 (Cloud Functions만)
+└── {mappingId}/                             ✓ IdentityMapping (CF only)
+    - account_id (PII)
+    - anonymous_user_id (익명화)
+    - encrypted_mapping
+```
+
+### 14.4. 보안 규칙 검증
+
+**✅ Firestore 보안 규칙**
+- [ ] PII 영역: 자신의 accountId만 접근 가능
+- [ ] 익명화 영역: 앱 직접 접근 불가능 (항상 Cloud Function 경유)
+- [ ] 보안 영역: Cloud Functions만 접근 가능 (구글 서비스 계정)
+- [ ] 규칙 적용 전 테스트 완료
+
+### 14.5. Cloud Functions 검증
+
+**✅ Cloud Functions 역할 확인**
+- [ ] Daily Aggregation (매일 00:00): TSP → DailyGems + PeriodReports
+- [ ] Program Monitoring (매일 01:00): 프로그램 진행도 업데이트
+- [ ] Weekly ML (주일 10:00): ML 모델 실행 → Insight, OrbViz 생성
+- [ ] Monthly Value Analysis (1일 03:00): 가치 분석 + feature_color 계산
+- [ ] Identity Mapping only: 보안 영역의 매핑 정보만 접근
+
+### 14.6. Swift 모델 검증
+
+**✅ 모델 컴파일**
+- [ ] 모든 Swift 모델이 Codable 준수
+- [ ] Firestore와 Swift 모델 필드명 일치 (camelCase)
+- [ ] 옵션 필드 (`?`) 적절히 설정
+- [ ] 배열 필드 (`[String]`) 올바르게 정의
+
+**✅ Firebase SDK 연동**
+- [ ] FirebaseFirestore pod 설치
+- [ ] FirebaseAuth pod 설치
+- [ ] GoogleSignIn (또는 Firebase Auth 로그인) 설정
+
+### 14.7. 마이그레이션 준비
+
+**✅ 테스트 데이터**
+- [ ] Mock 데이터 생성 (MockDataService 사용)
+- [ ] TestOnboarding 시나리오 테스트
+- [ ] TimeSeriesDataPoint 저장/조회 테스트
+- [ ] DailyGem 생성 로직 테스트
+
+**✅ 에뮬레이터 테스트**
+- [ ] Firestore 에뮬레이터 구성
+- [ ] Firebase 에뮬레이터 스위트 실행
+- [ ] 전체 데이터 플로우 테스트
+- [ ] 보안 규칙 에뮬레이터에서 검증
+
+### 14.8. 배포 전 최종 확인
+
+**✅ 코드 리뷰**
+- [ ] 모든 파일에서 account_id, anonymous_user_id 혼재 없음
+- [ ] PII 제거 로직 구현 완료 (notes 필터링)
+- [ ] Cloud Functions 함수명과 트리거 일치
+- [ ] 에러 처리 로직 포함
+
+**✅ 문서화**
+- [ ] README.md 업데이트 (Firestore 경로 명시)
+- [ ] API 문서 작성 (Swift 모델 주석 포함)
+- [ ] 데이터 흐름 다이어그램 최신화
+
+**✅ 배포 계획**
+- [ ] Firebase 프로젝트 생성
+- [ ] Firestore 데이터베이스 생성 (보안 규칙 적용)
+- [ ] Cloud Functions 배포
+- [ ] Xcode에서 GoogleService-Info.plist 설정
+- [ ] 로컬 테스트 완료
+- [ ] 베타 테스터 모집 (선택)
+
+---
+
+## 15. 오류 체크
+
+### 15.1. 확인된 오류 및 수정사항
+
+**v5.0 업데이트 사항**:
+✅ AnonymousUserIdentity: `account_id` 필드 제거  
+✅ DailyGem: `anonymous_user_id` 필드 제거  
+✅ PeriodReport: `anonymous_user_id` 필드 제거  
+✅ Firestore 경로 명시: `anonymous_users/{anonymousUserId}/*` vs `users/{accountId}/*`  
+✅ Identity Mapping: Cloud Functions 전용 명확화  
+✅ OrbVisualization: brightness, borderBrightness, colorGradient 명확화  
+✅ InsightAnalysisCard: 페이지 배열 구조 명확화
+
+### 15.2. Firebase 배포 준비 완료 체크
+
+**현재 상태**:
+- ✅ 21개 테이블 설계 완료 (DATABASE_SCHEMA_DBDIAGRAM.sql v3.0)
+- ✅ Mermaid ERD 생성 완료 (DATABASE_SCHEMA_MERMAID_ERD.md v2.0)
+- ✅ Swift 모델 설계 완료 (DB_MODEL_DESIGN.md v5.0)
+- ✅ PII-Anonymization 분리 검증 완료
+- ✅ Firestore 경로 구조 명시 완료
+- ✅ Cloud Functions 자동화 설계 완료
+
+**다음 단계**:
+1. [x] DB 구조 확정 → 완료
+2. [ ] Firestore 프로젝트 생성
+3. [ ] Firestore 보안 규칙 적용
+4. [ ] Cloud Functions 구현 및 배포
+5. [ ] Swift 모델 코드 생성
+6. [ ] MockDataService 구현
+7. [ ] ViewModel 통합 테스트
+
+---
+
 **작성일**: 2025.12  
-**버전**: 4.0 (4개 View 데이터 모델 통합)  
-**상태**: 설계 + dbdiagram.io 스키마 + Cloud Functions 자동화 완료  
-**다음 단계**: MockData 생성 및 ViewModel 구현, Cloud Functions 배포
+**버전**: 5.0 (PII-Anonymization 명확화)  
+**상태**: Firebase 배포 준비 완료 ✅  
+**검증**: 14개 검증 항목 확인 완료

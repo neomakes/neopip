@@ -71,7 +71,6 @@ erDiagram
     
     ANONYMOUS-USER-IDENTITIES {
         uuid id
-        uuid account_id
         timestamp created_at
         boolean is_active
     }
