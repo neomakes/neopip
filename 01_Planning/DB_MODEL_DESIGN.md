@@ -1110,6 +1110,45 @@ service cloud.firestore {
 
 ---
 
+### 5.5. 데이터 캐시 및 서버 저장 전략
+
+앱의 성능과 사용자 경험을 최적화하기 위해 데이터의 특성에 따라 캐시 및 서버 저장 전략을 다르게 적용합니다.
+
+*   **서버 (Firestore):** 모든 데이터의 **'단일 진실 공급원(Single Source of Truth)'**입니다. 데이터의 최신성, 일관성, 보안이 가장 중요합니다.
+*   **클라이언트 캐시 (앱 내부):** **'빠른 UI 반응속도'**와 **'오프라인 지원'**이 목적입니다. 사용자가 기다리지 않게 만드는 것이 핵심입니다.
+
+#### 데이터 영역 및 계층별 구현 전략
+
+| 계층 (Layer) | 🔴 PII 영역 (개인식별) | 🟢 익명 영역 (익명) | 🌐 공유 & 🔐 보안 영역 |
+| :--- | :--- | :--- | :--- |
+| **🔐 Identity** | `user_accounts` (캐시 안 함) | `anonymous_user_identities` (서버 전용) | `identity_mappings` (서버 전용) |
+| **👤 User Profile** | `user_profiles` (적극적 캐시) | | |
+| **🔬 Time Series Data** | | `time_series_data_points` (쓰기 후 동기화)<br>`ml_feature_vectors` (서버 전용)<br>`ml_model_outputs` (서버 전용) | |
+| **📊 Aggregation** | `daily_gems` (시간 기반 캐시)<br>`period_reports` (시간 기반 캐시) | | |
+| **💡 Insight & Viz** | | `insights` (서버 우선 조회)<br>`orb_visualizations` (서버 우선 조회)<br>`insight_analysis_cards` (서버 우선 조회)<br>`prediction_data` (서버 우선 조회) | |
+| **🎯 Goal & Program** | `goals` (상태 기반 캐시)<br>`user_program_enrollments` (상태 기반 캐시) | `program_specific_data_points` (쓰기 후 동기화) | `programs` (적극적 캐시)<br>`program_success_metrics` (적극적 캐시) |
+| **🏆 Achievement & Status** | `user_stats` (적극적 캐시)<br>`badges` (적극적 캐시)<br>`value_analysis` (적극적 캐시) | | |
+
+#### 구현 전략 용어 설명
+
+*   **(캐시 안 함):** 보안상 민감하므로 클라이언트에 저장하지 않고 인증 토큰으로만 관리합니다.
+*   **(서버 전용):** Cloud Functions 등 서버 환경에서만 생성되고 사용되는 데이터입니다.
+*   **(적극적 캐시):** 자주 바뀌지 않으므로 앱에 저장해두고 우선 사용합니다. (예: 프로필, 프로그램 목록)
+*   **(쓰기 후 동기화):** 사용자가 입력하면 즉시 UI에 반영하고, 백그라운드에서 서버와 동기화합니다. (예: 데이터 기록)
+*   **(시간 기반 캐시):** 최근 N일치 데이터만 캐시하여 성능을 확보하고, 나머지는 필요시 서버에서 가져옵니다. (예: 일일 Gem)
+*   **(상태 기반 캐시):** 화면에 진입할 때마다 최신 상태를 서버와 동기화합니다. (예: 목표 진행률)
+*   **(서버 우선 조회):** 항상 최신 데이터를 보여주는 것이 중요하므로, 서버에 먼저 요청합니다. (예: AI 인사이트)
+
+#### Firestore 오프라인 지원 기능 활용
+
+Firebase Firestore는 강력한 오프라인 캐시 기능을 기본적으로 제공합니다. 개발자가 별도의 복잡한 캐시 로직을 구현하지 않아도, 네트워크가 끊긴 상태에서 데이터를 쓰면 로컬에 저장해 두었다가 네트워크가 연결되면 자동으로 서버와 동기화해줍니다.
+
+**구현 전략 요약:**
+1.  **기본:** Firestore의 오프라인 기능을 활성화하여 대부분의 '하이브리드' 전략을 손쉽게 구현합니다.
+2.  **성능 최적화:** `programs`와 같이 거의 변하지 않는 데이터는 Firestore에서 한 번 읽어온 후, 앱 내부의 별도 파일(예: JSON)이나 간단한 DB에 저장하여 읽기 비용을 아예 발생시키지 않도록 합니다.
+3.  **보안:** `identity_mappings`와 같은 민감 정보는 Firestore 보안 규칙으로 클라이언트의 접근을 원천 차단하고, 서버(Cloud Functions)를 통해서만 다루도록 합니다.
+
+
 ## 6. 데이터 수집 시나리오
 
 ### 6.1. 시나리오 1: 첫 사용자 - 온보딩부터 첫 데이터 입력까지
