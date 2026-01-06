@@ -47,4 +47,7 @@ protocol DataServiceProtocol {
     
     // MARK: - Dashboard Data
     func fetchDashboardData() -> AnyPublisher<[String: [DashboardItem]], Error>
+    
+    // MARK: - Schemas
+    func getSchemas(for category: DataCategory) -> [DataTypeSchema]
 }

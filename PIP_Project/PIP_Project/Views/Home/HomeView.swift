@@ -2,12 +2,13 @@
 import SwiftUI
 
 struct HomeView: View {
-    @StateObject private var viewModel = HomeViewModel()
+    @ObservedObject var viewModel: HomeViewModel
     @State private var selectedGem: GemRecord?
     let showWriteOverlay: Binding<Bool>?
     let onWriteRequested: (() -> Void)?
     
-    init(showWriteOverlay: Binding<Bool>? = nil, onWriteRequested: (() -> Void)? = nil) {
+    init(viewModel: HomeViewModel, showWriteOverlay: Binding<Bool>? = nil, onWriteRequested: (() -> Void)? = nil) {
+        self.viewModel = viewModel
         self.showWriteOverlay = showWriteOverlay
         self.onWriteRequested = onWriteRequested
     }
@@ -215,6 +216,6 @@ struct StatItem: View {
 #Preview {
     ZStack {
         Color.black.ignoresSafeArea()
-        HomeView()
+        HomeView(viewModel: HomeViewModel(dataService: MockDataService.shared))
     }
 }

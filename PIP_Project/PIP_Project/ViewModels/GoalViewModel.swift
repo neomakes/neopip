@@ -26,10 +26,12 @@ class GoalViewModel: ObservableObject {
     @Published var newPrograms: [Program] = []                  // 새로운 추천 프로그램들
     
     // MARK: - Dependencies
+    private let dataService: DataServiceProtocol
     private var cancellables = Set<AnyCancellable>()
     
     // MARK: - Initialization
-    init() {
+    init(dataService: DataServiceProtocol = MockDataService.shared) {
+        self.dataService = dataService
         loadInitialData()
     }
     

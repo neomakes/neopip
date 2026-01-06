@@ -7,9 +7,13 @@ enum AppRoute: Hashable {
 }
 
 struct StatusView: View {
-    @StateObject private var viewModel = StatusViewModel()
+    @ObservedObject var viewModel: StatusViewModel
     @State private var path = NavigationPath()
     @State private var selectedAchievementIndex = 0
+    
+    init(viewModel: StatusViewModel) {
+        self.viewModel = viewModel
+    }
     
     var body: some View {
         NavigationStack(path: $path) {
@@ -70,5 +74,5 @@ struct StatusView: View {
 }
 
 #Preview {
-    StatusView()
+    StatusView(viewModel: StatusViewModel(dataService: MockDataService.shared))
 }

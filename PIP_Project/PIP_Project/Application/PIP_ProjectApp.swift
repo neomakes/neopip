@@ -1,11 +1,34 @@
 import SwiftUI
+import Firebase
+
+// MARK: - App Delegate
+// Manages application-level events, including Firebase setup
+class AppDelegate: NSObject, UIApplicationDelegate {
+    func application(_ application: UIApplication,
+                     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
+        // Configure Firebase
+        // Note: Make sure the `GoogleService-Info.plist` file is added to the project target.
+        FirebaseApp.configure()
+        print("🔥 Firebase configured successfully!")
+        
+        return true
+    }
+}
 
 @main
 struct PIP_ProjectApp: App {
+    // MARK: - App Delegate
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
+
+    // MARK: - Environment Configuration
+    // Set to `true` to use the real FirebaseDataService, `false` to use MockDataService.
+    // This allows for easy switching between development/testing and production environments.
+    private let useFirebase = false 
+
     var body: some Scene {
         WindowGroup {
-            // Entry point for the application
-            LaunchScreenWrapper()
+            // Entry point for the application, passing the data service choice
+            LaunchScreenWrapper(useFirebase: useFirebase)
         }
     }
 }
@@ -14,6 +37,7 @@ struct PIP_ProjectApp: App {
 // Manages the transition from LaunchView to MainTabView
 struct LaunchScreenWrapper: View {
     @State private var isLoading: Bool = true
+    let useFirebase: Bool // Receive the data service choice
 
     var body: some View {
         ZStack {
@@ -22,8 +46,8 @@ struct LaunchScreenWrapper: View {
                 LaunchView()
                     .transition(.opacity) // Smooth fade transition
             } else {
-                // Main Application Content (Views/MainTabView.swift)
-                MainTabView()
+                // Main Application Content, now configured with the selected data service
+                MainTabView(useFirebase: useFirebase)
                     .transition(.opacity)
             }
         }
@@ -44,5 +68,5 @@ struct LaunchScreenWrapper: View {
 
 // MARK: - Preview
 #Preview {
-    LaunchScreenWrapper()
+    LaunchScreenWrapper(useFirebase: false)
 }
