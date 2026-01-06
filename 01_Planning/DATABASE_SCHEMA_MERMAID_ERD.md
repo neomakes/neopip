@@ -1,28 +1,22 @@
 # PIP Project - Mermaid ERD (Entity Relationship Diagram)
 
-Version: 1.0  
+Version: 2.0 - Minimal Schema (21 tables)
 Last Updated: 2026.01.05  
 Format: Mermaid ER Diagram
 
 ---
 
-## Full Database ERD
+## Full Database ERD (21 tables - Minimal Schema)
 
 ```mermaid
 erDiagram
     %% ==================== 1. IDENTITY LAYER ====================
     USER-ACCOUNTS ||--o{ ANONYMOUS-USER-IDENTITIES : creates
     USER-ACCOUNTS ||--o{ IDENTITY-MAPPINGS : "mapped-to"
-    USER-ACCOUNTS ||--o{ CONSENT-RECORDS : provides
-    USER-ACCOUNTS ||--o{ DATA-DELETION-REQUESTS : requests
-    
     ANONYMOUS-USER-IDENTITIES ||--o{ IDENTITY-MAPPINGS : "linked-via"
     
     %% ==================== 2. USER PROFILE LAYER ====================
     USER-ACCOUNTS ||--|| USER-PROFILES : has
-    USER-ACCOUNTS ||--|| USER-DATA-COLLECTION-SETTINGS : configures
-    USER-ACCOUNTS ||--|| ONBOARDING-STATES : tracks
-    USER-ACCOUNTS ||--|| PIP-SCORES : calculates
     
     %% ==================== 3. TIME SERIES DATA LAYER ====================
     ANONYMOUS-USER-IDENTITIES ||--o{ TIME-SERIES-DATA-POINTS : records
@@ -30,17 +24,12 @@ erDiagram
     ANONYMOUS-USER-IDENTITIES ||--o{ ML-MODEL-OUTPUTS : produces
     
     ML-FEATURE-VECTORS ||--o{ ML-MODEL-OUTPUTS : inputs-to
-    DATA-TYPE-SCHEMAS ||--o{ TIME-SERIES-DATA-POINTS : defines
     
     %% ==================== 4. AGGREGATION LAYER ====================
     USER-ACCOUNTS ||--o{ DAILY-GEMS : generates
-    USER-ACCOUNTS ||--o{ DAILY-STATS : calculates
-    ANONYMOUS-USER-IDENTITIES ||--o{ DAILY-GEMS : "data-for"
-    ANONYMOUS-USER-IDENTITIES ||--o{ DAILY-STATS : "data-for"
-    ANONYMOUS-USER-IDENTITIES ||--o{ TREND-DATA : analyzes
-    
     TIME-SERIES-DATA-POINTS ||--o{ DAILY-GEMS : "aggregates-into"
-    TIME-SERIES-DATA-POINTS ||--o{ DAILY-STATS : "aggregates-into"
+    
+    USER-ACCOUNTS ||--o{ PERIOD-REPORTS : generates
     
     %% ==================== 5. INSIGHT LAYER ====================
     ANONYMOUS-USER-IDENTITIES ||--o{ INSIGHTS : generates
@@ -57,88 +46,52 @@ erDiagram
     
     %% ==================== 6. GOAL & PROGRAM LAYER ====================
     USER-ACCOUNTS ||--o{ GOALS : sets
-    USER-ACCOUNTS ||--o{ GOAL-RECOMMENDATIONS : receives
-    USER-ACCOUNTS ||--o{ PROGRAM-REVIEWS : writes
-    
-    GOALS ||--o{ GOAL-PROGRESS : tracks
-    INSIGHTS ||--o{ GOAL-RECOMMENDATIONS : "bases-on"
-    
-    PROGRAMS ||--o{ PROGRAM-REVIEWS : receives
-    PROGRAMS ||--o{ PROGRAM-SUCCESS-METRICS : defines
-    
-    %% ==================== 6-1. HOME VIEW - PROGRAM ENROLLMENT ====================
+    PROGRAMS ||--o{ USER-PROGRAM-ENROLLMENTS : offers
     USER-ACCOUNTS ||--o{ USER-PROGRAM-ENROLLMENTS : enrolls-in
     ANONYMOUS-USER-IDENTITIES ||--o{ USER-PROGRAM-ENROLLMENTS : "tracks"
-    PROGRAMS ||--o{ USER-PROGRAM-ENROLLMENTS : offers
     
     ANONYMOUS-USER-IDENTITIES ||--o{ PROGRAM-SPECIFIC-DATA-POINTS : "records"
     USER-PROGRAM-ENROLLMENTS ||--o{ PROGRAM-SPECIFIC-DATA-POINTS : "tracks"
     
-    USER-ACCOUNTS ||--o{ PERIOD-REPORTS : generates
-    ANONYMOUS-USER-IDENTITIES ||--o{ PERIOD-REPORTS : "data-for"
+    PROGRAMS ||--o{ PROGRAM-SUCCESS-METRICS : defines
     
     %% ==================== 7. ACHIEVEMENT & STATUS LAYER ====================
     USER-ACCOUNTS ||--|| USER-STATS : maintains
     USER-ACCOUNTS ||--o{ BADGES : earns
     USER-ACCOUNTS ||--o{ VALUE-ANALYSIS : analyzes
 
-
     %% ==================== TABLE DEFINITIONS ====================
     
     USER-ACCOUNTS {
-        uuid id PK
-        string email UK
+        uuid id
+        string email
         timestamp created_at
-        timestamp deletion_requested_at
         boolean is_active
     }
     
     ANONYMOUS-USER-IDENTITIES {
-        uuid id PK
-        uuid account_id FK
+        uuid id
+        uuid account_id
         timestamp created_at
         boolean is_active
     }
     
     IDENTITY-MAPPINGS {
-        uuid id PK
-        uuid account_id FK
-        uuid anonymous_user_id FK
+        uuid id
+        uuid account_id
+        uuid anonymous_user_id
         string encrypted_mapping
         timestamp created_at
         boolean is_active
     }
     
-    CONSENT-RECORDS {
-        uuid id PK
-        uuid account_id FK
-        string consent_type
-        timestamp given_at
-        string version
-    }
-    
-    DATA-DELETION-REQUESTS {
-        uuid id PK
-        uuid account_id FK
-        timestamp requested_at
-        timestamp completed_at
-        string status
-    }
-    
     USER-PROFILES {
-        uuid id PK
-        uuid account_id FK UK
+        uuid id
+        uuid account_id
         string profile_image_url
         string background_image_url
         string feature_color
         string onboarding_state
-        timestamp created_at
-        timestamp updated_at
-    }
-    
-    USER-DATA-COLLECTION-SETTINGS {
-        uuid id PK
-        uuid account_id FK UK
         string enabled_data_types
         string anonymization_level
         string permissions
@@ -146,40 +99,9 @@ erDiagram
         timestamp updated_at
     }
     
-    ONBOARDING-STATES {
-        uuid id PK
-        uuid account_id FK UK
-        string completed_steps
-        string selected_goals
-        boolean is_completed
-        timestamp created_at
-        timestamp updated_at
-    }
-    
-    PIP-SCORES {
-        uuid id PK
-        uuid account_id FK UK
-        double overall_score
-        double mind_score
-        double behavior_score
-        double physical_score
-        timestamp calculated_at
-        timestamp updated_at
-    }
-    
-    DATA-TYPE-SCHEMAS {
-        uuid id PK
-        string name UK
-        string data_type
-        double min_value
-        double max_value
-        string description
-        timestamp created_at
-    }
-    
     TIME-SERIES-DATA-POINTS {
-        uuid id PK
-        uuid anonymous_user_id FK
+        uuid id
+        uuid anonymous_user_id
         timestamp timestamp
         date date
         string values
@@ -196,8 +118,8 @@ erDiagram
     }
     
     ML-FEATURE-VECTORS {
-        uuid id PK
-        uuid anonymous_user_id FK
+        uuid id
+        uuid anonymous_user_id
         date time_period_start
         date time_period_end
         string features
@@ -206,9 +128,9 @@ erDiagram
     }
     
     ML-MODEL-OUTPUTS {
-        uuid id PK
-        uuid anonymous_user_id FK
-        uuid ml_feature_vector_id FK
+        uuid id
+        uuid anonymous_user_id
+        uuid ml_feature_vector_id
         string model_version
         double reconstruction_performance
         double prediction_accuracy
@@ -218,9 +140,8 @@ erDiagram
     }
     
     DAILY-GEMS {
-        uuid id PK
-        uuid account_id FK
-        uuid anonymous_user_id FK
+        uuid id
+        uuid account_id
         date date
         string gem_type
         double brightness
@@ -230,38 +151,21 @@ erDiagram
         timestamp created_at
     }
     
-    DAILY-STATS {
-        uuid id PK
-        uuid account_id FK
-        uuid anonymous_user_id FK
-        date date
-        integer total_data_points
-        integer notes_count
-        double mind_score
-        double behavior_score
-        double physical_score
-        double completeness_ratio
-        double confidence_ratio
-        string notes_by_category
-        string data_source_counts
+    PERIOD-REPORTS {
+        uuid id
+        uuid account_id
+        string period_type
+        date period_start_date
+        date period_end_date
+        string summary_metrics
+        string insight_ids
         timestamp created_at
     }
     
-    TREND-DATA {
-        uuid id PK
-        uuid anonymous_user_id FK
-        string metric_name
-        string time_period
-        string values
-        string trend_direction
-        double trend_strength
-        timestamp calculated_at
-    }
-    
     INSIGHTS {
-        uuid id PK
-        uuid anonymous_user_id FK
-        uuid ml_model_output_id FK
+        uuid id
+        uuid anonymous_user_id
+        uuid ml_model_output_id
         string type
         string title
         string description
@@ -273,10 +177,10 @@ erDiagram
     }
     
     ORB-VISUALIZATIONS {
-        uuid id PK
-        uuid anonymous_user_id FK
-        uuid ml_model_output_id FK
-        uuid insight_id FK
+        uuid id
+        uuid anonymous_user_id
+        uuid ml_model_output_id
+        uuid insight_id
         double brightness
         double border_brightness
         string color_gradient
@@ -286,9 +190,9 @@ erDiagram
     }
     
     INSIGHT-ANALYSIS-CARDS {
-        uuid id PK
-        uuid anonymous_user_id FK
-        uuid insight_id FK
+        uuid id
+        uuid anonymous_user_id
+        uuid insight_id
         string title
         string description
         string pages
@@ -299,9 +203,9 @@ erDiagram
     }
     
     PREDICTION-DATA {
-        uuid id PK
-        uuid anonymous_user_id FK
-        uuid ml_model_output_id FK
+        uuid id
+        uuid anonymous_user_id
+        uuid ml_model_output_id
         string metric_name
         string predicted_values
         string confidence_intervals
@@ -310,8 +214,8 @@ erDiagram
     }
     
     GOALS {
-        uuid id PK
-        uuid account_id FK
+        uuid id
+        uuid account_id
         string title
         string description
         string category
@@ -324,29 +228,8 @@ erDiagram
         timestamp updated_at
     }
     
-    GOAL-PROGRESS {
-        uuid id PK
-        uuid goal_id FK
-        date date
-        double progress_value
-        string notes
-        timestamp created_at
-    }
-    
-    GOAL-RECOMMENDATIONS {
-        uuid id PK
-        uuid account_id FK
-        uuid insight_id FK
-        string recommended_goal
-        string reason
-        double relevance_score
-        boolean is_accepted
-        timestamp accepted_at
-        timestamp created_at
-    }
-    
     PROGRAMS {
-        uuid id PK
+        uuid id
         string title
         string description
         string category
@@ -359,32 +242,11 @@ erDiagram
         timestamp created_at
     }
     
-    PROGRAM-REVIEWS {
-        uuid id PK
-        uuid program_id FK
-        uuid account_id FK
-        double rating
-        string review_text
-        integer helpful_count
-        timestamp created_at
-    }
-    
-    PROGRAM-SUCCESS-METRICS {
-        uuid id PK
-        uuid program_id FK
-        string metric_name
-        double target_value
-        string metric_type
-        double weight
-        string description
-        timestamp created_at
-    }
-    
     USER-PROGRAM-ENROLLMENTS {
-        uuid id PK
-        uuid account_id FK
-        uuid anonymous_user_id FK
-        uuid program_id FK
+        uuid id
+        uuid account_id
+        uuid anonymous_user_id
+        uuid program_id
         string enrollment_status
         date start_date
         date target_completion_date
@@ -397,9 +259,9 @@ erDiagram
     }
     
     PROGRAM-SPECIFIC-DATA-POINTS {
-        uuid id PK
-        uuid anonymous_user_id FK
-        uuid user_program_enrollment_id FK
+        uuid id
+        uuid anonymous_user_id
+        uuid user_program_enrollment_id
         timestamp timestamp
         date date
         string values
@@ -410,21 +272,20 @@ erDiagram
         timestamp updated_at
     }
     
-    PERIOD-REPORTS {
-        uuid id PK
-        uuid account_id FK
-        uuid anonymous_user_id FK
-        string period_type
-        date period_start_date
-        date period_end_date
-        string summary_metrics
-        string insight_ids
+    PROGRAM-SUCCESS-METRICS {
+        uuid id
+        uuid program_id
+        string metric_name
+        double target_value
+        string metric_type
+        double weight
+        string description
         timestamp created_at
     }
     
     USER-STATS {
-        uuid id PK
-        uuid account_id FK UK
+        uuid id
+        uuid account_id
         integer total_data_points
         integer total_gems
         integer streak_days
@@ -433,8 +294,8 @@ erDiagram
     }
     
     BADGES {
-        uuid id PK
-        uuid account_id FK
+        uuid id
+        uuid account_id
         string name
         string description
         string badge_type
@@ -446,8 +307,8 @@ erDiagram
     }
     
     VALUE-ANALYSIS {
-        uuid id PK
-        uuid account_id FK
+        uuid id
+        uuid account_id
         string value_name
         double value_score
         integer supporting_data_points
@@ -457,180 +318,172 @@ erDiagram
 
 ---
 
-## Layer-by-Layer Breakdown
+## Layer-by-Layer ERD Breakdown
 
-### Layer 1: Identity Layer
+### Layer 1: Identity Layer (3 tables)
+
 ```mermaid
 erDiagram
     USER-ACCOUNTS ||--o{ ANONYMOUS-USER-IDENTITIES : creates
-    USER-ACCOUNTS ||--o{ IDENTITY-MAPPINGS : "maps-to"
-    USER-ACCOUNTS ||--o{ CONSENT-RECORDS : provides
-    USER-ACCOUNTS ||--o{ DATA-DELETION-REQUESTS : requests
+    USER-ACCOUNTS ||--o{ IDENTITY-MAPPINGS : "mapped-to"
     ANONYMOUS-USER-IDENTITIES ||--o{ IDENTITY-MAPPINGS : "linked-via"
 
     USER-ACCOUNTS {
-        uuid id PK
-        string email UK
+        uuid id
+        string email
         timestamp created_at
-        timestamp deletion_requested_at
+        boolean is_active
     }
 
     ANONYMOUS-USER-IDENTITIES {
-        uuid id PK
-        uuid account_id FK
+        uuid id
         timestamp created_at
+        boolean is_active
     }
 
     IDENTITY-MAPPINGS {
-        uuid id PK
-        uuid account_id FK
-        uuid anonymous_user_id FK
+        uuid id
+        uuid account_id
+        uuid anonymous_user_id
         string encrypted_mapping
-    }
-
-    CONSENT-RECORDS {
-        uuid id PK
-        uuid account_id FK
-        string consent_type
-        timestamp given_at
-    }
-
-    DATA-DELETION-REQUESTS {
-        uuid id PK
-        uuid account_id FK
-        string status
+        timestamp created_at
+        boolean is_active
     }
 ```
 
-### Layer 2: User Profile Layer
+**Purpose:** User identity isolation and privacy preservation
+
+---
+
+### Layer 2: User Profile Layer (1 table - Consolidated)
+
 ```mermaid
 erDiagram
     USER-ACCOUNTS ||--|| USER-PROFILES : has
-    USER-ACCOUNTS ||--|| USER-DATA-COLLECTION-SETTINGS : configures
-    USER-ACCOUNTS ||--|| ONBOARDING-STATES : tracks
-    USER-ACCOUNTS ||--|| PIP-SCORES : calculates
 
     USER-ACCOUNTS {
-        uuid id PK
+        uuid id
+        string email
+        timestamp created_at
     }
 
     USER-PROFILES {
-        uuid id PK
-        uuid account_id FK UK
+        uuid id
+        uuid account_id
+        string profile_image_url
+        string background_image_url
         string feature_color
-        timestamp updated_at
-    }
-
-    USER-DATA-COLLECTION-SETTINGS {
-        uuid id PK
-        uuid account_id FK UK
+        string onboarding_state
         string enabled_data_types
-    }
-
-    ONBOARDING-STATES {
-        uuid id PK
-        uuid account_id FK UK
-        boolean is_completed
-    }
-
-    PIP-SCORES {
-        uuid id PK
-        uuid account_id FK UK
-        double overall_score
+        string anonymization_level
+        string permissions
+        timestamp created_at
+        timestamp updated_at
     }
 ```
 
-### Layer 3: Time Series Data Layer
+**Key Changes (v2.0 - Minimal Schema):**
+- Consolidated `ONBOARDING-STATES`, `USER-DATA-COLLECTION-SETTINGS`, `PIP-SCORES` into single `USER-PROFILES` table
+- Reduced from 4 tables to 1 table
+- All profile-related data now centralized
+- `onboarding_state`, `enabled_data_types`, `anonymization_level`, `permissions` fields added to `USER-PROFILES`
+
+---
+
+### Layer 3: Time Series Data Layer (3 tables)
+
 ```mermaid
 erDiagram
     ANONYMOUS-USER-IDENTITIES ||--o{ TIME-SERIES-DATA-POINTS : records
     ANONYMOUS-USER-IDENTITIES ||--o{ ML-FEATURE-VECTORS : generates
     ANONYMOUS-USER-IDENTITIES ||--o{ ML-MODEL-OUTPUTS : produces
     
-    DATA-TYPE-SCHEMAS ||--o{ TIME-SERIES-DATA-POINTS : defines
     ML-FEATURE-VECTORS ||--o{ ML-MODEL-OUTPUTS : "inputs-to"
 
     ANONYMOUS-USER-IDENTITIES {
-        uuid id PK
-    }
-
-    DATA-TYPE-SCHEMAS {
-        uuid id PK
-        string name UK
-        string data_type
+        uuid id
+        timestamp created_at
     }
 
     TIME-SERIES-DATA-POINTS {
-        uuid id PK
-        uuid anonymous_user_id FK
+        uuid id
+        uuid anonymous_user_id
         timestamp timestamp
+        date date
         string values
+        string category
         double confidence
+        double completeness
     }
 
     ML-FEATURE-VECTORS {
-        uuid id PK
-        uuid anonymous_user_id FK
+        uuid id
+        uuid anonymous_user_id
         date time_period_start
         date time_period_end
+        string features
     }
 
     ML-MODEL-OUTPUTS {
-        uuid id PK
-        uuid anonymous_user_id FK
-        uuid ml_feature_vector_id FK
+        uuid id
+        uuid anonymous_user_id
+        uuid ml_feature_vector_id
+        string model_version
         double reconstruction_performance
+        string predictions
     }
 ```
 
-### Layer 4: Aggregation Layer
+**Key Changes (v2.0 - Minimal Schema):**
+- Removed `DATA-TYPE-SCHEMAS` table (hard-coded in application)
+- Time series data validation moved to application level
+
+---
+
+### Layer 4: Aggregation Layer (2 tables)
+
 ```mermaid
 erDiagram
     USER-ACCOUNTS ||--o{ DAILY-GEMS : generates
-    USER-ACCOUNTS ||--o{ DAILY-STATS : calculates
-    ANONYMOUS-USER-IDENTITIES ||--o{ DAILY-GEMS : "data-for"
-    ANONYMOUS-USER-IDENTITIES ||--o{ DAILY-STATS : "data-for"
-    ANONYMOUS-USER-IDENTITIES ||--o{ TREND-DATA : analyzes
-    
     TIME-SERIES-DATA-POINTS ||--o{ DAILY-GEMS : "aggregates-into"
-    TIME-SERIES-DATA-POINTS ||--o{ DAILY-STATS : "aggregates-into"
+    
+    USER-ACCOUNTS ||--o{ PERIOD-REPORTS : generates
 
     USER-ACCOUNTS {
-        uuid id PK
-    }
-
-    ANONYMOUS-USER-IDENTITIES {
-        uuid id PK
+        uuid id
     }
 
     TIME-SERIES-DATA-POINTS {
-        uuid id PK
+        uuid id
+        date date
     }
 
     DAILY-GEMS {
-        uuid id PK
-        uuid account_id FK
-        uuid anonymous_user_id FK
+        uuid id
+        uuid account_id
         date date
         string gem_type
+        double brightness
     }
 
-    DAILY-STATS {
-        uuid id PK
-        uuid account_id FK
-        uuid anonymous_user_id FK
-        date date
-        integer total_data_points
-    }
-
-    TREND-DATA {
-        uuid id PK
-        uuid anonymous_user_id FK
-        string metric_name
+    PERIOD-REPORTS {
+        uuid id
+        uuid account_id
+        string period_type
+        date period_start_date
+        date period_end_date
     }
 ```
 
-### Layer 5: Insight Layer
+**Key Changes (v2.0 - Minimal Schema):**
+- Removed `DAILY-STATS` table (calculated in real-time from daily_gems)
+- Removed `TREND-DATA` table (computed from insights analysis)
+- Kept core aggregation tables: daily_gems and period_reports
+
+---
+
+### Layer 5: Insight Layer (4 tables)
+
 ```mermaid
 erDiagram
     ANONYMOUS-USER-IDENTITIES ||--o{ INSIGHTS : generates
@@ -646,146 +499,102 @@ erDiagram
     INSIGHTS ||--o{ INSIGHT-ANALYSIS-CARDS : "converts-to"
 
     ANONYMOUS-USER-IDENTITIES {
-        uuid id PK
+        uuid id
     }
 
     ML-MODEL-OUTPUTS {
-        uuid id PK
+        uuid id
+        string predictions
     }
 
     INSIGHTS {
-        uuid id PK
-        uuid anonymous_user_id FK
-        uuid ml_model_output_id FK
+        uuid id
+        uuid ml_model_output_id
         string type
+        string title
     }
 
     ORB-VISUALIZATIONS {
-        uuid id PK
-        uuid anonymous_user_id FK
-        uuid insight_id FK
+        uuid id
+        uuid insight_id
         double brightness
     }
 
     INSIGHT-ANALYSIS-CARDS {
-        uuid id PK
-        uuid anonymous_user_id FK
-        uuid insight_id FK
+        uuid id
+        uuid insight_id
+        string title
     }
 
     PREDICTION-DATA {
-        uuid id PK
-        uuid anonymous_user_id FK
-        uuid ml_model_output_id FK
+        uuid id
+        uuid ml_model_output_id
+        string metric_name
     }
 ```
 
-### Layer 6: Goal & Program Layer
+**Purpose:** ML-driven insights visualization and analysis for Insights View
+
+---
+
+### Layer 6: Goal & Program Layer (5 tables)
+
 ```mermaid
 erDiagram
     USER-ACCOUNTS ||--o{ GOALS : sets
-    USER-ACCOUNTS ||--o{ GOAL-RECOMMENDATIONS : receives
-    USER-ACCOUNTS ||--o{ PROGRAM-REVIEWS : writes
-    
-    GOALS ||--o{ GOAL-PROGRESS : tracks
-    INSIGHTS ||--o{ GOAL-RECOMMENDATIONS : "bases-on"
-    
-    PROGRAMS ||--o{ PROGRAM-REVIEWS : receives
-    PROGRAMS ||--o{ PROGRAM-SUCCESS-METRICS : defines
-
-    USER-ACCOUNTS {
-        uuid id PK
-    }
-
-    GOALS {
-        uuid id PK
-        uuid account_id FK
-        string status
-    }
-
-    GOAL-PROGRESS {
-        uuid id PK
-        uuid goal_id FK
-        date date
-    }
-
-    GOAL-RECOMMENDATIONS {
-        uuid id PK
-        uuid account_id FK
-        uuid insight_id FK
-    }
-
-    PROGRAMS {
-        uuid id PK
-        string category
-    }
-
-    PROGRAM-REVIEWS {
-        uuid id PK
-        uuid program_id FK
-        uuid account_id FK
-    }
-
-    PROGRAM-SUCCESS-METRICS {
-        uuid id PK
-        uuid program_id FK
-    }
-
-    INSIGHTS {
-        uuid id PK
-    }
-```
-
-### Layer 6-1: Home View - Program Enrollment
-```mermaid
-erDiagram
+    PROGRAMS ||--o{ USER-PROGRAM-ENROLLMENTS : offers
     USER-ACCOUNTS ||--o{ USER-PROGRAM-ENROLLMENTS : enrolls-in
     ANONYMOUS-USER-IDENTITIES ||--o{ USER-PROGRAM-ENROLLMENTS : "tracks"
-    PROGRAMS ||--o{ USER-PROGRAM-ENROLLMENTS : offers
     
     ANONYMOUS-USER-IDENTITIES ||--o{ PROGRAM-SPECIFIC-DATA-POINTS : "records"
     USER-PROGRAM-ENROLLMENTS ||--o{ PROGRAM-SPECIFIC-DATA-POINTS : "tracks"
     
-    USER-ACCOUNTS ||--o{ PERIOD-REPORTS : generates
-    ANONYMOUS-USER-IDENTITIES ||--o{ PERIOD-REPORTS : "data-for"
+    PROGRAMS ||--o{ PROGRAM-SUCCESS-METRICS : defines
 
     USER-ACCOUNTS {
-        uuid id PK
+        uuid id
     }
 
-    ANONYMOUS-USER-IDENTITIES {
-        uuid id PK
+    GOALS {
+        uuid id
+        uuid account_id
+        string title
     }
 
     PROGRAMS {
-        uuid id PK
+        uuid id
+        string title
     }
 
     USER-PROGRAM-ENROLLMENTS {
-        uuid id PK
-        uuid account_id FK
-        uuid anonymous_user_id FK
-        uuid program_id FK
+        uuid id
+        uuid program_id
         string enrollment_status
-        double success_progress
     }
 
     PROGRAM-SPECIFIC-DATA-POINTS {
-        uuid id PK
-        uuid anonymous_user_id FK
-        uuid user_program_enrollment_id FK
-        date date
+        uuid id
+        uuid user_program_enrollment_id
+        string values
     }
 
-    PERIOD-REPORTS {
-        uuid id PK
-        uuid account_id FK
-        uuid anonymous_user_id FK
-        string period_type
+    PROGRAM-SUCCESS-METRICS {
+        uuid id
+        uuid program_id
+        string metric_name
     }
 ```
 
-### Layer 7: Achievement & Status Layer
+**Key Changes (v2.0 - Minimal Schema):**
+- Removed `GOAL-PROGRESS` table (tracked via user_program_enrollments.success_progress)
+- Removed `GOAL-RECOMMENDATIONS` table (integrated into insights with type='recommendation')
+- Removed `PROGRAM-REVIEWS` table (deferred to MVP+1)
+- Kept core goal & program tracking tables
+
+---
+
+### Layer 7: Achievement & Status Layer (3 tables)
+
 ```mermaid
 erDiagram
     USER-ACCOUNTS ||--|| USER-STATS : maintains
@@ -793,62 +602,88 @@ erDiagram
     USER-ACCOUNTS ||--o{ VALUE-ANALYSIS : analyzes
 
     USER-ACCOUNTS {
-        uuid id PK
+        uuid id
     }
 
     USER-STATS {
-        uuid id PK
-        uuid account_id FK UK
+        uuid id
+        uuid account_id
         integer total_data_points
-        integer streak_days
     }
 
     BADGES {
-        uuid id PK
-        uuid account_id FK
+        uuid id
+        uuid account_id
         string badge_type
-        timestamp unlocked_at
     }
 
     VALUE-ANALYSIS {
-        uuid id PK
-        uuid account_id FK
+        uuid id
+        uuid account_id
         string value_name
-        double value_score
     }
 ```
+
+**Purpose:** User achievements, badges, and value analysis tracking
 
 ---
 
 ## Key Relationships Summary
 
-| Source | Target | Relationship | Cardinality |
-|--------|--------|--------------|-------------|
-| user_accounts | anonymous_user_identities | creates | 1:Many |
-| user_accounts | user_profiles | has | 1:1 |
-| anonymous_user_identities | time_series_data_points | records | 1:Many |
-| time_series_data_points | daily_gems | aggregates-into | Many:1 |
-| ml_model_outputs | insights | inputs-to | 1:Many |
-| insights | insight_analysis_cards | converts-to | 1:Many |
-| user_accounts | goals | sets | 1:Many |
-| programs | user_program_enrollments | offers | 1:Many |
-| user_program_enrollments | program_specific_data_points | tracks | 1:Many |
-| user_accounts | badges | earns | 1:Many |
+| Source | Target | Relationship | Cardinality | Purpose |
+|--------|--------|--------------|-------------|---------|
+| user_accounts | anonymous_user_identities | creates | 1:Many | User identity isolation |
+| user_accounts | user_profiles | has | 1:1 | Profile consolidation |
+| user_accounts | daily_gems | generates | 1:Many | Home View gem visualization |
+| user_accounts | period_reports | generates | 1:Many | Home View periodic summaries |
+| anonymous_user_identities | time_series_data_points | records | 1:Many | WriteView data collection |
+| time_series_data_points | daily_gems | aggregates-into | Many:1 | Daily aggregation |
+| ml_model_outputs | insights | inputs-to | 1:Many | ML-driven insights |
+| insights | insight_analysis_cards | converts-to | 1:Many | Insights View cards |
+| insights | orb_visualizations | visualizes | 1:1 | Orb visualization |
+| user_accounts | goals | sets | 1:Many | Goal View management |
+| programs | user_program_enrollments | offers | 1:Many | Program enrollment |
+| user_program_enrollments | program_specific_data_points | tracks | 1:Many | Goal View program tracking |
 
 ---
 
-## Notes
+## Minimal Schema Changes (v1.0 → v2.0)
 
-- **PK (Primary Key)**: Unique identifier for the table
-- **FK (Foreign Key)**: References to another table
-- **UK (Unique Key)**: Unique constraint on the field
-- **1:1**: One-to-One relationship (each record has exactly one related record)
-- **1:Many**: One-to-Many relationship (one record has many related records)
-- **Many:1**: Many-to-One relationship (many records point to one record)
+### Removed Tables (15 → Consolidated or Deferred)
 
-This ERD can be visualized in tools that support Mermaid syntax:
-- GitHub (renders automatically in markdown)
-- Notion
-- Obsidian (with plugin)
-- Mermaid Live Editor: https://mermaid.live
-- VS Code (with Markdown Preview Mermaid Support extension)
+| Removed Table | Reason | Alternative |
+|---------------|--------|-------------|
+| `daily_stats` | Redundant calculation | Real-time from daily_gems |
+| `goal_progress` | Tracking redundancy | user_program_enrollments.success_progress |
+| `goal_recommendations` | Insight integration | insights (type='recommendation') |
+| `trend_data` | Derived from insights | Computed from insights analysis |
+| `program_reviews` | MVP+1 feature | Deferred to Phase 2 |
+| `data_type_schemas` | Hardcoded config | Application constants |
+| `consent_records` | GDPR Phase 2 | Deferred implementation |
+| `data_deletion_requests` | GDPR Phase 2 | Deferred implementation |
+| `onboarding_states` | Profile merge | user_profiles.onboarding_state |
+| `user_data_collection_settings` | Profile merge | user_profiles.enabled_data_types, anonymization_level, permissions |
+| `pip_scores` | Calculated metric | Derived from insights analysis |
+
+### Consolidated Tables
+
+**user_profiles (was 4 tables)**
+- Merged: USER-DATA-COLLECTION-SETTINGS, ONBOARDING-STATES, PIP-SCORES
+- Fields added: onboarding_state, enabled_data_types, anonymization_level, permissions
+
+---
+
+## Schema Statistics
+
+| Metric | v1.0 | v2.0 | Change |
+|--------|------|------|--------|
+| Total Tables | 36 | 21 | -42% |
+| Identity Layer | 3 | 3 | - |
+| Profile Layer | 4 | 1 | -75% |
+| Time Series Layer | 3 | 3 | - |
+| Aggregation Layer | 3 | 2 | -33% |
+| Insight Layer | 4 | 4 | - |
+| Goal & Program Layer | 8 | 5 | -37% |
+| Achievement Layer | 3 | 3 | - |
+| Relationships | 32 | 22 | -31% |
+
