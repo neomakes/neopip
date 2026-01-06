@@ -2224,37 +2224,51 @@ DATABASE_SCHEMA_DBDIAGRAM.sql을 수정한 후:
 
 ---
 
-## 11. 구현 체크리스트
+## 11. 구현 체크리스트 (v2.0 - MockData 기반)
 
-### Phase 1: 기본 구조
-- [x] 모델 파일 생성
-- [ ] Firebase 프로젝트 생성
-- [ ] Firestore 데이터베이스 생성
-- [ ] 보안 규칙 초기 설정
-- [ ] 기본 인덱스 생성
+### Phase 1: 로컬 UI 및 로직 구현 (MockData 기반)
+- **Models & Services**
+  - [x] Swift 데이터 모델 전체 정의 (`Models/` 디렉토리)
+  - [x] `MockDataService` 구현 (미리 정의된 Mock 데이터 제공)
+- **ViewModels**
+  - [x] `HomeViewModel`, `WriteViewModel` 등 주요 ViewModel 구현
+  - [x] ViewModel과 `MockDataService` 연동
+- **Views & Components**
+  - [x] 5개 탭의 기본 View 구조 구현 (`HomeView`, `GoalView` 등)
+  - [ ] 핵심 컴포넌트 구현 (`DailyGem`, `OrbVisualization`, 차트 등)
+  - [ ] 전체 UI/UX 플로우 구현 (온보딩, 데이터 입력, 결과 확인)
+- **Testing**
+  - [x] ViewModel 로직 단위 테스트 (Mock 데이터 사용)
+  - [x] SwiftUI Preview를 통한 UI 컴포넌트 시각적 검증
 
-### Phase 2: 사용자 인증
-- [ ] Firebase Auth 연동
-- [ ] UserAccount 생성 로직
-- [ ] AnonymousUserIdentity 생성 로직
-- [ ] IdentityMapping 생성 로직
+### Phase 2: Firebase 연동 및 CRUD 구현
+- **Project Setup**
+  - [ ] Firebase 프로젝트 생성 및 iOS 앱 연동 (`GoogleService-Info.plist`)
+  - [ ] Firestore 데이터베이스 활성화 및 기본 인덱스 생성
+  - [ ] Firestore 보안 규칙 초기 설정 (개발용)
+- **Authentication**
+  - [ ] Firebase Auth 연동 (로그인/회원가입/로그아웃)
+  - [ ] `UserAccount` 생성 및 `IdentityMapping` 생성 로직 구현
+- **Services**
+  - [ ] `FirebaseService` 구현 (Firestore 데이터 CRUD 래퍼)
+  - [ ] `MockDataService`를 `FirebaseService`로 교체
+- **Data Flow**
+  - [ ] `TimeSeriesDataPoint` 저장/조회 로직 구현
+  - [ ] `UserProfile` 저장/조회 로직 구현
+  - [ ] Firestore 오프라인 캐시 기능 활성화 및 테스트
 
-### Phase 3: 데이터 수집
-- [ ] TimeSeriesDataPoint 저장 로직
-- [ ] DailyGem 생성/업데이트 로직
-- [ ] DailyStats 계산 및 저장 로직
-- [ ] 데이터 수집 설정 저장
-
-### Phase 4: ML/AI 연동
-- [ ] MLFeatureVector 저장 로직
-- [ ] MLModelOutput 저장 로직
-- [ ] Cloud Functions에서 ML 모델 호출
-- [ ] Insight 생성 로직
-
-### Phase 5: 인사이트 생성
-- [ ] Insight 생성 로직
-- [ ] OrbVisualization 생성 로직
-- [ ] TrendData 계산 및 저장
+### Phase 3: Cloud Functions 개발 및 자동화
+- **Project Setup**
+  - [ ] Cloud Functions 프로젝트 설정 (Node.js/TypeScript)
+  - [ ] 서비스 계정 및 권한 설정
+- **Core Functions**
+  - [ ] Daily Aggregation 함수 구현 (`TimeSeriesDataPoint` → `DailyGem`, `PeriodReport`)
+  - [ ] Program Monitoring 함수 구현 (프로그램 진행률 업데이트)
+  - [ ] Weekly ML Execution 함수 구현 (ML 모델 호출 및 `Insight`, `OrbVisualization` 생성)
+  - [ ] Monthly Value Analysis 함수 구현 (가치 분석)
+- **Deployment & Scheduling**
+  - [ ] Cloud Functions 배포
+  - [ ] Cloud Scheduler를 사용하여 함수 주기적 실행 설정
 
 ---
 
