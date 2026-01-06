@@ -1,168 +1,115 @@
-# 🗄️ PIP 프로젝트 DB 모델 설계 기획안
 
-**작성일**: 2025.12  
-**버전**: 5.0 (PII-Anonymization 명확화 + Firestore 구조 확정)  
-**상태**: ✅ Firebase 배포 준비 완료
+# 🗄️ PIP 프로젝트 DB 설계 (간소화)
 
----
+## 목차
 
-## 📋 목차
-
-1. [개요](#1-개요)
-2. [데이터 모델 아키텍처](#2-데이터-모델-아키텍처)
-3. [Models 디렉토리 구조](#3-models-디렉토리-구조)
-4. [핵심 데이터 모델 상세](#4-핵심-데이터-모델-상세)
-5. [Firebase Firestore 통합 설계](#5-firebase-firestore-통합-설계)
-6. [데이터 수집 시나리오](#6-데이터-수집-시나리오)
-7. [재설계 요약](#7-재설계-요약)
-8. [마이그레이션 고려사항](#8-마이그레이션-고려사항)
-9. [dbdiagram.io 스키마 가이드](#9-dbdiagramio-스키마-가이드)
+1. 데이터 모델 ERD
+2. 앞으로의 작업 목록
 
 ---
 
-## 1. 개요
-
-### 1.1. 설계 원칙
-
-1. **Identity Separation (프라이버시 분리)**
-   - PII (개인 식별 정보)와 분석 데이터 완전 분리
-   - `UserAccount` (PII) ↔ `AnonymousUserIdentity` (익명화)
-   - `IdentityMapping`으로 암호화된 연결
-
-2. **TimeSeriesDataPoint 중심 설계**
-   - 모든 데이터 수집의 핵심 엔티티
-   - 동적 `values` 딕셔너리로 확장 가능
-   - ML/AI 모델 입력으로 직접 사용
-
-3. **오컴의 면도날 원칙**
-   - `JournalEntry` 제거 → `TimeSeriesDataPoint.notes`로 통합
-   - 불필요한 복잡성 제거
-
-4. **Responsible & Ethical AI**
-   - 데이터 최소화
-   - 명시적 동의
-   - 삭제 권리 보장
-
-### 1.2. 주요 변경사항 (v4.0 → v5.0)
-
-**데이터 모델:**
-- ✅ `JournalEntry` 완전 제거
-- ✅ `TimeSeriesDataPoint.notes`로 메모 통합
-- ✅ `DailyGem.journalEntries` → `DailyGem.dataPointIds`
-- ✅ `DailyStats.totalEntries` → `DailyStats.totalDataPoints`
-- ✅ `Goal.relatedJournalEntries` → `Goal.relatedDataPointIds`
-
-**PII-Anonymization 분리 (NEW v5.0):**
-- ✅ `anonymous_user_identities`: `account_id` 필드 **제거** (익명화 영역에 PII 없음)
-- ✅ `daily_gems`: `anonymous_user_id` 필드 **제거** (PII 영역에는 계산된 집계만)
-- ✅ `period_reports`: `anonymous_user_id` 필드 **제거** (PII 영역에는 집계 리포트만)
-- ✅ Identity Mapping은 Cloud Functions만 접근 가능 (앱 접근 불가)
-
----
-
-## 2. 데이터 모델 아키텍처
-
-### 2.1. 전체 데이터 모델 관계도
+## 1. 데이터 모델 ERD
 
 ```mermaid
 graph TB
-    subgraph Identity["🔐 Identity Layer (프라이버시 분리)"]
-        UA[UserAccount<br/>PII 포함]
-        AUI[AnonymousUserIdentity<br/>익명화된 ID]
-        IM[IdentityMapping<br/>ID 매핑 테이블]
-        CR[ConsentRecord<br/>동의 기록]
-        
-        UA -->|1:1| IM
-        AUI -->|1:1| IM
-        UA -->|1:N| CR
-    end
-    
-    subgraph User["👤 User Layer (사용자 정보)"]
-        UP[UserProfile<br/>프로필<br/>프로필/배경 이미지]
-        UDCS[UserDataCollectionSettings<br/>수집 설정]
-        OBS[OnboardingState<br/>온보딩 상태]
-        PS[PIPScore<br/>종합 점수]
-        
-        UA -->|1:1| UP
-        UA -->|1:1| UDCS
-        UP -->|1:1| OBS
-        UP -->|1:1| PS
-    end
-    
-    subgraph Data["📊 Data Layer (시계열 데이터)"]
-        TSP[TimeSeriesDataPoint<br/>시계열 데이터 포인트]
-        DTS[DataTypeSchema<br/>데이터 타입 스키마]
-        MLFV[MLFeatureVector<br/>ML 특징 벡터]
-        MLMO[MLModelOutput<br/>ML 모델 출력]
-        
-        AUI -->|1:N| TSP
-        DTS -->|스키마 정의| TSP
-        TSP -->|특징 추출| MLFV
-        MLFV -->|모델 입력| MLMO
-    end
-    
-    subgraph Visualization["💎 Visualization Layer (시각화)"]
-        DG[DailyGem<br/>일일 Gem]
-        DS[DailyStats<br/>일일 통계]
-        
-        UA -->|1:N| DG
-        TSP -->|dataPointIds 배열| DG
-        TSP -->|집계| DS
-        UA -->|1:N| DS
-    end
-    
-    subgraph Insight["💡 Insight Layer (인사이트)"]
-        INS[Insight<br/>인사이트]
-        OV[OrbVisualization<br/>Orb 시각화<br/>brightness: 재생성 성능<br/>borderBrightness: 예측 정확도<br/>uniqueFeatures: 고유 색상]
-        TD[TrendData<br/>트렌드 데이터]
-        PD[PredictionData<br/>예측 데이터]
-        IAC[InsightAnalysisCard<br/>카드뉴스 형식<br/>인스타 스토리]
-        
-        AUI -->|1:N| INS
-        TSP -->|basedOnDataPoints| INS
-        MLMO -->|mlModelOutputId| INS
-        AUI -->|1:N| OV
-        TSP -->|dataPointIds| OV
-        MLMO -->|mlModelOutputId| OV
-        AUI -->|1:N| TD
-        TSP -->|집계| TD
-        AUI -->|1:N| PD
-        MLMO -->|예측| PD
-        INS -->|1:N| IAC
-        AUI -->|1:N| IAC
-    end
-    
-    subgraph Goal["🎯 Goal Layer (목표)"]
-        G[Goal<br/>목표]
-        GP[GoalProgress<br/>진행 상황]
-        P[Program<br/>프로그램<br/>3D 일러스트<br/>인기도/평점]
-        GR[GoalRecommendation<br/>목표 추천]
-        
-        UA -->|1:N| G
-        G -->|1:N| GP
-        INS -->|basedOnInsights| GR
-        UA -->|1:N| GR
-    end
-    
-    subgraph Status["📈 Status Layer (통계)"]
-        US[UserStats<br/>사용자 통계<br/>totalDataPoints]
-        B[Badge<br/>뱃지]
-        A[Achievement<br/>성취<br/>3D 일러스트<br/>색상 스키마]
-        VA[ValueAnalysis<br/>가치관 분석]
-        
-        UA -->|1:1| US
-        UA -->|1:N| B
-        UA -->|1:N| A
-        UA -->|1:N| VA
-        TSP -->|분석| VA
-    end
-    
-    style UA fill:#ff6b6b,stroke:#333,stroke-width:2px
-    style AUI fill:#4ecdc4,stroke:#333,stroke-width:2px
-    style TSP fill:#95e1d3,stroke:#333,stroke-width:3px
-    style INS fill:#a8e6cf,stroke:#333,stroke-width:2px
-    style G fill:#ffd93d,stroke:#333,stroke-width:2px
+  subgraph Identity["🔐 Identity Layer"]
+    UA[UserAccount]
+    AUI[AnonymousUserIdentity]
+    IM[IdentityMapping]
+    CR[ConsentRecord]
+    UA -->|1:1| IM
+    AUI -->|1:1| IM
+    UA -->|1:N| CR
+  end
+  subgraph User["👤 User Layer"]
+    UP[UserProfile]
+    UDCS[UserDataCollectionSettings]
+    OBS[OnboardingState]
+    PS[PIPScore]
+    UA -->|1:1| UP
+    UA -->|1:1| UDCS
+    UP -->|1:1| OBS
+    UP -->|1:1| PS
+  end
+  subgraph Data["📊 Data Layer"]
+    TSP[TimeSeriesDataPoint]
+    DTS[DataTypeSchema]
+    MLFV[MLFeatureVector]
+    MLMO[MLModelOutput]
+    AUI -->|1:N| TSP
+    DTS -->|스키마 정의| TSP
+    TSP -->|특징 추출| MLFV
+    MLFV -->|모델 입력| MLMO
+  end
+  subgraph Visualization["💎 Visualization Layer"]
+    DG[DailyGem]
+    DS[DailyStats]
+    UA -->|1:N| DG
+    TSP -->|dataPointIds| DG
+    TSP -->|집계| DS
+    UA -->|1:N| DS
+  end
+  subgraph Insight["💡 Insight Layer"]
+    INS[Insight]
+    OV[OrbVisualization]
+    TD[TrendData]
+    PD[PredictionData]
+    IAC[InsightAnalysisCard]
+    AUI -->|1:N| INS
+    TSP -->|basedOnDataPoints| INS
+    MLMO -->|mlModelOutputId| INS
+    AUI -->|1:N| OV
+    TSP -->|dataPointIds| OV
+    MLMO -->|mlModelOutputId| OV
+    AUI -->|1:N| TD
+    TSP -->|집계| TD
+    AUI -->|1:N| PD
+    MLMO -->|예측| PD
+    INS -->|1:N| IAC
+    AUI -->|1:N| IAC
+  end
+  subgraph Goal["🎯 Goal Layer"]
+    G[Goal]
+    GP[GoalProgress]
+    P[Program]
+    GR[GoalRecommendation]
+    UA -->|1:N| G
+    G -->|1:N| GP
+    INS -->|basedOnInsights| GR
+    UA -->|1:N| GR
+  end
+  subgraph Status["📈 Status Layer"]
+    US[UserStats]
+    B[Badge]
+    A[Achievement]
+    VA[ValueAnalysis]
+    UA -->|1:1| US
+    UA -->|1:N| B
+    UA -->|1:N| A
+    UA -->|1:N| VA
+    TSP -->|분석| VA
+  end
+  style UA fill:#ff6b6b,stroke:#333,stroke-width:2px
+  style AUI fill:#4ecdc4,stroke:#333,stroke-width:2px
+  style TSP fill:#95e1d3,stroke:#333,stroke-width:3px
+  style INS fill:#a8e6cf,stroke:#333,stroke-width:2px
+  style G fill:#ffd93d,stroke:#333,stroke-width:2px
 ```
+
+---
+
+## 2. 앞으로의 작업 목록 (To-Do)
+
+- [ ] Firestore 실제 컬렉션/도큐먼트 구조 설계 및 문서화
+- [ ] 주요 엔티티별 최소 필드 정의 (UserAccount, TimeSeriesDataPoint 등)
+- [ ] 데이터 수집/집계/인사이트 생성 플로우 간단 도식화
+- [ ] Cloud Functions 자동화 설계 (예: 집계, 익명화, 삭제)
+- [ ] 데이터 마이그레이션/초기화 전략 수립
+- [ ] (선택) dbdiagram.io 등 외부 ERD 툴로 시각화
+
+---
+
+> 오컴의 면도날: 꼭 필요한 구조만 남기고, 상세/중복/예시는 별도 문서로 분리할 것!
 
 ### 2.2. Identity Separation 구조
 
