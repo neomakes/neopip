@@ -141,7 +141,7 @@ struct GoalCard: View {
                         .foregroundColor(.white)
 
                     Text(description)
-                        .font(.pip.caption1)
+                        .font(.pip.caption)
                         .foregroundColor(.gray)
                 }
 

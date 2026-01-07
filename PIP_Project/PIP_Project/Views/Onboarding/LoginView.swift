@@ -93,7 +93,7 @@ struct LoginView: View {
                     // Error message
                     if let errorMessage = viewModel.errorMessage {
                         Text(errorMessage)
-                            .font(.pip.caption1)
+                            .font(.pip.caption)
                             .foregroundColor(.red)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 32)
@@ -159,7 +159,7 @@ struct LoginView: View {
                             }
                         }) {
                             Text("Forgot Password?")
-                                .font(.pip.caption1)
+                                .font(.pip.caption)
                                 .foregroundColor(.gray)
                         }
                     }

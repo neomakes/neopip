@@ -219,7 +219,7 @@ class AuthService: ObservableObject {
 
     /// Map Firebase Auth errors to user-friendly messages
     private func mapAuthError(_ error: NSError) -> String {
-        guard let errorCode = AuthErrorCode.Code(rawValue: error.code) else {
+        guard let errorCode = AuthErrorCode(rawValue: error.code) else {
             return "An unknown error occurred. Please try again."
         }
 

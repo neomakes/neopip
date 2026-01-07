@@ -42,7 +42,7 @@ struct ProgramSelectionView: View {
             ScrollView {
                 VStack(spacing: 16) {
                     ForEach(mockPrograms, id: \.id) { program in
-                        ProgramCard(
+                        OnboardingProgramCard(
                             icon: program.icon,
                             name: program.name,
                             duration: program.duration,
@@ -96,7 +96,7 @@ struct ProgramSelectionView: View {
                     viewModel.previousStep()
                 }) {
                     Text("Back")
-                        .font(.pip.caption1)
+                        .font(.pip.caption)
                         .foregroundColor(.gray)
                 }
             }
@@ -106,8 +106,8 @@ struct ProgramSelectionView: View {
     }
 }
 
-// MARK: - Program Card
-struct ProgramCard: View {
+// MARK: - Onboarding Program Card
+struct OnboardingProgramCard: View {
     let icon: String
     let name: String
     let duration: String
@@ -133,7 +133,7 @@ struct ProgramCard: View {
                         .foregroundColor(.white)
 
                     Text(duration)
-                        .font(.pip.caption1)
+                        .font(.pip.caption)
                         .foregroundColor(.gray)
                 }
 

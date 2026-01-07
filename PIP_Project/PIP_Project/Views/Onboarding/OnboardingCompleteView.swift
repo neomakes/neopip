@@ -147,7 +147,7 @@ struct NextStepRow: View {
                     .foregroundColor(.white)
 
                 Text(description)
-                    .font(.pip.caption1)
+                    .font(.pip.caption)
                     .foregroundColor(.gray)
                     .fixedSize(horizontal: false, vertical: true)
             }

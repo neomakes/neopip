@@ -72,7 +72,7 @@ struct DataConsentView: View {
                         viewModel.consentToAll()
                     }) {
                         Text("Allow All")
-                            .font(.pip.caption1)
+                            .font(.pip.caption)
                             .foregroundColor(Color.pip.home.buttonAddGrad1)
                     }
                     .padding(.bottom, 8)
@@ -155,7 +155,7 @@ struct DataConsentRow: View {
 
                         if isRequired {
                             Text("Required")
-                                .font(.pip.caption2)
+                                .font(.pip.caption)
                                 .foregroundColor(Color.pip.home.buttonAddGrad1)
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 2)
@@ -167,7 +167,7 @@ struct DataConsentRow: View {
                     }
 
                     Text(description)
-                        .font(.pip.caption1)
+                        .font(.pip.caption)
                         .foregroundColor(.gray)
                 }
 

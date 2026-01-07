@@ -66,11 +66,11 @@ struct InsightPreviewView: View {
             // Info text
             VStack(spacing: 8) {
                 Text("These insights get better with time")
-                    .font(.pip.caption1)
+                    .font(.pip.caption)
                     .foregroundColor(.gray)
 
                 Text("The more data you collect, the more personalized and accurate your insights become")
-                    .font(.pip.caption2)
+                    .font(.pip.caption)
                     .foregroundColor(.gray.opacity(0.7))
                     .multilineTextAlignment(.center)
             }
