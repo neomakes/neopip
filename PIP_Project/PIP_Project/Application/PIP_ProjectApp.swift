@@ -6,12 +6,42 @@ import Firebase
 class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
-        // Configure Firebase
-        // Note: Make sure the `GoogleService-Info.plist` file is added to the project target.
-        FirebaseApp.configure()
-        print("🔥 Firebase configured successfully!")
-        
+
+        // Determine current environment
+        let environment = getCurrentEnvironment()
+
+        // Configure Firebase for non-mock environments
+        if let configFileName = environment.firebaseConfigFileName {
+            configureFirebase(configFileName: configFileName, environment: environment)
+        } else {
+            print("📦 Mock environment - Firebase not configured")
+        }
+
         return true
+    }
+
+    private func getCurrentEnvironment() -> AppEnvironment {
+        #if USE_MOCK_DATA
+        return .mock
+        #elseif DEV
+        return .development
+        #else
+        return .production
+        #endif
+    }
+
+    private func configureFirebase(configFileName: String, environment: AppEnvironment) {
+        // Try to load custom config file (for future prod/dev separation)
+        if let filePath = Bundle.main.path(forResource: configFileName, ofType: "plist"),
+           let options = FirebaseOptions(contentsOfFile: filePath) {
+            FirebaseApp.configure(options: options)
+            print("🔥 Firebase configured successfully! Environment: \(environment.displayName)")
+            print("🔥 Project ID: \(options.projectID ?? "Unknown")")
+        } else {
+            // Fallback to default GoogleService-Info.plist
+            FirebaseApp.configure()
+            print("🔥 Firebase configured with default plist! Environment: \(environment.displayName)")
+        }
     }
 }
 
@@ -21,14 +51,17 @@ struct PIP_ProjectApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
 
     // MARK: - Environment Configuration
-    // This flag determines which data service to use.
-    // - In "Debug" mode (with USE_MOCK_DATA flag), it defaults to `false`, using `MockDataService`.
-    // - In "Release" mode (or any configuration without the flag), it becomes `true`, using `FirebaseDataService`.
+    // This determines which data service to use based on build configuration
+    // - USE_MOCK_DATA: Uses MockDataService (UI testing)
+    // - DEV: Uses FirebaseDataService with DEV project
+    // - Production: Uses FirebaseDataService with PROD project (future)
     #if USE_MOCK_DATA
-    @StateObject private var dataServiceManager = DataServiceManager(useFirebase: false)
+    @StateObject private var dataServiceManager = DataServiceManager(environment: .mock)
+    #elseif DEV
+    @StateObject private var dataServiceManager = DataServiceManager(environment: .development)
     #else
-    @StateObject private var dataServiceManager = DataServiceManager(useFirebase: true)
-    #endif 
+    @StateObject private var dataServiceManager = DataServiceManager(environment: .production)
+    #endif
 
     var body: some Scene {
         WindowGroup {
@@ -36,37 +69,6 @@ struct PIP_ProjectApp: App {
             LaunchScreenWrapper()
                 .environmentObject(dataServiceManager)
         }
-    }
-}
-
-// MARK: - Data Service Manager
-// Manages the data service lifecycle and provides it to the app
-@MainActor
-class DataServiceManager: ObservableObject {
-    @Published private(set) var dataService: DataServiceProtocol
-    let useFirebase: Bool
-    
-    init(useFirebase: Bool) {
-        self.useFirebase = useFirebase
-        
-        if useFirebase {
-            print("🔥 Using Firebase Data Service")
-            self.dataService = FirebaseDataService()
-        } else {
-            print("📦 Using Mock Data Service")
-            self.dataService = MockDataService.shared
-        }
-    }
-    
-    // For switching data services at runtime (useful for testing)
-    func switchToMock() {
-        print("📦 Switching to Mock Data Service")
-        dataService = MockDataService.shared
-    }
-    
-    func switchToFirebase() {
-        print("🔥 Switching to Firebase Data Service")
-        dataService = FirebaseDataService()
     }
 }
 
@@ -107,5 +109,5 @@ struct LaunchScreenWrapper: View {
 // MARK: - Preview
 #Preview {
     LaunchScreenWrapper()
-        .environmentObject(DataServiceManager(useFirebase: false))
+        .environmentObject(DataServiceManager(environment: .mock))
 }

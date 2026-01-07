@@ -89,5 +89,5 @@ private struct MainTabContent: View {
 // MARK: - Preview
 #Preview {
     MainTabView()
-        .environmentObject(DataServiceManager(useFirebase: false))
+        .environmentObject(DataServiceManager(environment: .mock))
 }
