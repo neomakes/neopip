@@ -8,7 +8,7 @@ struct SettingsView: View {
         List {
             Section(header: Text("Legal").foregroundColor(.gray)) {
                 Button(action: {
-                    path.append(AppRoute.licenses)
+                    path.append(StatusRoute.licenses)
                 }) {
                     Label("Open Source Licenses", systemImage: "text.book.closed.fill")
                 }

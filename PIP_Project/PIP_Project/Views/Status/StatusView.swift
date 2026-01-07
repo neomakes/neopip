@@ -1,7 +1,7 @@
 // Location: Views/Status/StatusView.swift
 import SwiftUI
 
-enum AppRoute: Hashable {
+enum StatusRoute: Hashable {
     case settings
     case licenses
 }
@@ -52,7 +52,7 @@ struct StatusView: View {
                         Spacer(minLength: 100)
                     }
                 }
-                .navigationDestination(for: AppRoute.self) { route in
+                .navigationDestination(for: StatusRoute.self) { route in
                     switch route {
                     case .settings:
                         SettingsView(path: $path)

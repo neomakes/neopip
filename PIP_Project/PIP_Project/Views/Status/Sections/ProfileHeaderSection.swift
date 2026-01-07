@@ -14,7 +14,7 @@ struct ProfileHeaderSection: View {
                 HStack {
                     Spacer()
                     Button(action: {
-                        path.append(AppRoute.settings)
+                        path.append(StatusRoute.settings)
                     }) {
                         Image("icon_setting")
                             .resizable()
