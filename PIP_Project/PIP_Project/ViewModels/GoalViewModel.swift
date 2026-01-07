@@ -39,7 +39,6 @@ class GoalViewModel: ObservableObject {
     
     /// Load initial data
     func loadInitialData() {
-        print("🚀 [GoalViewModel] loadInitialData() called")
         isLoading = true
         createMockGoals()
         createMockPrograms()
@@ -47,7 +46,6 @@ class GoalViewModel: ObservableObject {
         createMockProgramProgress()
         selectFirstGoal()
         isLoading = false
-        print("✅ [GoalViewModel] loadInitialData() completed. newPrograms count: \(newPrograms.count)")
     }
     
     /// Select first active goal
@@ -292,30 +290,22 @@ class GoalViewModel: ObservableObject {
         let fileNames = ["P004-UUID-0004-0004", "P005-UUID-0005-0005", "P006-UUID-0006-0006", "P007-UUID-0007-0007", "P008-UUID-0008-0008"]
 
         var loadedPrograms: [Program] = []
-        print("🔍 [GoalViewModel] Starting to load new programs...")
 
         for fileName in fileNames {
-            print("📁 [GoalViewModel] Loading program: \(fileName)")
             if let program = loadNewProgram(from: fileName) {
                 loadedPrograms.append(program)
-                print("✅ [GoalViewModel] Successfully loaded program: \(program.name)")
-            } else {
-                print("❌ [GoalViewModel] Failed to load program: \(fileName)")
             }
         }
 
         newPrograms = loadedPrograms
-        print("📊 [GoalViewModel] Total new programs loaded: \(newPrograms.count)")
     }
 
     private func loadNewProgram(from fileName: String) -> Program? {
         // Try to load from Documents directory first (copied by MockDataService)
         let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?
             .appendingPathComponent("MockData/Goal/new_programs/\(fileName).json")
-        
-        print("📂 [loadNewProgram] Checking Documents path: \(documentsPath?.path ?? "nil")")
+
         if let documentsURL = documentsPath, FileManager.default.fileExists(atPath: documentsURL.path) {
-            print("📂 [loadNewProgram] File exists in Documents: \(documentsURL.path)")
             do {
                 let data = try Data(contentsOf: documentsURL)
                 let decoder = JSONDecoder()
@@ -323,12 +313,10 @@ class GoalViewModel: ObservableObject {
                 let program = try decoder.decode(Program.self, from: data)
                 return program
             } catch {
-                print("❌ [loadNewProgram] Error loading new program from Documents: \(error)")
+                // Failed to load from Documents, will try Bundle next
             }
-        } else {
-            print("📂 [loadNewProgram] File not found in Documents; falling back to Bundle")
         }
-        
+
         // Fallback: try to load from Bundle's MockData/Goal/new_programs, then root
         let subdirectory = "MockData/Goal/new_programs"
         if let bundleUrl = Bundle.main.url(forResource: fileName, withExtension: "json", subdirectory: subdirectory) {
@@ -337,11 +325,9 @@ class GoalViewModel: ObservableObject {
                 let decoder = JSONDecoder()
                 decoder.dateDecodingStrategy = .iso8601
                 let program = try decoder.decode(Program.self, from: data)
-                print("📂 [loadNewProgram] Loaded program from Bundle (subdirectory): \(bundleUrl.path)")
                 return program
             } catch {
-                print("❌ [loadNewProgram] Error loading new program from Bundle (subdirectory): \(error)")
-                return nil
+                // Failed to load from Bundle subdirectory, will try root
             }
         } else if let bundleUrlRoot = Bundle.main.url(forResource: fileName, withExtension: "json") {
             // Try root of Bundle
@@ -350,23 +336,13 @@ class GoalViewModel: ObservableObject {
                 let decoder = JSONDecoder()
                 decoder.dateDecodingStrategy = .iso8601
                 let program = try decoder.decode(Program.self, from: data)
-                print("📂 [loadNewProgram] Loaded program from Bundle (root): \(bundleUrlRoot.path)")
                 return program
             } catch {
-                print("❌ [loadNewProgram] Error loading new program from Bundle (root): \(error)")
+                // Failed to load program from all locations
                 return nil
             }
-        } else {
-            // Debug: list files in subdirectory if present
-            if let urls = Bundle.main.urls(forResourcesWithExtension: "json", subdirectory: subdirectory) {
-                print("📂 [loadNewProgram] Bundle contains \(urls.count) files in \(subdirectory)")
-            } else {
-                print("📂 [loadNewProgram] Bundle has no files in subdirectory \(subdirectory)")
-            }
-
-            print("⚠️ [loadNewProgram] File not found in Bundle: \(subdirectory)/\(fileName).json or root")
         }
-        
+
         return nil
     }
     
