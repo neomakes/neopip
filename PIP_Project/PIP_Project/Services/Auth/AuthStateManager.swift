@@ -38,16 +38,18 @@ class AuthStateManager: ObservableObject {
 
     /// Determine initial route based on auth state
     func determineInitialRoute() -> AppRoute {
-        if authService.isAuthenticated {
-            return .home
-        } else {
-            // Check if user has completed onboarding
-            if hasCompletedOnboarding() {
-                return .login
-            } else {
-                return .onboarding
-            }
+        // Step 1: Check authentication first
+        if !authService.isAuthenticated {
+            return .login
         }
+
+        // Step 2: If authenticated, check onboarding status
+        if !hasCompletedOnboarding() {
+            return .onboarding
+        }
+
+        // Step 3: Both authenticated and onboarded → go to home
+        return .home
     }
 
     /// Handle auth state changes

@@ -48,11 +48,11 @@ struct OnboardingCompleteView: View {
 
             // Title
             VStack(spacing: 16) {
-                Text("You're all set!")
+                Text("All Set!")
                     .font(.pip.hero)
                     .foregroundColor(.white)
 
-                Text("Your personal intelligence platform is ready")
+                Text("Ready to unlock your insights")
                     .font(.pip.title1)
                     .foregroundColor(Color.pip.home.buttonAddGrad1)
                     .multilineTextAlignment(.center)
@@ -62,26 +62,26 @@ struct OnboardingCompleteView: View {
 
             // Next steps
             VStack(alignment: .leading, spacing: 16) {
-                Text("What's next?")
+                Text("Getting Started")
                     .font(.pip.title2)
                     .foregroundColor(.white)
 
                 NextStepRow(
                     icon: "📝",
-                    title: "Record your first day",
-                    description: "Answer simple questions about your mood and energy"
+                    title: "Track your day",
+                    description: "Record your mood, energy, and activities"
                 )
 
                 NextStepRow(
                     icon: "💎",
-                    title: "Create your first Gem",
-                    description: "Your daily data becomes a beautiful Gem"
+                    title: "Build your Gem",
+                    description: "Watch your daily data transform into beautiful Gems"
                 )
 
                 NextStepRow(
                     icon: "📊",
-                    title: "Unlock insights",
-                    description: "Get AI-powered insights after 3 days of data"
+                    title: "Discover patterns",
+                    description: "Unlock AI-powered insights after 3 days"
                 )
             }
             .padding(.horizontal, 32)
@@ -92,7 +92,7 @@ struct OnboardingCompleteView: View {
             VStack(spacing: 12) {
                 // Start journaling button
                 Button(action: onStartJournaling) {
-                    Text("Start Journaling")
+                    Text("Let's Begin")
                         .font(.pip.title2)
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
@@ -112,7 +112,7 @@ struct OnboardingCompleteView: View {
 
                 // Skip button (go to home without journaling)
                 Button(action: onStartJournaling) {
-                    Text("Explore the app first")
+                    Text("Explore first")
                         .font(.pip.body)
                         .foregroundColor(.gray)
                 }

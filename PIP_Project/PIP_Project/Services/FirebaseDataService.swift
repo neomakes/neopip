@@ -148,8 +148,23 @@ class FirebaseDataService: DataServiceProtocol {
     }
     
     func saveData(_ dataPoint: TimeSeriesDataPoint, for category: DataCategory) async throws {
-        // TODO: Implement Firebase logic
-        print("saveData for category not implemented in FirebaseDataService")
+        let anonymousUserId = try await getAnonymousUserId()
+
+        // Create a new data point with the anonymous user ID and category
+        var updatedDataPoint = dataPoint
+        updatedDataPoint.anonymousUserId = anonymousUserId
+        updatedDataPoint.category = category
+
+        print("💾 [Firebase] Saving data for category \(category): \(updatedDataPoint.id)")
+
+        try db
+            .collection("anonymous_users")
+            .document(anonymousUserId.uuidString)
+            .collection("time_series_data")
+            .document(updatedDataPoint.id.uuidString)
+            .setData(from: updatedDataPoint)
+
+        print("✅ [Firebase] Saved data for category \(category) successfully")
     }
     
     func deleteDataPoint(_ id: UUID) -> AnyPublisher<Void, Error> {

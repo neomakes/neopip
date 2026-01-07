@@ -79,14 +79,14 @@ struct PIP_ProjectApp: App {
 }
 
 // MARK: - Launch Screen Wrapper
-// Manages the transition from LaunchView to Onboarding or MainTabView
+// Manages the transition from LaunchView to Onboarding, Login, or MainTabView
 struct LaunchScreenWrapper: View {
     @EnvironmentObject var dataServiceManager: DataServiceManager
     @EnvironmentObject var authStateManager: AuthStateManager
     @EnvironmentObject var authService: AuthService
 
     @State private var isLoading: Bool = true
-    @State private var shouldShowOnboarding: Bool = false
+    @State private var currentRoute: AppRoute = .onboarding
 
     var body: some View {
         ZStack {
@@ -95,12 +95,15 @@ struct LaunchScreenWrapper: View {
                 LaunchView()
                     .transition(.opacity) // Smooth fade transition
             } else {
-                // Route based on onboarding status
-                if shouldShowOnboarding {
+                // Route based on onboarding and auth status
+                switch currentRoute {
+                case .onboarding:
                     OnboardingView()
                         .transition(.opacity)
-                } else {
-                    // Main Application Content
+                case .login:
+                    LoginView()
+                        .transition(.opacity)
+                case .home:
                     MainTabView()
                         .transition(.opacity)
                 }
@@ -119,11 +122,11 @@ struct LaunchScreenWrapper: View {
         Task {
             try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
 
-            // Check if onboarding is completed
-            let hasCompletedOnboarding = authStateManager.hasCompletedOnboarding()
+            // Determine routing based on onboarding and auth status
+            let route = authStateManager.determineInitialRoute()
 
             withAnimation(.easeInOut(duration: 0.8)) {
-                shouldShowOnboarding = !hasCompletedOnboarding
+                currentRoute = route
                 isLoading = false
             }
         }

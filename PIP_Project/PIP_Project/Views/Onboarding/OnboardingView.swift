@@ -92,15 +92,10 @@ struct WelcomeStepView: View {
             Spacer()
 
             // Logo/Icon
-            Circle()
-                .fill(
-                    LinearGradient(
-                        colors: [Color.pip.home.buttonAddGrad1, Color.pip.home.buttonAddGrad2],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .frame(width: 120, height: 120)
+            Image("LogoDisplay")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 130, height: 130)
                 .overlay(
                     Circle()
                         .stroke(Color.pip.home.buttonAddGrad1, lineWidth: 3)
@@ -108,7 +103,7 @@ struct WelcomeStepView: View {
                 )
 
             VStack(spacing: 16) {
-                Text("Welcome to PIP")
+                Text("Welcome to PIVOT")
                     .font(.pip.hero)
                     .foregroundColor(.white)
 

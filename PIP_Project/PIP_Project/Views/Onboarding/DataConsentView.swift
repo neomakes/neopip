@@ -179,7 +179,10 @@ struct DataConsentRow: View {
                         .font(.system(size: 20))
                         .foregroundColor(Color.pip.home.buttonAddGrad1)
                 } else {
-                    Toggle("", isOn: .constant(isConsented))
+                    Toggle("", isOn: Binding(
+                        get: { isConsented },
+                        set: { _ in onToggle() }
+                    ))
                         .toggleStyle(SwitchToggleStyle(tint: Color.pip.home.buttonAddGrad1))
                         .labelsHidden()
                 }

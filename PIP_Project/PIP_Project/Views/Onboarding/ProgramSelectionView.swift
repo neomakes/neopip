@@ -12,11 +12,12 @@ struct ProgramSelectionView: View {
     @ObservedObject var viewModel: OnboardingViewModel
 
     // Mock programs for onboarding (will be replaced with real data)
+    // Using fixed UUIDs to ensure consistent identification across View re-renders
     let mockPrograms: [(id: UUID, name: String, duration: String, icon: String)] = [
-        (UUID(), "21-Day Emotional Journal", "3 weeks", "📔"),
-        (UUID(), "Morning Meditation Habit", "30 days", "🧘"),
-        (UUID(), "Weekly Reading Goal", "10 weeks", "📚"),
-        (UUID(), "Daily Gratitude Practice", "21 days", "✨")
+        (UUID(uuidString: "A1B2C3D4-E5F6-7890-ABCD-EF1234567890")!, "21-Day Emotional Journal", "3 weeks", "📔"),
+        (UUID(uuidString: "B2C3D4E5-F6A7-8901-BCDE-F12345678901")!, "Morning Meditation Habit", "30 days", "🧘"),
+        (UUID(uuidString: "C3D4E5F6-A7B8-9012-CDEF-123456789012")!, "Weekly Reading Goal", "10 weeks", "📚"),
+        (UUID(uuidString: "D4E5F6A7-B8C9-0123-DEF1-234567890123")!, "Daily Gratitude Practice", "21 days", "✨")
     ]
 
     var body: some View {
