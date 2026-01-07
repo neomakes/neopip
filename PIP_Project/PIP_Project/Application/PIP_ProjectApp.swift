@@ -21,23 +21,60 @@ struct PIP_ProjectApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
 
     // MARK: - Environment Configuration
-    // Set to `true` to use the real FirebaseDataService, `false` to use MockDataService.
-    // This allows for easy switching between development/testing and production environments.
-    private let useFirebase = false 
+    // This flag determines which data service to use.
+    // - In "Debug" mode (with USE_MOCK_DATA flag), it defaults to `false`, using `MockDataService`.
+    // - In "Release" mode (or any configuration without the flag), it becomes `true`, using `FirebaseDataService`.
+    #if USE_MOCK_DATA
+    @StateObject private var dataServiceManager = DataServiceManager(useFirebase: false)
+    #else
+    @StateObject private var dataServiceManager = DataServiceManager(useFirebase: true)
+    #endif 
 
     var body: some Scene {
         WindowGroup {
             // Entry point for the application, passing the data service choice
-            LaunchScreenWrapper(useFirebase: useFirebase)
+            LaunchScreenWrapper()
+                .environmentObject(dataServiceManager)
         }
+    }
+}
+
+// MARK: - Data Service Manager
+// Manages the data service lifecycle and provides it to the app
+@MainActor
+class DataServiceManager: ObservableObject {
+    @Published private(set) var dataService: DataServiceProtocol
+    let useFirebase: Bool
+    
+    init(useFirebase: Bool) {
+        self.useFirebase = useFirebase
+        
+        if useFirebase {
+            print("🔥 Using Firebase Data Service")
+            self.dataService = FirebaseDataService()
+        } else {
+            print("📦 Using Mock Data Service")
+            self.dataService = MockDataService.shared
+        }
+    }
+    
+    // For switching data services at runtime (useful for testing)
+    func switchToMock() {
+        print("📦 Switching to Mock Data Service")
+        dataService = MockDataService.shared
+    }
+    
+    func switchToFirebase() {
+        print("🔥 Switching to Firebase Data Service")
+        dataService = FirebaseDataService()
     }
 }
 
 // MARK: - Launch Screen Wrapper
 // Manages the transition from LaunchView to MainTabView
 struct LaunchScreenWrapper: View {
+    @EnvironmentObject var dataServiceManager: DataServiceManager
     @State private var isLoading: Bool = true
-    let useFirebase: Bool // Receive the data service choice
 
     var body: some View {
         ZStack {
@@ -47,7 +84,7 @@ struct LaunchScreenWrapper: View {
                     .transition(.opacity) // Smooth fade transition
             } else {
                 // Main Application Content, now configured with the selected data service
-                MainTabView(useFirebase: useFirebase)
+                MainTabView()
                     .transition(.opacity)
             }
         }
@@ -58,7 +95,8 @@ struct LaunchScreenWrapper: View {
 
     private func startLoadingProcess() {
         // Delay for 1.0 second then switch view
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+        Task {
+            try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
             withAnimation(.easeInOut(duration: 0.8)) {
                 isLoading = false
             }
@@ -68,5 +106,6 @@ struct LaunchScreenWrapper: View {
 
 // MARK: - Preview
 #Preview {
-    LaunchScreenWrapper(useFirebase: false)
+    LaunchScreenWrapper()
+        .environmentObject(DataServiceManager(useFirebase: false))
 }

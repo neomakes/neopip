@@ -8,7 +8,6 @@
 import Foundation
 import Combine
 import FirebaseFirestore
-import FirebaseFirestoreSwift
 
 // Firebase implementation of DataServiceProtocol
 class FirebaseDataService: DataServiceProtocol {
@@ -130,5 +129,11 @@ class FirebaseDataService: DataServiceProtocol {
         // TODO: Implement Firebase logic
         return Fail(error: NSError(domain: "FirebaseDataService", code: 0, userInfo: [NSLocalizedDescriptionKey: "Not implemented"]))
             .eraseToAnyPublisher()
+    }
+
+    // MARK: - Schemas
+    func getSchemas(for category: DataCategory) -> [DataTypeSchema] {
+        // TODO: Implement Firebase logic to fetch schemas
+        return []
     }
 }
