@@ -50,6 +50,10 @@ struct PIP_ProjectApp: App {
     // MARK: - App Delegate
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
 
+    // MARK: - State Management
+    @StateObject private var authStateManager = AuthStateManager.shared
+    @StateObject private var authService = AuthService.shared
+
     // MARK: - Environment Configuration
     // This determines which data service to use based on build configuration
     // - USE_MOCK_DATA: Uses MockDataService (UI testing)
@@ -68,15 +72,21 @@ struct PIP_ProjectApp: App {
             // Entry point for the application, passing the data service choice
             LaunchScreenWrapper()
                 .environmentObject(dataServiceManager)
+                .environmentObject(authStateManager)
+                .environmentObject(authService)
         }
     }
 }
 
 // MARK: - Launch Screen Wrapper
-// Manages the transition from LaunchView to MainTabView
+// Manages the transition from LaunchView to Onboarding or MainTabView
 struct LaunchScreenWrapper: View {
     @EnvironmentObject var dataServiceManager: DataServiceManager
+    @EnvironmentObject var authStateManager: AuthStateManager
+    @EnvironmentObject var authService: AuthService
+
     @State private var isLoading: Bool = true
+    @State private var shouldShowOnboarding: Bool = false
 
     var body: some View {
         ZStack {
@@ -85,9 +95,15 @@ struct LaunchScreenWrapper: View {
                 LaunchView()
                     .transition(.opacity) // Smooth fade transition
             } else {
-                // Main Application Content, now configured with the selected data service
-                MainTabView()
-                    .transition(.opacity)
+                // Route based on onboarding status
+                if shouldShowOnboarding {
+                    OnboardingView()
+                        .transition(.opacity)
+                } else {
+                    // Main Application Content
+                    MainTabView()
+                        .transition(.opacity)
+                }
             }
         }
         .onAppear {
@@ -96,10 +112,18 @@ struct LaunchScreenWrapper: View {
     }
 
     private func startLoadingProcess() {
-        // Delay for 1.0 second then switch view
+        // Start auth listener
+        authService.startAuthStateListener()
+
+        // Delay for 1.0 second then determine route
         Task {
             try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
+
+            // Check if onboarding is completed
+            let hasCompletedOnboarding = authStateManager.hasCompletedOnboarding()
+
             withAnimation(.easeInOut(duration: 0.8)) {
+                shouldShowOnboarding = !hasCompletedOnboarding
                 isLoading = false
             }
         }
@@ -110,4 +134,6 @@ struct LaunchScreenWrapper: View {
 #Preview {
     LaunchScreenWrapper()
         .environmentObject(DataServiceManager(environment: .mock))
+        .environmentObject(AuthStateManager.shared)
+        .environmentObject(AuthService.shared)
 }
