@@ -34,12 +34,7 @@ struct HomeView: View {
                     onWriteRequested: onWriteRequested ?? {},
                     currentStreak: viewModel.currentStreak  // 계산된 스트릭 사용
                 )
-                .onAppear {
-                    print("🏠 [HomeView] Appeared - last7Days count: \(viewModel.last7Days.count)")
-                    print("🏠 [HomeView] dailyGems count: \(viewModel.dailyGems.count)")
-                    print("🏠 [HomeView] isLoading: \(viewModel.isLoading)")
-                }
-                
+
                 Spacer()  // TabBar 위까지 확장
             }
             .ignoresSafeArea(edges: .bottom)
