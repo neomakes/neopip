@@ -83,7 +83,7 @@ struct TimeSeriesWindowForGoal: Codable {
 /// Firestore의 users/{accountId}/goals/{goalId}에 저장
 struct Goal: Identifiable, Codable {
     let id: UUID
-    var accountId: UUID
+    var accountId: String
     var title: String
     var description: String?
     var category: GoalCategory
@@ -96,10 +96,6 @@ struct Goal: Identifiable, Codable {
     var relatedDataPointIds: [String]    // 관련 TimeSeriesDataPoint ID 배열
     var createdAt: Date
     var updatedAt: Date
-    
-    var accountIdString: String {
-        accountId.uuidString
-    }
     
     var goalIdString: String {
         id.uuidString
@@ -300,15 +296,11 @@ struct ProgramIllustration3D: Codable {
 
 struct ProgramReview: Identifiable, Codable {
     let id: UUID
-    var accountId: UUID
+    var accountId: String
     var programId: UUID
     var rating: Double             // 1.0 ~ 5.0
     var comment: String?
     var createdAt: Date
-    
-    var accountIdString: String {
-        accountId.uuidString
-    }
 }
 
 enum DifficultyLevel: String, Codable {
@@ -364,7 +356,7 @@ struct ProgramStep: Identifiable, Codable {
 struct GoalProgress: Identifiable, Codable {
     let id: UUID
     var goalId: UUID
-    var accountId: UUID
+    var accountId: String
     var date: Date
     var progress: Double           // 0.0 ~ 1.0
     var activitiesCompleted: Int
@@ -375,10 +367,6 @@ struct GoalProgress: Identifiable, Codable {
     var goalIdString: String {
         goalId.uuidString
     }
-    
-    var accountIdString: String {
-        accountId.uuidString
-    }
 }
 
 // MARK: - Goal Recommendation
@@ -386,7 +374,7 @@ struct GoalProgress: Identifiable, Codable {
 /// Firestore의 users/{accountId}/goal_recommendations/{recommendationId}에 저장
 struct GoalRecommendation: Identifiable, Codable {
     let id: UUID
-    var accountId: UUID
+    var accountId: String
     var goalId: UUID?                     // 기존 목표 ID (없으면 새로 생성)
     var title: String
     var description: String
@@ -396,10 +384,6 @@ struct GoalRecommendation: Identifiable, Codable {
     var expectedImpact: Double            // 예상 효과 (0.0 ~ 1.0)
     var basedOnInsights: [String]         // 기반 인사이트 ID들 (String 배열)
     var createdAt: Date
-    
-    var accountIdString: String {
-        accountId.uuidString
-    }
 }
 // MARK: - Program Progress
 /// 프로그램 진행 상황 (메트릭 및 스토리 포함)
@@ -408,7 +392,7 @@ struct ProgramProgress: Identifiable, Codable {
     let id: UUID
     var programId: UUID
     var goalId: UUID
-    var accountId: UUID
+    var accountId: String
     
     // 메트릭 데이터
     var beforeMetrics: [String: Double]    // 프로그램 시작 전 메트릭 (mood, stress, energy 등)
@@ -433,10 +417,6 @@ struct ProgramProgress: Identifiable, Codable {
     
     var goalIdString: String {
         goalId.uuidString
-    }
-    
-    var accountIdString: String {
-        accountId.uuidString
     }
 }
 
@@ -572,7 +552,7 @@ enum ProgramStoryVisualizationType: String, Codable {
 /// 목표 추천 알고리즘 입력
 /// Firestore에 저장하지 않고, 쿼리로 생성
 struct GoalRecommendationInput: Codable {
-    var accountId: UUID
+    var accountId: String
     var anonymousUserId: UUID
     var timeSeriesWindow: TimeSeriesWindowForGoal?
     var currentGoals: [String]             // 현재 활성 목표 ID들

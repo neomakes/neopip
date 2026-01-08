@@ -56,10 +56,15 @@ class HomeViewModel: ObservableObject {
     
     // MARK: - Initialization
     init(dataService: DataServiceProtocol? = nil) {
-        self.dataService = dataService ?? MockDataService.shared
+        if let service = dataService {
+            self.dataService = service
+        } else {
+            // Use MockDataService as fallback
+            self.dataService = MockDataService.shared
+        }
         self.userName = "Neo"  // Mock username (actually retrieved from Firebase Auth)
         loadInitialData()
-        
+
         // 매일 자정에 데이터 새로고침 (Streak 업데이트를 위함)
         setupDailyRefresh()
     }

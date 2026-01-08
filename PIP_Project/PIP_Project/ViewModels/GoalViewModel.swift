@@ -30,22 +30,143 @@ class GoalViewModel: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     
     // MARK: - Initialization
-    init(dataService: DataServiceProtocol = MockDataService.shared) {
-        self.dataService = dataService
+    init(dataService: DataServiceProtocol? = nil) {
+        if let service = dataService {
+            self.dataService = service
+        } else {
+            // Use MockDataService as fallback
+            self.dataService = MockDataService.shared
+        }
         loadInitialData()
     }
-    
+
     // MARK: - Public Methods
-    
-    /// Load initial data
+
+    /// Load initial data from Firebase
     func loadInitialData() {
+        print("📥 [GoalViewModel] Loading initial data...")
         isLoading = true
-        createMockGoals()
-        createMockPrograms()
-        createMockNewPrograms()
-        createMockProgramProgress()
-        selectFirstGoal()
-        isLoading = false
+        errorMessage = nil
+
+        // Fetch Goals from Firebase
+        dataService.fetchGoals()
+            .receive(on: DispatchQueue.main)
+            .sink(
+                receiveCompletion: { [weak self] completion in
+                    if case .failure(let error) = completion {
+                        print("❌ [GoalViewModel] Error fetching goals: \(error)")
+                        self?.errorMessage = error.localizedDescription
+                        // Fallback to mock data if Firebase fails
+                        self?.createMockGoals()
+                    }
+                },
+                receiveValue: { [weak self] goals in
+                    print("✅ [GoalViewModel] Fetched \(goals.count) goals from Firebase")
+                    self?.activeGoals = goals.filter { $0.status == .active }
+                    if self?.activeGoals.isEmpty == true {
+                        // If no goals exist, create mock data for demo
+                        self?.createMockGoals()
+                    }
+                    self?.selectFirstGoal()
+                }
+            )
+            .store(in: &cancellables)
+
+        // Fetch Programs from Firebase
+        dataService.fetchPrograms()
+            .receive(on: DispatchQueue.main)
+            .sink(
+                receiveCompletion: { [weak self] completion in
+                    self?.isLoading = false
+                    if case .failure(let error) = completion {
+                        print("❌ [GoalViewModel] Error fetching programs: \(error)")
+                        self?.errorMessage = error.localizedDescription
+                        // Fallback to mock data
+                        self?.createMockPrograms()
+                        self?.createMockNewPrograms()
+                    }
+                },
+                receiveValue: { [weak self] programs in
+                    print("✅ [GoalViewModel] Fetched \(programs.count) programs from Firebase")
+                    self?.availablePrograms = programs
+                    self?.newPrograms = programs.filter { $0.isRecommended }.prefix(5).map { $0 }
+                    if self?.availablePrograms.isEmpty == true {
+                        // If no programs exist, create mock data for demo
+                        self?.createMockPrograms()
+                        self?.createMockNewPrograms()
+                    }
+                    self?.createMockProgramProgress()
+                }
+            )
+            .store(in: &cancellables)
+    }
+
+    /// Save a new goal to Firebase
+    func saveGoal(_ goal: Goal) {
+        print("💾 [GoalViewModel] Saving goal: \(goal.title)")
+        dataService.saveGoal(goal)
+            .receive(on: DispatchQueue.main)
+            .sink(
+                receiveCompletion: { [weak self] completion in
+                    if case .failure(let error) = completion {
+                        print("❌ [GoalViewModel] Error saving goal: \(error)")
+                        self?.errorMessage = "Failed to save goal: \(error.localizedDescription)"
+                    }
+                },
+                receiveValue: { [weak self] savedGoal in
+                    print("✅ [GoalViewModel] Goal saved successfully")
+                    // Add to local array if not already present
+                    if let index = self?.activeGoals.firstIndex(where: { $0.id == savedGoal.id }) {
+                        self?.activeGoals[index] = savedGoal
+                    } else {
+                        self?.activeGoals.append(savedGoal)
+                    }
+                }
+            )
+            .store(in: &cancellables)
+    }
+
+    /// Update existing goal in Firebase
+    func updateGoal(_ goal: Goal) {
+        print("🔄 [GoalViewModel] Updating goal: \(goal.title)")
+        dataService.updateGoal(goal)
+            .receive(on: DispatchQueue.main)
+            .sink(
+                receiveCompletion: { [weak self] completion in
+                    if case .failure(let error) = completion {
+                        print("❌ [GoalViewModel] Error updating goal: \(error)")
+                        self?.errorMessage = "Failed to update goal: \(error.localizedDescription)"
+                    }
+                },
+                receiveValue: { [weak self] updatedGoal in
+                    print("✅ [GoalViewModel] Goal updated successfully")
+                    if let index = self?.activeGoals.firstIndex(where: { $0.id == updatedGoal.id }) {
+                        self?.activeGoals[index] = updatedGoal
+                    }
+                }
+            )
+            .store(in: &cancellables)
+    }
+
+    /// Delete goal from Firebase
+    func deleteGoal(_ goalId: UUID) {
+        print("🗑️ [GoalViewModel] Deleting goal: \(goalId)")
+        dataService.deleteGoal(id: goalId)
+            .receive(on: DispatchQueue.main)
+            .sink(
+                receiveCompletion: { [weak self] completion in
+                    if case .failure(let error) = completion {
+                        print("❌ [GoalViewModel] Error deleting goal: \(error)")
+                        self?.errorMessage = "Failed to delete goal: \(error.localizedDescription)"
+                    }
+                },
+                receiveValue: { [weak self] _ in
+                    print("✅ [GoalViewModel] Goal deleted successfully")
+                    self?.activeGoals.removeAll { $0.id == goalId }
+                    self?.selectFirstGoal()
+                }
+            )
+            .store(in: &cancellables)
     }
     
     /// Select first active goal

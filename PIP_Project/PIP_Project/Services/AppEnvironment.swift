@@ -14,6 +14,17 @@ enum AppEnvironment {
     case development // Firebase DEV environment
     case production  // Firebase PROD environment
 
+    /// Current environment based on compile flags
+    static var current: AppEnvironment {
+        #if USE_MOCK_DATA
+        return .mock
+        #elseif DEV
+        return .development
+        #else
+        return .production
+        #endif
+    }
+
     var displayName: String {
         switch self {
         case .mock: return "📦 Mock"

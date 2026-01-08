@@ -384,7 +384,7 @@ struct TriangleShape: Shape {
         GemView(
             gem: DailyGem(
                 id: UUID(),
-                accountId: UUID(),
+                accountId: String(),
                 date: Date(),
                 gemType: .sphere,
                 brightness: 0.8,
@@ -404,7 +404,7 @@ struct TriangleShape: Shape {
         GemView(
             gem: DailyGem(
                 id: UUID(),
-                accountId: UUID(),
+                accountId: String(),
                 date: Date(),
                 gemType: .diamond,
                 brightness: 0.7,
@@ -424,7 +424,7 @@ struct TriangleShape: Shape {
         GemView(
             gem: DailyGem(
                 id: UUID(),
-                accountId: UUID(),
+                accountId: String(),
                 date: Date(),
                 gemType: .crystal,
                 brightness: 0.75,

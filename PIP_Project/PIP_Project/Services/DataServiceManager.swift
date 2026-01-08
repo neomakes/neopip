@@ -13,8 +13,15 @@ import Combine
 /// Manages the data service lifecycle and provides it to the app
 @MainActor
 class DataServiceManager: ObservableObject {
+    static let shared = DataServiceManager(environment: AppEnvironment.current)
+
     @Published private(set) var dataService: DataServiceProtocol
     let environment: AppEnvironment
+
+    /// Convenience property to access current service
+    var currentService: DataServiceProtocol {
+        return dataService
+    }
 
     init(environment: AppEnvironment) {
         self.environment = environment

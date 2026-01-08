@@ -9,6 +9,7 @@
 import Foundation
 import SwiftUI
 import Combine
+import FirebaseAuth
 import FirebaseFirestore
 
 @MainActor
@@ -25,7 +26,20 @@ class OnboardingViewModel: ObservableObject {
     // MARK: - Dependencies
     private let authStateManager = AuthStateManager.shared
     private let authService = AuthService.shared
+    private let dataService: DataServiceProtocol
     private let db = Firestore.firestore()
+    private var cancellables = Set<AnyCancellable>()
+
+    // MARK: - Initialization
+    init(dataService: DataServiceProtocol? = nil) {
+        if let service = dataService {
+            self.dataService = service
+        } else {
+            // Use MockDataService as fallback for now
+            // In production, DataServiceManager will be accessed from @MainActor context
+            self.dataService = MockDataService.shared
+        }
+    }
 
     // MARK: - Onboarding Steps
 
@@ -190,19 +204,106 @@ class OnboardingViewModel: ObservableObject {
                 skippedSteps: []
             )
 
+            // Create and save UserProfile to Firebase
+            if authService.isAuthenticated {
+                let userProfile = UserProfile(
+                    accountId: authService.currentUser?.uid ?? "",
+                    displayName: authService.currentUser?.displayName,
+                    email: authService.currentUser?.email,
+                    profileImageURL: authService.currentUser?.photoURL?.absoluteString,
+                    backgroundImageURL: nil,
+                    createdAt: Date(),
+                    lastActiveAt: Date(),
+                    preferences: UserPreferences(
+                        theme: .system,
+                        notificationsEnabled: true,
+                        language: "en",
+                        timeZone: TimeZone.current.identifier
+                    ),
+                    onboardingState: onboardingState,
+                    initialGoals: selectedGoals,
+                    firstJournalDate: nil
+                )
+
+                // Save profile to Firebase
+                print("💾 [Onboarding] Saving user profile to Firebase...")
+                await saveUserProfile(userProfile)
+
+                // Create initial UserStats
+                let initialStats = UserStats(
+                    accountId: authService.currentUser?.uid ?? "",
+                    totalDataPoints: 0,
+                    totalDaysActive: 0,
+                    currentStreak: 0,
+                    longestStreak: 0,
+                    totalGoalsCompleted: 0,
+                    totalProgramsCompleted: 0,
+                    averageEmotionScore: 0.0,
+                    totalGemsCreated: 0,
+                    lastUpdated: Date()
+                )
+
+                // Save initial stats to Firebase
+                print("💾 [Onboarding] Saving initial user stats to Firebase...")
+                await saveUserStats(initialStats)
+            }
+
             // Mark as completed locally
             authStateManager.completeOnboarding()
 
-            // Save selected goals and programs
+            // Save selected goals and programs locally (backup)
             UserDefaults.standard.set(selectedGoals.map { $0.rawValue }, forKey: "initialGoals")
             UserDefaults.standard.set(selectedPrograms.map { $0.uuidString }, forKey: "selectedPrograms")
             UserDefaults.standard.set(consentedDataTypes, forKey: "consentedDataTypes")
 
+            print("✅ [Onboarding] Completed successfully")
+
         } catch {
             errorMessage = "Failed to complete onboarding: \(error.localizedDescription)"
+            print("❌ [Onboarding] Error: \(error)")
         }
 
         isLoading = false
+    }
+
+    // MARK: - Private Helpers
+
+    /// Save user profile to Firebase
+    private func saveUserProfile(_ profile: UserProfile) async {
+        await withCheckedContinuation { continuation in
+            dataService.saveUserProfile(profile)
+                .receive(on: DispatchQueue.main)
+                .sink { completion in
+                    switch completion {
+                    case .finished:
+                        print("✅ [Onboarding] User profile saved successfully")
+                    case .failure(let error):
+                        print("❌ [Onboarding] Failed to save user profile: \(error)")
+                        self.errorMessage = "Failed to save profile: \(error.localizedDescription)"
+                    }
+                    continuation.resume()
+                } receiveValue: { _ in }
+                .store(in: &cancellables)
+        }
+    }
+
+    /// Save user stats to Firebase
+    private func saveUserStats(_ stats: UserStats) async {
+        await withCheckedContinuation { continuation in
+            dataService.updateUserStats(stats)
+                .receive(on: DispatchQueue.main)
+                .sink { completion in
+                    switch completion {
+                    case .finished:
+                        print("✅ [Onboarding] User stats saved successfully")
+                    case .failure(let error):
+                        print("❌ [Onboarding] Failed to save user stats: \(error)")
+                        self.errorMessage = "Failed to save stats: \(error.localizedDescription)"
+                    }
+                    continuation.resume()
+                } receiveValue: { _ in }
+                .store(in: &cancellables)
+        }
     }
 
     /// Check if can proceed to next step

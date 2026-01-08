@@ -32,7 +32,21 @@ protocol DataServiceProtocol {
     
     // MARK: - UserProfile
     func fetchUserProfile() -> AnyPublisher<UserProfile, Error>
-    
+    func saveUserProfile(_ profile: UserProfile) -> AnyPublisher<UserProfile, Error>
+    func updateUserProfile(_ profile: UserProfile) -> AnyPublisher<UserProfile, Error>
+
+    // MARK: - Goals
+    func fetchGoals() -> AnyPublisher<[Goal], Error>
+    func fetchGoal(id: UUID) -> AnyPublisher<Goal?, Error>
+    func saveGoal(_ goal: Goal) -> AnyPublisher<Goal, Error>
+    func updateGoal(_ goal: Goal) -> AnyPublisher<Goal, Error>
+    func deleteGoal(id: UUID) -> AnyPublisher<Void, Error>
+
+    // MARK: - Programs
+    func fetchPrograms() -> AnyPublisher<[Program], Error>
+    func fetchProgram(id: UUID) -> AnyPublisher<Program?, Error>
+    func fetchRecommendedPrograms(for userId: String) -> AnyPublisher<[Program], Error>
+
     // MARK: - Achievements
     func fetchAchievements() -> AnyPublisher<[Achievement], Error>
     

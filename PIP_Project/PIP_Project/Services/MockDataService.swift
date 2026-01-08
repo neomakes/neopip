@@ -1267,12 +1267,118 @@ class MockDataService: DataServiceProtocol {
             return Fail(error: NSError(domain: "MockDataService", code: 404, userInfo: [NSLocalizedDescriptionKey: "UserProfile not found"]))
                 .eraseToAnyPublisher()
         }
-        
+
         return Just(profile)
             .setFailureType(to: Error.self)
             .eraseToAnyPublisher()
     }
-    
+
+    func saveUserProfile(_ profile: UserProfile) -> AnyPublisher<UserProfile, Error> {
+        var updatedProfile = profile
+        updatedProfile.accountId = mockAccountId
+        mockUserProfile = updatedProfile
+        saveJSON(updatedProfile, to: FileName.userProfile)
+
+        return Just(updatedProfile)
+            .setFailureType(to: Error.self)
+            .eraseToAnyPublisher()
+    }
+
+    func updateUserProfile(_ profile: UserProfile) -> AnyPublisher<UserProfile, Error> {
+        mockUserProfile = profile
+        saveJSON(profile, to: FileName.userProfile)
+
+        return Just(profile)
+            .setFailureType(to: Error.self)
+            .eraseToAnyPublisher()
+    }
+
+    // MARK: - Goals
+    func fetchGoals() -> AnyPublisher<[Goal], Error> {
+        let goals: [Goal] = loadJSON([Goal].self, from: "Goal/goals.json") ?? []
+        return Just(goals)
+            .setFailureType(to: Error.self)
+            .eraseToAnyPublisher()
+    }
+
+    func fetchGoal(id: UUID) -> AnyPublisher<Goal?, Error> {
+        let goals: [Goal] = loadJSON([Goal].self, from: "Goal/goals.json") ?? []
+        let goal = goals.first { $0.id == id }
+
+        return Just(goal)
+            .setFailureType(to: Error.self)
+            .eraseToAnyPublisher()
+    }
+
+    func saveGoal(_ goal: Goal) -> AnyPublisher<Goal, Error> {
+        var goals: [Goal] = loadJSON([Goal].self, from: "Goal/goals.json") ?? []
+        var updatedGoal = goal
+        updatedGoal.accountId = mockAccountId
+
+        if let index = goals.firstIndex(where: { $0.id == goal.id }) {
+            goals[index] = updatedGoal
+        } else {
+            goals.append(updatedGoal)
+        }
+
+        saveJSON(goals, to: "Goal/goals.json")
+
+        return Just(updatedGoal)
+            .setFailureType(to: Error.self)
+            .eraseToAnyPublisher()
+    }
+
+    func updateGoal(_ goal: Goal) -> AnyPublisher<Goal, Error> {
+        var goals: [Goal] = loadJSON([Goal].self, from: "Goal/goals.json") ?? []
+
+        if let index = goals.firstIndex(where: { $0.id == goal.id }) {
+            goals[index] = goal
+            saveJSON(goals, to: "Goal/goals.json")
+        }
+
+        return Just(goal)
+            .setFailureType(to: Error.self)
+            .eraseToAnyPublisher()
+    }
+
+    func deleteGoal(id: UUID) -> AnyPublisher<Void, Error> {
+        var goals: [Goal] = loadJSON([Goal].self, from: "Goal/goals.json") ?? []
+        goals.removeAll { $0.id == id }
+        saveJSON(goals, to: "Goal/goals.json")
+
+        return Just(())
+            .setFailureType(to: Error.self)
+            .eraseToAnyPublisher()
+    }
+
+    // MARK: - Programs
+    func fetchPrograms() -> AnyPublisher<[Program], Error> {
+        let programs: [Program] = loadJSON([Program].self, from: "Goal/programs.json") ?? []
+        return Just(programs)
+            .setFailureType(to: Error.self)
+            .eraseToAnyPublisher()
+    }
+
+    func fetchProgram(id: UUID) -> AnyPublisher<Program?, Error> {
+        let programs: [Program] = loadJSON([Program].self, from: "Goal/programs.json") ?? []
+        let program = programs.first { $0.id == id }
+
+        return Just(program)
+            .setFailureType(to: Error.self)
+            .eraseToAnyPublisher()
+    }
+
+    func fetchRecommendedPrograms(for userId: String) -> AnyPublisher<[Program], Error> {
+        let programs: [Program] = loadJSON([Program].self, from: "Goal/programs.json") ?? []
+        let recommended = programs.filter { $0.isRecommended }
+            .sorted { $0.popularity > $1.popularity }
+            .prefix(10)
+
+        return Just(Array(recommended))
+            .setFailureType(to: Error.self)
+            .eraseToAnyPublisher()
+    }
+
     func fetchAchievements() -> AnyPublisher<[Achievement], Error> {
         return Just(mockAchievements)
             .setFailureType(to: Error.self)
