@@ -36,7 +36,7 @@
 **구현 상세:**
 - ✅ OnboardingViewModel: 온보딩 완료 시 UserProfile + UserStats 생성
 - ✅ HomeViewModel: UserStats 조회 (Records, Streaks)
-- ⚠️ **StatusView**: 사용자 Nickname 표시 미구현 → **TODO**
+- ✅ **StatusView**: 사용자 Nickname 표시 UI 구현됨 (ProfileHeaderSection에서 `displayName` 사용). **Fix:** now uses active `DataService` (DataServiceManager) by default so real SignUp data (Firestore) appears instead of Mock. Also fixed profile doc mismatch (Auth wrote to `profile/info` → now writes to `profile/data`, and `FirebaseDataService` now falls back to `profile/info` for backward-compatibility).
 
 ---
 
@@ -52,7 +52,7 @@
 
 **구현 상세:**
 - ✅ WriteViewModel: TimeSeriesDataPoint 저장 기능 구현
-- ⚠️ **WriteView 슬라이더/그래프**: 시간대별 그래프 렌더링 미구현 → **TODO**
+- ⏳ **WriteView 슬라이더/그래프**: MVP 시간대별 바 차트 구현 (TimeSlotBarChart). 입력값 배열 저장 지원 및 MockData 예시 추가. UI 미세조정 필요
 
 ---
 
@@ -141,6 +141,13 @@
    - AppEnvironment.current 컴파일 플래그 지원
    - MainActor 동시성 문제 해결
 
+6. **WriteView: TimeSlotBarChart MVP**
+   - `TimeSlotBarChart.swift` 추가 (6-구간 바 차트, 드래그로 값 입력)
+   - `SwipeableCardView.swift`에 `timeSlotChart` 입력 렌더링 추가
+   - `WriteView.swift`에 기본 입력 초기값 반영
+   - `WriteViewModel.swift`에 배열 값 저장 지원 추가 (TimeSeriesDataPoint values에 array로 저장)
+   - `MockData/Common/timeSeriesData.json`에 예시 데이터 추가 (mood_timeline array)
+
 ### 🔧 기술적 개선사항
 - Combine Publisher 기반 반응형 데이터 흐름
 - 프로토콜 기반 의존성 주입으로 테스트 가능한 아키텍처
@@ -156,8 +163,8 @@
 | 작업 | 위치 | 설명 |
 |------|------|------|
 | ⚠️ **HomeView "Today" 버그** | [HomeView.swift](../PIP_Project/PIP_Project/Views/Home/HomeView.swift) | Gem이 없을 때도 "Today" 표시됨. RailroadView 로직 수정 필요 |
-| ⚠️ **StatusView Nickname 표시** | StatusView.swift | UserProfile에서 displayName 조회하여 표시 필요 |
-| ⚠️ **WriteView 시간대별 그래프** | [WriteView.swift](../PIP_Project/PIP_Project/Views/Home/Sections/WriteView.swift) | 슬라이더 설정 카드에서 시간대별 그래프 렌더링 구현 필요 |
+| ✅ **StatusView Nickname 표시** | StatusView.swift | ProfileHeaderSection에서 `displayName` 표시 확인 (완료) |
+| ⏳ **WriteView 시간대별 그래프 (MVP)** | [WriteView.swift](../PIP_Project/PIP_Project/Views/Home/Sections/WriteView.swift) | 6-구간 바 차트(TimeSlotBarChart) 구현 및 배열 저장 지원 — UX 개선/테스트 필요 |
 
 ### 🟡 Medium Priority - Insight Layer 연동
 

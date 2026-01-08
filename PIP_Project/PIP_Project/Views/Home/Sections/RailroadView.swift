@@ -167,7 +167,7 @@ struct GemSlot: View {
                 
                 VStack(spacing: 12) {
                     // 날짜 라벨 (투명도 적용)
-                    Text(formatDate(gemRecord.date))
+                    Text(formatDate(gemRecord.date, isCompleted: gemRecord.isCompleted))
                         .font(.pip.body)
                         .foregroundColor(.white.opacity(0.7 * perspectiveOpacity(for: normalizedY)))  // 투명도 적용 ✨
                     
@@ -255,13 +255,14 @@ struct GemSlot: View {
 }
 
 // MARK: - Helper Functions
-private func formatDate(_ date: Date) -> String {
+private func formatDate(_ date: Date, isCompleted: Bool) -> String {
     let formatter = DateFormatter()
     let calendar = Calendar.current
     let today = calendar.startOfDay(for: Date())
-    
+
     if calendar.isDate(date, inSameDayAs: today) {
-        return "Today"
+        // 오늘 날짜: 데이터가 있으면 "Today", 없으면 "Record Today"
+        return isCompleted ? "Today" : "Record Today"
     } else if calendar.isDate(date, inSameDayAs: calendar.date(byAdding: .day, value: -1, to: today)!) {
         return "Yesterday"
     } else {
@@ -292,17 +293,17 @@ private func topFadeMultiplier(for normalizedY: CGFloat, start: CGFloat = 0.12, 
 }
 
 // MARK: - Preview
-#Preview {
+#Preview("With Today's Data") {
     ZStack {
         Color.black.ignoresSafeArea()
-        
+
         RailroadView(
             gemRecords: (0..<7).map { i in
                 GemRecord(
                     id: UUID(),
                     date: Calendar.current.date(byAdding: .day, value: -i, to: Date())!,
-                    gemIndex: i + 1,  // 1부터 시작해서 순차적으로 증가 (1,2,3,4,5,6,7)
-                    isCompleted: i < 6,  // 마지막 하나만 미완성
+                    gemIndex: i + 1,
+                    isCompleted: true,  // 모두 완성된 상태
                     dataPointIds: []
                 )
             },
@@ -310,7 +311,30 @@ private func topFadeMultiplier(for normalizedY: CGFloat, start: CGFloat = 0.12, 
                 print("Tapped gem: \(gem.date)")
             },
             onWriteRequested: {},
-            currentStreak: 5  // DB 설계에 따라 UserStats에서 가져온 값
+            currentStreak: 6
+        )
+    }
+}
+
+#Preview("Without Today's Data") {
+    ZStack {
+        Color.black.ignoresSafeArea()
+
+        RailroadView(
+            gemRecords: (0..<7).map { i in
+                GemRecord(
+                    id: UUID(),
+                    date: Calendar.current.date(byAdding: .day, value: -i, to: Date())!,
+                    gemIndex: i + 1,
+                    isCompleted: i < 6,  // 오늘(i=0)만 미완성 → "Record Today" 표시됨
+                    dataPointIds: []
+                )
+            },
+            onGemTap: { gem in
+                print("Tapped gem: \(gem.date)")
+            },
+            onWriteRequested: {},
+            currentStreak: 5
         )
     }
 }

@@ -25,7 +25,8 @@ class StatusViewModel: ObservableObject {
     
     // MARK: - Initialization
     init(dataService: DataServiceProtocol? = nil) {
-        self.dataService = dataService ?? MockDataService.shared
+        // Use injected service if provided, otherwise use currently active service from DataServiceManager
+        self.dataService = dataService ?? DataServiceManager.shared.currentService
         loadInitialData()
     }
     

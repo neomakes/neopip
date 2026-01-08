@@ -90,10 +90,9 @@ class WriteViewModel: ObservableObject {
                 type: .mind,
                 title: "How was your mood today?",
                 inputs: [
-                    .slider(key: "mood", label: "Mood", range: 0...100, value: 50),
+                    .timeSlotChart(key: "mood_timeline", label: "Mood Throughout Day", range: 0...100, values: [50, 50, 50, 50, 50, 50]),
                     .slider(key: "stress", label: "Stress", range: 0...100, value: 50),
-                    .slider(key: "energy", label: "Energy", range: 0...100, value: 50),
-                    .slider(key: "focus", label: "Focus", range: 0...100, value: 50)
+                    .slider(key: "energy", label: "Energy", range: 0...100, value: 50)
                 ],
                 textInput: .optional(key: "notes", placeholder: "Today's note")
             ),
@@ -127,10 +126,10 @@ class WriteViewModel: ObservableObject {
     /// 카드 데이터 저장
     func saveCardData(_ card: CardData, inputs: [String: Any], textInput: String) {
         let now = Date()
-        
+
         // 입력값을 DataValue로 변환
         var values: [String: DataValue] = [:]
-        
+
         for (key, value) in inputs {
             if let doubleValue = value as? Double {
                 values[key] = .double(doubleValue)
@@ -138,6 +137,11 @@ class WriteViewModel: ObservableObject {
                 values[key] = .integer(intValue)
             } else if let stringValue = value as? String {
                 values[key] = .string(stringValue)
+            } else if let doubleArray = value as? [Double] {
+                // Store full time-slot array as DataValue.array of doubles
+                values[key] = .array(doubleArray.map { .double($0) })
+            } else if let intArray = value as? [Int] {
+                values[key] = .array(intArray.map { .integer($0) })
             }
         }
         
@@ -177,6 +181,10 @@ class WriteViewModel: ObservableObject {
                 values[key] = .integer(intValue)
             } else if let stringValue = value as? String {
                 values[key] = .string(stringValue)
+            } else if let doubleArray = value as? [Double] {
+                values[key] = .array(doubleArray.map { .double($0) })
+            } else if let intArray = value as? [Int] {
+                values[key] = .array(intArray.map { .integer($0) })
             }
         }
 

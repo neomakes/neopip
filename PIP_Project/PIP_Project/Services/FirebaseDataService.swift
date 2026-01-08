@@ -399,12 +399,13 @@ class FirebaseDataService: DataServiceProtocol {
             }
 
             Task {
+                var accountId: String = "<unknown>"
                 do {
                     guard let currentUser = Auth.auth().currentUser else {
                         throw NSError(domain: "FirebaseDataService", code: -1, userInfo: [NSLocalizedDescriptionKey: "User not authenticated"])
                     }
 
-                    let accountId = currentUser.uid
+                    accountId = currentUser.uid
                     print("📥 [Firebase] Fetching user stats for accountId: \(accountId)")
 
                     let document = try await self.db
@@ -423,7 +424,39 @@ class FirebaseDataService: DataServiceProtocol {
                     }
                 } catch {
                     print("❌ [Firebase] Error fetching user stats: \(error)")
-                    promise(.failure(error))
+
+                    // If no stats found (404), build initial stats and try to persist (best-effort), then return it so UI can show defaults.
+                    if (error as NSError).code == 404 {
+                        print("🔧 [Firebase] User stats missing; building initial stats and attempting to persist")
+                        let initialStats = UserStats(
+                            accountId: accountId,
+                            totalDataPoints: 0,
+                            totalDaysActive: 0,
+                            currentStreak: 0,
+                            longestStreak: 0,
+                            totalGoalsCompleted: 0,
+                            totalProgramsCompleted: 0,
+                            averageEmotionScore: 0.0,
+                            totalGemsCreated: 0,
+                            lastUpdated: Date()
+                        )
+
+                        do {
+                            try self.db
+                                .collection("users")
+                                .document(accountId)
+                                .collection("stats")
+                                .document("summary")
+                                .setData(from: initialStats)
+                            print("✅ [Firebase] Persisted initial user stats")
+                        } catch {
+                            print("⚠️ [Firebase] Failed to persist initial user stats: \(error) (might be rules permission)")
+                        }
+
+                        promise(.success(initialStats))
+                    } else {
+                        promise(.failure(error))
+                    }
                 }
             }
         }
@@ -481,27 +514,207 @@ class FirebaseDataService: DataServiceProtocol {
                     let accountId = currentUser.uid
                     print("📥 [Firebase] Fetching user profile for accountId: \(accountId)")
 
-                    let document = try await self.db
-                        .collection("users")
-                        .document(accountId)
-                        .collection("profile")
-                        .document("data")
-                        .getDocument()
+                    // Try the canonical 'data' document first, fall back to legacy 'info' if missing
+                    print("🔍 [Firebase] Attempting to read users/\(accountId)/profile/data")
+                    var document: DocumentSnapshot
+                    do {
+                        document = try await self.db
+                            .collection("users")
+                            .document(accountId)
+                            .collection("profile")
+                            .document("data")
+                            .getDocument()
+                    } catch let err as NSError {
+                        print("❌ [Firebase] Error reading users/\(accountId)/profile/data: Domain:\(err.domain) Code:\(err.code) Desc:\(err.localizedDescription) UserInfo: \(err.userInfo)")
+                        throw err
+                    }
+
+                    if !document.exists {
+                        print("⚠️ [Firebase] 'data' profile doc not found, falling back to 'info'")
+                        print("🔍 [Firebase] Attempting to read users/\(accountId)/profile/info")
+                        do {
+                            document = try await self.db
+                                .collection("users")
+                                .document(accountId)
+                                .collection("profile")
+                                .document("info")
+                                .getDocument()
+                            print("🔎 [Firebase] 'info' doc exists: \(document.exists)")
+                        } catch let err as NSError {
+                            print("❌ [Firebase] Error reading users/\(accountId)/profile/info: Domain:\(err.domain) Code:\(err.code) Desc:\(err.localizedDescription) UserInfo: \(err.userInfo)")
+                            throw err
+                        }
+                    } else {
+                        print("🔎 [Firebase] 'data' doc exists: \(document.exists)")
+                    }
 
                     if document.exists {
-                        let profile = try document.data(as: UserProfile.self)
-                        print("✅ [Firebase] Fetched user profile successfully")
-                        promise(.success(profile))
-                    } else {
-                        throw NSError(domain: "FirebaseDataService", code: 404, userInfo: [NSLocalizedDescriptionKey: "User profile not found"])
+                        do {
+                            let profile = try document.data(as: UserProfile.self)
+                            print("✅ [Firebase] Fetched user profile successfully from profile doc")
+                            promise(.success(profile))
+                            return
+                        } catch {
+                            // Legacy/partial profile fallback: attempt to construct a minimal UserProfile
+                            print("⚠️ [Firebase] Failed decoding user profile document: \(error). Attempting fallback using document fields.")
+                            let raw = document.data() ?? [:]
+                            let displayName = raw["displayName"] as? String
+                            let email = raw["email"] as? String
+                            let now = Date()
+                            let fallbackProfile = UserProfile(
+                                accountId: accountId,
+                                displayName: displayName,
+                                email: email,
+                                profileImageURL: nil,
+                                backgroundImageURL: nil,
+                                createdAt: now,
+                                lastActiveAt: now,
+                                preferences: UserPreferences(theme: .system, notificationsEnabled: true, language: Locale.current.languageCode ?? "en", timeZone: TimeZone.current.identifier),
+                                onboardingState: nil,
+                                initialGoals: [],
+                                firstJournalDate: nil
+                            )
+                            print("✅ [Firebase] Built partial UserProfile from profile doc fields")
+                            promise(.success(fallbackProfile))
+                            return
+                        }
                     }
+
+                    // Last-resort: maybe legacy data was stored inside the parent user document (users/{uid}.profile or users/{uid}.profile.info)
+                    print("🔍 [Firebase] No profile doc found; checking embedded 'profile' map on users/\(accountId) document")
+                    let userDoc = try await self.db.collection("users").document(accountId).getDocument()
+                    if userDoc.exists, let userData = userDoc.data() {
+                        if let profileMap = userData["profile"] as? [String: Any] {
+                            print("🔎 [Firebase] Found embedded 'profile' map on user document")
+                            // prefer 'data' or 'info' keys inside profileMap
+                            if let dataMap = profileMap["data"] as? [String: Any] ?? profileMap["info"] as? [String: Any] {
+                                let displayName = dataMap["displayName"] as? String
+                                let email = dataMap["email"] as? String
+                                let now = Date()
+                                let fallbackProfile = UserProfile(
+                                    accountId: accountId,
+                                    displayName: displayName,
+                                    email: email,
+                                    profileImageURL: nil,
+                                    backgroundImageURL: nil,
+                                    createdAt: now,
+                                    lastActiveAt: now,
+                                    preferences: UserPreferences(theme: .system, notificationsEnabled: true, language: Locale.current.languageCode ?? "en", timeZone: TimeZone.current.identifier),
+                                    onboardingState: nil,
+                                    initialGoals: [],
+                                    firstJournalDate: nil
+                                )
+                                print("✅ [Firebase] Built partial UserProfile from embedded 'profile' map")
+                                promise(.success(fallbackProfile))
+                                return
+                            }
+
+                            // maybe displayName is stored directly on the user doc under 'profile.displayName' path
+                            if let display = profileMap["displayName"] as? String {
+                                let now = Date()
+                                let fallbackProfile = UserProfile(
+                                    accountId: accountId,
+                                    displayName: display,
+                                    email: userData["email"] as? String,
+                                    profileImageURL: nil,
+                                    backgroundImageURL: nil,
+                                    createdAt: now,
+                                    lastActiveAt: now,
+                                    preferences: UserPreferences(theme: .system, notificationsEnabled: true, language: Locale.current.languageCode ?? "en", timeZone: TimeZone.current.identifier),
+                                    onboardingState: nil,
+                                    initialGoals: [],
+                                    firstJournalDate: nil
+                                )
+                                print("✅ [Firebase] Built partial UserProfile from user doc 'profile.displayName'")
+                                promise(.success(fallbackProfile))
+                                return
+                            }
+                        }
+                    }
+
+                    // If we reach here, no usable profile data exists in Firestore docs.
+                    // As a last-resort, construct a minimal UserProfile from Firebase Auth user info
+                    if let authUser = Auth.auth().currentUser {
+                        print("🔧 [Firebase] No profile doc found; building fallback profile from Auth user info")
+                        let fallbackProfile = UserProfile(
+                            accountId: accountId,
+                            displayName: authUser.displayName,
+                            email: authUser.email,
+                            profileImageURL: authUser.photoURL?.absoluteString,
+                            backgroundImageURL: nil,
+                            createdAt: Date(),
+                            lastActiveAt: Date(),
+                            preferences: UserPreferences(theme: .system, notificationsEnabled: true, language: Locale.current.languageCode ?? "en", timeZone: TimeZone.current.identifier),
+                            onboardingState: nil,
+                            initialGoals: [],
+                            firstJournalDate: nil
+                        )
+
+                        // Try to persist fallback profile to Firestore (best-effort). If it fails due to permissions, we still return the fallback so UI can show the display name.
+                        do {
+                            try self.db
+                                .collection("users")
+                                .document(accountId)
+                                .collection("profile")
+                                .document("data")
+                                .setData(from: fallbackProfile)
+                            print("✅ [Firebase] Persisted fallback profile to users/\(accountId)/profile/data")
+                        } catch let err as NSError {
+                            print("⚠️ [Firebase] Failed to persist fallback profile: Domain:\(err.domain) Code:\(err.code) Desc:\(err.localizedDescription) UserInfo: \(err.userInfo) (possibly rules permission issue)")
+                        }
+
+                        promise(.success(fallbackProfile))
+                        return
+                    }
+
+                    throw NSError(domain: "FirebaseDataService", code: 404, userInfo: [NSLocalizedDescriptionKey: "User profile not found"])
                 } catch {
-                    print("❌ [Firebase] Error fetching user profile: \(error)")
-                    promise(.failure(error))
+                    let ns = error as NSError
+                    print("❌ [Firebase] Error fetching user profile: Domain:\(ns.domain) Code:\(ns.code) Desc:\(ns.localizedDescription) UserInfo: \(ns.userInfo)")
+                    // For DEV builds, dump raw profile documents to help debug missing docs / rules issues
+                    #if DEBUG
+                    if ns.domain == "FIRFirestoreErrorDomain" || ns.code == 7 {
+                        print("🔬 [Firebase] Triggering DEV debug dump for user: \(accountId)")
+                        self.debugDumpUserProfile(accountId: accountId)
+                    }
+                    #endif
                 }
             }
         }
         .eraseToAnyPublisher()
+    }
+
+    /// DEV-only helper: dump raw profile docs for a specific account to the console (useful for debugging rules and missing docs)
+    func debugDumpUserProfile(accountId: String) {
+        Task {
+            #if DEBUG
+            do {
+                print("🔬 [Firebase DebugDump] Reading users/\(accountId)/profile/data")
+                let dataDoc = try await self.db.collection("users").document(accountId).collection("profile").document("data").getDocument()
+                print("🔬 [Firebase DebugDump] data.exists: \(dataDoc.exists), data: \(dataDoc.data() ?? [:])")
+            } catch let err as NSError {
+                print("🔬 [Firebase DebugDump] Error reading profile/data: Domain:\(err.domain) Code:\(err.code) Desc:\(err.localizedDescription) UserInfo: \(err.userInfo)")
+            }
+
+            do {
+                print("🔬 [Firebase DebugDump] Reading users/\(accountId)/profile/info")
+                let infoDoc = try await self.db.collection("users").document(accountId).collection("profile").document("info").getDocument()
+                print("🔬 [Firebase DebugDump] info.exists: \(infoDoc.exists), data: \(infoDoc.data() ?? [:])")
+            } catch let err as NSError {
+                print("🔬 [Firebase DebugDump] Error reading profile/info: Domain:\(err.domain) Code:\(err.code) Desc:\(err.localizedDescription) UserInfo: \(err.userInfo)")
+            }
+
+            do {
+                print("🔬 [Firebase DebugDump] Reading users/\(accountId) parent document")
+                let userDoc = try await self.db.collection("users").document(accountId).getDocument()
+                print("🔬 [Firebase DebugDump] user.exists: \(userDoc.exists), data: \(userDoc.data() ?? [:])")
+            } catch let err as NSError {
+                print("🔬 [Firebase DebugDump] Error reading user document: Domain:\(err.domain) Code:\(err.code) Desc:\(err.localizedDescription) UserInfo: \(err.userInfo)")
+            }
+            #else
+            print("🔬 [Firebase DebugDump] Debug dump is available only in DEBUG builds")
+            #endif
+        }
     }
 
     func saveUserProfile(_ profile: UserProfile) -> AnyPublisher<UserProfile, Error> {
@@ -783,8 +996,16 @@ class FirebaseDataService: DataServiceProtocol {
                     print("✅ [Firebase] Fetched \(programs.count) programs")
                     promise(.success(programs))
                 } catch {
-                    print("❌ [Firebase] Error fetching programs: \(error)")
-                    promise(.failure(error))
+                    let ns = error as NSError
+                    print("❌ [Firebase] Error fetching programs: Domain:\(ns.domain) Code:\(ns.code) Desc:\(ns.localizedDescription) UserInfo: \(ns.userInfo)")
+
+                    // If we hit permission errors, return an empty array to keep UI functional and log a clear guidance message.
+                    if ns.domain == "FIRFirestoreErrorDomain" && ns.code == 7 {
+                        print("⚠️ [Firebase] Permission denied reading 'programs'. Check Firestore rules to allow authenticated reads for 'programs' in DEV.")
+                        promise(.success([]))
+                    } else {
+                        promise(.failure(error))
+                    }
                 }
             }
         }

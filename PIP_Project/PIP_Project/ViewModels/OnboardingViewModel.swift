@@ -35,9 +35,9 @@ class OnboardingViewModel: ObservableObject {
         if let service = dataService {
             self.dataService = service
         } else {
-            // Use MockDataService as fallback for now
-            // In production, DataServiceManager will be accessed from @MainActor context
-            self.dataService = MockDataService.shared
+            // Use the active DataService by default (e.g., Firebase in DEV/PROD)
+            // This ensures onboarding writes go to the real backend instead of the mock store.
+            self.dataService = DataServiceManager.shared.currentService
         }
     }
 

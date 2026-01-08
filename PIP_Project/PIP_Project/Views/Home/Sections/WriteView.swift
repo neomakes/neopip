@@ -88,6 +88,7 @@ struct WriteView: View {
                 case .slider(let key, _, _, let defaultValue): dict[key] = defaultValue
                 case .toggle(let key, _, let defaultValue): dict[key] = defaultValue
                 case .picker(let key, _, _, let selectedIndex): dict[key] = selectedIndex
+                case .timeSlotChart(let key, _, _, let defaultValues): dict[key] = defaultValues
                 }
             }
             return dict
@@ -122,6 +123,7 @@ struct WriteView: View {
             case .slider(let key, _, _, let defaultValue): dict[key] = defaultValue
             case .toggle(let key, _, let defaultValue): dict[key] = defaultValue
             case .picker(let key, _, _, let selectedIndex): dict[key] = selectedIndex
+            case .timeSlotChart(let key, _, _, let defaultValues): dict[key] = defaultValues
             }
         }
         return dict

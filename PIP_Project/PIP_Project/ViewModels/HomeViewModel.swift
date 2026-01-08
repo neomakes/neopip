@@ -56,13 +56,11 @@ class HomeViewModel: ObservableObject {
     
     // MARK: - Initialization
     init(dataService: DataServiceProtocol? = nil) {
-        if let service = dataService {
-            self.dataService = service
-        } else {
-            // Use MockDataService as fallback
-            self.dataService = MockDataService.shared
-        }
-        self.userName = "Neo"  // Mock username (actually retrieved from Firebase Auth)
+        // Use injected service if provided, otherwise use currently active service from DataServiceManager
+        self.dataService = dataService ?? DataServiceManager.shared.currentService
+
+        // default name is nil until we fetch profile
+        self.userName = nil
         loadInitialData()
 
         // 매일 자정에 데이터 새로고침 (Streak 업데이트를 위함)
@@ -144,6 +142,24 @@ class HomeViewModel: ObservableObject {
                 },
                 receiveValue: { [weak self] stats in
                     self?.userStats = stats
+                }
+            )
+            .store(in: &cancellables)
+
+        // UserProfile 로드 (displayName를 헤더에 사용)
+        dataService.fetchUserProfile()
+            .receive(on: DispatchQueue.main)
+            .sink(
+                receiveCompletion: { [weak self] completion in
+                    if case .failure(let error) = completion {
+                        print("❌ [HomeViewModel] Failed to fetch user profile: \(error.localizedDescription)")
+                    }
+                },
+                receiveValue: { [weak self] profile in
+                    // prefer explicit displayName, fallback to existing userName or 'User'
+                    let name = profile.displayName ?? self?.userName ?? "User"
+                    self?.userName = name
+                    print("✅ [HomeViewModel] Fetched user profile, displayName: \(name)")
                 }
             )
             .store(in: &cancellables)

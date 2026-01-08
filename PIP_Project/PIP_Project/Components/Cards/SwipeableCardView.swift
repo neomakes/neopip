@@ -274,9 +274,9 @@ struct CardInputView: View {
                 Text(label)
                     .font(.pip.body)
                     .foregroundColor(.white.opacity(0.8))
-                
+
                 Spacer()
-                
+
                 Picker("", selection: Binding(
                     get: { inputs[key] as? Int ?? selectedIndex },
                     set: { inputs[key] = $0 }
@@ -289,14 +289,32 @@ struct CardInputView: View {
                 .tint(.pip.home.numRecords)
             }
             .padding(.vertical, 8)
+
+        case .timeSlotChart(let key, let label, let range, let defaultValues):
+            TimeSlotBarChart(
+                values: Binding(
+                    get: { getTimeSlotValues(key: key, defaultValues: defaultValues) },
+                    set: { inputs[key] = $0 }
+                ),
+                range: range,
+                label: label
+            )
+            .padding(.vertical, 8)
         }
     }
-    
+
     private func getSliderValue(key: String, defaultValue: Double) -> Double {
         if let value = inputs[key] as? Double {
             return value
         }
         return defaultValue
+    }
+
+    private func getTimeSlotValues(key: String, defaultValues: [Double]) -> [Double] {
+        if let values = inputs[key] as? [Double], values.count == 6 {
+            return values
+        }
+        return defaultValues
     }
 }
 

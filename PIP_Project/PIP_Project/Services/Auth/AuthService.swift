@@ -213,11 +213,17 @@ class AuthService: ObservableObject {
             lastLoginAt: Date()
         )
 
-        try db.collection("users")
-            .document(user.uid)
-            .collection("account")
-            .document("info")
-            .setData(from: userAccount)
+        do {
+            try db.collection("users")
+                .document(user.uid)
+                .collection("account")
+                .document("info")
+                .setData(from: userAccount)
+            print("✅ [AuthService] Created user account document users/\(user.uid)/account/info")
+        } catch let err as NSError {
+            print("❌ [AuthService] Error creating user account document: Domain:\(err.domain) Code:\(err.code) Desc:\(err.localizedDescription) UserInfo: \(err.userInfo)")
+            throw err
+        }
 
         // Create UserProfile document
         let userProfile = UserProfile(
@@ -245,11 +251,17 @@ class AuthService: ObservableObject {
             firstJournalDate: nil
         )
 
-        try db.collection("users")
-            .document(user.uid)
-            .collection("profile")
-            .document("info")
-            .setData(from: userProfile)
+        do {
+            try db.collection("users")
+                .document(user.uid)
+                .collection("profile")
+                .document("data")
+                .setData(from: userProfile)
+            print("✅ [AuthService] Created user profile document users/\(user.uid)/profile/data")
+        } catch let err as NSError {
+            print("❌ [AuthService] Error creating user profile document: Domain:\(err.domain) Code:\(err.code) Desc:\(err.localizedDescription) UserInfo: \(err.userInfo)")
+            throw err
+        }
     }
 
     // MARK: - Error Handling
