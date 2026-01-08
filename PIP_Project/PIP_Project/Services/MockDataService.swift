@@ -90,7 +90,7 @@ class MockDataService: DataServiceProtocol {
     private var dataTypeSchemas: [DataTypeSchema] = []
     
     // Mock User IDs
-    private let mockAccountId = UUID()
+    private let mockAccountId = "mockFirebaseUID123456789"  // Simulates Firebase Auth UID (String)
     private let mockAnonymousUserId = UUID()
     
     private init() {

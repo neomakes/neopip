@@ -127,7 +127,9 @@ struct LaunchScreenWrapper: View {
             try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
 
             // Determine routing based on onboarding and auth status
+            print("📱 [PIP_ProjectApp] Initial route determination...")
             let route = authStateManager.determineInitialRoute()
+            print("✅ [PIP_ProjectApp] Initial route: \(route)")
 
             withAnimation(.easeInOut(duration: 0.8)) {
                 currentRoute = route
@@ -138,15 +140,23 @@ struct LaunchScreenWrapper: View {
 
     private func handleAuthStateChange(_ newState: AuthStateManager.AuthState) {
         // Skip if still in loading phase
-        guard !isLoading else { return }
+        guard !isLoading else {
+            print("⏸️ [PIP_ProjectApp] Still loading, skipping auth state change")
+            return
+        }
 
         // Determine new route based on auth state
+        print("📱 [PIP_ProjectApp] Auth state changed to: \(newState)")
         let newRoute = authStateManager.determineInitialRoute()
+        print("🎯 [PIP_ProjectApp] New route determined: \(newRoute) (current: \(currentRoute))")
 
         // Only update if route actually changed
-        guard newRoute != currentRoute else { return }
+        guard newRoute != currentRoute else {
+            print("✋ [PIP_ProjectApp] Route unchanged, no navigation needed")
+            return
+        }
 
-        print("🔄 Auth state changed to: \(newState), routing to: \(newRoute)")
+        print("🔄 [PIP_ProjectApp] Navigating to: \(newRoute)")
 
         withAnimation(.easeInOut(duration: 0.5)) {
             currentRoute = newRoute

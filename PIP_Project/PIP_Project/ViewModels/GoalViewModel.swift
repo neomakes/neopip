@@ -100,7 +100,7 @@ class GoalViewModel: ObservableObject {
         activeGoals = [
             Goal(
                 id: UUID(),
-                accountId: UUID(),
+                accountId: String(),
                 title: "Improve Emotional Management",
                 description: "Effectively manage daily stress",
                 category: .emotional,
@@ -418,7 +418,7 @@ class GoalViewModel: ObservableObject {
                 id: UUID(),
                 programId: program.id,
                 goalId: selectedGoal?.id ?? UUID(),
-                accountId: UUID(),
+                accountId: String(),  // Empty string for mock data
                 beforeMetrics: beforeMetrics,
                 currentMetrics: currentMetrics,
                 improvementRate: max(0, improvementRate),

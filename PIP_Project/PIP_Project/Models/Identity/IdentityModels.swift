@@ -25,7 +25,7 @@ struct UserAccount: Identifiable, Codable {
 /// Firestore의 anonymous_users/{anonymousUserId}에 저장
 struct AnonymousUserIdentity: Identifiable, Codable {
     let id: UUID
-    var accountId: UUID?              // 암호화된 계정 ID 참조 (매핑 테이블용)
+    var accountId: String?              // 암호화된 계정 ID 참조 (매핑 테이블용)
     var createdAt: Date
     
     var anonymousUserIdString: String {

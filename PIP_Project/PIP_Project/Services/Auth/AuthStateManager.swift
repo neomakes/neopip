@@ -38,17 +38,28 @@ class AuthStateManager: ObservableObject {
 
     /// Determine initial route based on auth state
     func determineInitialRoute() -> AppRoute {
+        print("🧭 [AuthStateManager] Determining route...")
+
         // Step 1: Check authentication first
-        if !authService.isAuthenticated {
+        let isAuth = authService.isAuthenticated
+        print("   → isAuthenticated: \(isAuth)")
+
+        if !isAuth {
+            print("   ✅ Route: .login (not authenticated)")
             return .login
         }
 
         // Step 2: If authenticated, check onboarding status
-        if !hasCompletedOnboarding() {
+        let hasOnboarded = hasCompletedOnboarding()
+        print("   → hasCompletedOnboarding: \(hasOnboarded)")
+
+        if !hasOnboarded {
+            print("   ✅ Route: .onboarding (authenticated but not onboarded)")
             return .onboarding
         }
 
         // Step 3: Both authenticated and onboarded → go to home
+        print("   ✅ Route: .home (authenticated and onboarded)")
         return .home
     }
 
@@ -68,12 +79,16 @@ class AuthStateManager: ObservableObject {
 
     /// Check if user has completed onboarding
     func hasCompletedOnboarding() -> Bool {
-        return UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
+        let status = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
+        print("🔍 [AuthStateManager] hasCompletedOnboarding check: \(status)")
+        return status
     }
 
-    /// Reset onboarding state (for testing)
+    /// Reset onboarding state (for new users or testing)
     func resetOnboarding() {
-        UserDefaults.standard.removeObject(forKey: "hasCompletedOnboarding")
+        print("🔄 [AuthStateManager] Resetting onboarding state...")
+        UserDefaults.standard.set(false, forKey: "hasCompletedOnboarding")
+        print("✅ [AuthStateManager] Onboarding state reset to: false")
     }
 
     // MARK: - Private Methods

@@ -11,7 +11,7 @@ import Foundation
 /// 사용자 통계
 /// Firestore의 users/{accountId}/stats에 저장
 struct UserStats: Codable {
-    var accountId: UUID
+    var accountId: String          // Firebase Auth UID (String, not UUID)
     var totalDataPoints: Int       // 총 데이터 포인트 수 (기록 수)
     var totalDaysActive: Int
     var currentStreak: Int         // 현재 연속 기록 일수
@@ -21,10 +21,6 @@ struct UserStats: Codable {
     var averageEmotionScore: Double
     var totalGemsCreated: Int
     var lastUpdated: Date
-    
-    var accountIdString: String {
-        accountId.uuidString
-    }
 }
 
 // MARK: - Badge
@@ -32,7 +28,7 @@ struct UserStats: Codable {
 /// Firestore의 users/{accountId}/badges/{badgeId}에 저장
 struct Badge: Identifiable, Codable {
     let id: UUID
-    var accountId: UUID
+    var accountId: String          // Firebase Auth UID (String, not UUID)
     var name: String
     var description: String
     var iconName: String           // 아이콘 이름
@@ -43,11 +39,7 @@ struct Badge: Identifiable, Codable {
     var progress: Double           // 0.0 ~ 1.0 (뱃지 달성 진행률)
     var requirement: BadgeRequirement
     var createdAt: Date
-    
-    var accountIdString: String {
-        accountId.uuidString
-    }
-    
+
     var badgeIdString: String {
         id.uuidString
     }
@@ -86,7 +78,7 @@ enum RequirementType: String, Codable {
 /// Firestore의 users/{accountId}/achievements/{achievementId}에 저장
 struct Achievement: Identifiable, Codable {
     let id: UUID
-    var accountId: UUID
+    var accountId: String
     var programId: UUID?           // 달성한 프로그램 ID
     var title: String
     var description: String
@@ -102,10 +94,6 @@ struct Achievement: Identifiable, Codable {
     
     var iconName: String?
     var createdAt: Date
-    
-    var accountIdString: String {
-        accountId.uuidString
-    }
 }
 
 struct AchievementIllustration3D: Codable {
@@ -127,17 +115,13 @@ enum AchievementCategory: String, Codable {
 /// Firestore의 users/{accountId}/value_analysis/{analysisId}에 저장
 struct ValueAnalysis: Identifiable, Codable {
     let id: UUID
-    var accountId: UUID
+    var accountId: String
     var analysisDate: Date
     var topValues: [ValueItem]
     var valueDistribution: [String: Double]  // ValueCategory.rawValue를 키로 사용
     var comparisonData: ComparisonData?
     var insights: [String]
     var createdAt: Date
-    
-    var accountIdString: String {
-        accountId.uuidString
-    }
 }
 
 struct ValueItem: Identifiable, Codable {

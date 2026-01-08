@@ -12,8 +12,6 @@ struct LoginView: View {
     @EnvironmentObject var authService: AuthService
     @EnvironmentObject var authStateManager: AuthStateManager
     @Environment(\.dismiss) private var dismiss
-    @State private var showNextScreen = false
-    @State private var nextRoute: AppRoute = .onboarding
 
     var body: some View {
         ZStack {
@@ -188,21 +186,8 @@ struct LoginView: View {
                 }
             }
         }
-        .onChange(of: authService.isAuthenticated) { oldValue, newValue in
-            if newValue {
-                // User just logged in successfully
-                // Determine next route based on onboarding status
-                nextRoute = authStateManager.hasCompletedOnboarding() ? .home : .onboarding
-                showNextScreen = true
-            }
-        }
-        .fullScreenCover(isPresented: $showNextScreen) {
-            if nextRoute == .onboarding {
-                OnboardingView()
-            } else {
-                MainTabView()
-            }
-        }
+        // Navigation is handled by PIP_ProjectApp based on auth state
+        // No need for manual navigation here
     }
 }
 

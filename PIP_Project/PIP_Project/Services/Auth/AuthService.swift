@@ -64,6 +64,11 @@ class AuthService: ObservableObject {
         defer { isLoading = false }
 
         do {
+            // Reset onboarding status BEFORE creating user to prevent race condition
+            // Firebase auth state listener triggers immediately after createUser()
+            print("📋 [AuthService] Resetting onboarding status for new user (pre-signup)")
+            AuthStateManager.shared.resetOnboarding()
+
             // Create Firebase Auth user
             print("🔐 [AuthService] Creating Firebase Auth user for: \(email)")
             let authResult = try await auth.createUser(withEmail: email, password: password)
@@ -100,10 +105,6 @@ class AuthService: ObservableObject {
             print("🔑 [AuthService] Creating identity mapping...")
             let anonymousUserId = try await identityMapping.getAnonymousUserId()
             print("✅ [AuthService] Identity mapping created: \(anonymousUserId)")
-
-            // Reset onboarding status for new users
-            print("📋 [AuthService] Resetting onboarding status for new user")
-            AuthStateManager.shared.resetOnboarding()
 
             currentUser = user
             isAuthenticated = true

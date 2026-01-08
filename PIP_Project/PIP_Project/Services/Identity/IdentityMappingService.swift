@@ -149,7 +149,7 @@ class IdentityMappingService: ObservableObject {
     private func createAnonymousUserIdentity(anonymousUserId: UUID) async throws {
         let identity = AnonymousUserIdentity(
             id: anonymousUserId,
-            accountId: nil, // No reference to account ID for privacy
+            accountId: nil as String?, // No reference to account ID for privacy (String?, not UUID?)
             createdAt: Date()
         )
 
