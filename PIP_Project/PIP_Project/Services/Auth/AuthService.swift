@@ -65,28 +65,61 @@ class AuthService: ObservableObject {
 
         do {
             // Create Firebase Auth user
+            print("🔐 [AuthService] Creating Firebase Auth user for: \(email)")
             let authResult = try await auth.createUser(withEmail: email, password: password)
             let user = authResult.user
+            print("✅ [AuthService] Firebase Auth user created: \(user.uid)")
 
             // Update display name if provided
             if let displayName = displayName {
+                print("👤 [AuthService] Updating display name to: \(displayName)")
                 let changeRequest = user.createProfileChangeRequest()
                 changeRequest.displayName = displayName
                 try await changeRequest.commitChanges()
+                print("✅ [AuthService] Display name updated")
             }
 
             // Create user account and profile in Firestore
-            try await createUserAccount(user: user, displayName: displayName)
+            do {
+                print("📝 [AuthService] Creating Firestore user documents...")
+                try await createUserAccount(user: user, displayName: displayName)
+                print("✅ [AuthService] Firestore user documents created")
+            } catch let firestoreError as NSError {
+                // Rollback: Delete Auth user if Firestore creation fails
+                print("❌ [AuthService] Firestore creation failed: \(firestoreError)")
+                print("   Domain: \(firestoreError.domain)")
+                print("   Code: \(firestoreError.code)")
+                print("   Description: \(firestoreError.localizedDescription)")
+                print("🔄 [AuthService] Rolling back - deleting Auth user")
+                try? await user.delete()
+                print("🗑️ [AuthService] Auth user deleted")
+                throw firestoreError
+            }
 
             // Create identity mapping
+            print("🔑 [AuthService] Creating identity mapping...")
             let anonymousUserId = try await identityMapping.getAnonymousUserId()
+            print("✅ [AuthService] Identity mapping created: \(anonymousUserId)")
+
+            // Reset onboarding status for new users
+            print("📋 [AuthService] Resetting onboarding status for new user")
+            AuthStateManager.shared.resetOnboarding()
 
             currentUser = user
             isAuthenticated = true
 
             return user
         } catch let error as NSError {
-            errorMessage = mapAuthError(error)
+            print("❌ [AuthService] Sign up failed with error:")
+            print("   Domain: \(error.domain)")
+            print("   Code: \(error.code)")
+            print("   Description: \(error.localizedDescription)")
+            print("   UserInfo:")
+            for (key, value) in error.userInfo {
+                print("      \(key): \(value)")
+            }
+            errorMessage = mapError(error)
+            print("   Mapped message: \(errorMessage ?? "nil")")
             throw error
         }
     }
@@ -215,6 +248,47 @@ class AuthService: ObservableObject {
             .collection("profile")
             .document("info")
             .setData(from: userProfile)
+    }
+
+    // MARK: - Error Handling
+
+    /// Map Firestore errors to user-friendly messages
+    private func mapFirestoreError(_ error: NSError) -> String? {
+        // Firestore error domain
+        guard error.domain == "FIRFirestoreErrorDomain" else {
+            return nil
+        }
+
+        // FirestoreErrorCode enum values
+        switch error.code {
+        case 7: // PERMISSION_DENIED
+            return "Unable to create user profile. Please contact support."
+        case 8: // RESOURCE_EXHAUSTED (quota exceeded)
+            return "Service temporarily unavailable. Please try again later."
+        case 14: // UNAVAILABLE
+            return "Database service unavailable. Please try again."
+        case 4: // DEADLINE_EXCEEDED
+            return "Request timed out. Please check your connection."
+        default:
+            return nil
+        }
+    }
+
+    /// Map all errors (Auth + Firestore) to user-friendly messages
+    private func mapError(_ error: NSError) -> String {
+        // Try Auth error first
+        if error.domain == "FIRAuthErrorDomain",
+           let authErrorCode = AuthErrorCode(rawValue: error.code) {
+            return mapAuthError(error)
+        }
+
+        // Try Firestore error
+        if let firestoreMessage = mapFirestoreError(error) {
+            return firestoreMessage
+        }
+
+        // Fallback
+        return "An unexpected error occurred: \(error.localizedDescription)"
     }
 
     /// Map Firebase Auth errors to user-friendly messages

@@ -32,19 +32,14 @@ struct LoginView: View {
 
                     // Logo or app name
                     VStack(spacing: 12) {
-                        Circle()
-                            .fill(
-                                LinearGradient(
-                                    colors: [Color.pip.home.buttonAddGrad1, Color.pip.home.buttonAddGrad2],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
+                        Image("LogoDisplay")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
                             .frame(width: 80, height: 80)
                             .overlay(
-                                Text("PIP")
-                                    .font(.system(size: 32, weight: .bold))
-                                    .foregroundColor(.white)
+                                Circle()
+                                    .stroke(Color.pip.home.buttonAddGrad2, lineWidth: 2)
+                                    .blur(radius: 10)
                             )
 
                         Text(viewModel.isSignUpMode ? "Create Account" : "Welcome Back")
@@ -80,7 +75,8 @@ struct LoginView: View {
                         CustomTextField(
                             placeholder: "Password",
                             text: $viewModel.password,
-                            isSecure: true
+                            isSecure: true,
+                            isSignUpPassword: viewModel.isSignUpMode
                         )
 
                         // Confirm Password (Sign Up only)
@@ -88,8 +84,28 @@ struct LoginView: View {
                             CustomTextField(
                                 placeholder: "Confirm Password",
                                 text: $viewModel.confirmPassword,
-                                isSecure: true
+                                isSecure: true,
+                                isSignUpPassword: true
                             )
+
+                            // Validation feedback for Sign Up
+                            if !viewModel.displayName.isEmpty || !viewModel.email.isEmpty || !viewModel.password.isEmpty {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    if !viewModel.displayName.isEmpty && viewModel.displayName.count < 2 {
+                                        ValidationFeedback(text: "Display name too short", isValid: false)
+                                    }
+                                    if !viewModel.email.isEmpty && !viewModel.isEmailValid {
+                                        ValidationFeedback(text: "Invalid email format", isValid: false)
+                                    }
+                                    if !viewModel.password.isEmpty && !viewModel.isPasswordValid {
+                                        ValidationFeedback(text: "Password must be at least 8 characters", isValid: false)
+                                    }
+                                    if !viewModel.confirmPassword.isEmpty && !viewModel.doPasswordsMatch {
+                                        ValidationFeedback(text: "Passwords do not match", isValid: false)
+                                    }
+                                }
+                                .padding(.top, 8)
+                            }
                         }
                     }
                     .padding(.horizontal, 32)
@@ -190,17 +206,37 @@ struct LoginView: View {
     }
 }
 
+// MARK: - Validation Feedback
+struct ValidationFeedback: View {
+    let text: String
+    let isValid: Bool
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: isValid ? "checkmark.circle.fill" : "xmark.circle.fill")
+                .font(.system(size: 12))
+                .foregroundColor(isValid ? .green : .red)
+
+            Text(text)
+                .font(.pip.caption)
+                .foregroundColor(isValid ? .green : .red)
+        }
+    }
+}
+
 // MARK: - Custom Text Field
 struct CustomTextField: View {
     let placeholder: String
     @Binding var text: String
     var isSecure: Bool = false
     var keyboardType: UIKeyboardType = .default
+    var isSignUpPassword: Bool = false
 
     var body: some View {
         Group {
             if isSecure {
                 SecureField(placeholder, text: $text)
+                    .textContentType(isSignUpPassword ? .newPassword : .password)
             } else {
                 TextField(placeholder, text: $text)
                     .keyboardType(keyboardType)

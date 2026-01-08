@@ -8,6 +8,7 @@
 import Foundation
 import SwiftUI
 import Combine
+import FirebaseAuth
 
 @MainActor
 class LoginViewModel: ObservableObject {
@@ -69,8 +70,12 @@ class LoginViewModel: ObservableObject {
         do {
             _ = try await authService.signInWithEmail(email: email, password: password)
             // Navigation will be handled by AuthStateManager
-        } catch {
-            errorMessage = authService.errorMessage ?? "Sign in failed. Please try again."
+        } catch let error as NSError {
+            if let authError = AuthErrorCode(_bridgedNSError: error) {
+                errorMessage = mapAuthErrorToMessage(authError)
+            } else {
+                errorMessage = authService.errorMessage ?? "Sign in failed. Please try again."
+            }
         }
 
         isLoading = false
@@ -98,8 +103,12 @@ class LoginViewModel: ObservableObject {
                 displayName: displayName
             )
             // Navigation will be handled by AuthStateManager
-        } catch {
-            errorMessage = authService.errorMessage ?? "Sign up failed. Please try again."
+        } catch let error as NSError {
+            if let authError = AuthErrorCode(_bridgedNSError: error) {
+                errorMessage = mapSignUpErrorToMessage(authError)
+            } else {
+                errorMessage = authService.errorMessage ?? "Sign up failed. Please try again."
+            }
         }
 
         isLoading = false
@@ -132,5 +141,45 @@ class LoginViewModel: ObservableObject {
         confirmPassword = ""
         displayName = ""
         errorMessage = nil
+    }
+
+    // MARK: - Private Methods
+
+    /// Map Firebase Auth errors to user-friendly messages for sign in
+    private func mapAuthErrorToMessage(_ errorCode: AuthErrorCode) -> String {
+        switch errorCode.code {
+        case .wrongPassword:
+            return "Incorrect password. Please try again."
+        case .userNotFound:
+            return "No account found with this email."
+        case .invalidEmail:
+            return "Invalid email format."
+        case .networkError:
+            return "Network error. Please check your connection."
+        case .tooManyRequests:
+            return "Too many failed attempts. Please try again later."
+        case .userDisabled:
+            return "This account has been disabled."
+        default:
+            return authService.errorMessage ?? "Sign in failed. Please try again."
+        }
+    }
+
+    /// Map Firebase Auth errors to user-friendly messages for sign up
+    private func mapSignUpErrorToMessage(_ errorCode: AuthErrorCode) -> String {
+        switch errorCode.code {
+        case .emailAlreadyInUse:
+            return "This email is already registered. Please sign in instead."
+        case .weakPassword:
+            return "Password is too weak. Use at least 8 characters with mixed case and numbers."
+        case .invalidEmail:
+            return "Invalid email format."
+        case .networkError:
+            return "Network error. Please check your connection."
+        case .tooManyRequests:
+            return "Too many attempts. Please try again later."
+        default:
+            return authService.errorMessage ?? "Sign up failed. Please try again."
+        }
     }
 }

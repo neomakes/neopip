@@ -112,6 +112,10 @@ struct LaunchScreenWrapper: View {
         .onAppear {
             startLoadingProcess()
         }
+        .onChange(of: authStateManager.authState) { oldValue, newValue in
+            // React to auth state changes (e.g., sign out)
+            handleAuthStateChange(newValue)
+        }
     }
 
     private func startLoadingProcess() {
@@ -129,6 +133,23 @@ struct LaunchScreenWrapper: View {
                 currentRoute = route
                 isLoading = false
             }
+        }
+    }
+
+    private func handleAuthStateChange(_ newState: AuthStateManager.AuthState) {
+        // Skip if still in loading phase
+        guard !isLoading else { return }
+
+        // Determine new route based on auth state
+        let newRoute = authStateManager.determineInitialRoute()
+
+        // Only update if route actually changed
+        guard newRoute != currentRoute else { return }
+
+        print("🔄 Auth state changed to: \(newState), routing to: \(newRoute)")
+
+        withAnimation(.easeInOut(duration: 0.5)) {
+            currentRoute = newRoute
         }
     }
 }
