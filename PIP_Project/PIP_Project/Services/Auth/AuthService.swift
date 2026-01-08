@@ -200,7 +200,8 @@ class AuthService: ObservableObject {
 
     /// Create user account and profile in Firestore
     private func createUserAccount(user: User, displayName: String?) async throws {
-        let accountId = UUID(uuidString: user.uid) ?? UUID()
+        // Use Firebase Auth UID directly as String
+        let accountId = user.uid
 
         // Create UserAccount document
         let userAccount = UserAccount(

@@ -11,24 +11,20 @@ import Foundation
 /// 사용자 프로필 (PII 포함)
 /// Firestore의 users/{accountId}/profile에 저장
 struct UserProfile: Codable {
-    var accountId: UUID
+    var accountId: String              // Firebase Auth UID (String, not UUID)
     var displayName: String?
     var email: String?
-    
+
     // 프로필 이미지
     var profileImageURL: String?    // 프로필 사진 URL
     var backgroundImageURL: String? // 배경 이미지 URL
-    
+
     var createdAt: Date
     var lastActiveAt: Date
     var preferences: UserPreferences
     var onboardingState: OnboardingState?
     var initialGoals: [GoalCategory]
     var firstJournalDate: Date?
-    
-    var accountIdString: String {
-        accountId.uuidString
-    }
 }
 
 // MARK: - User Preferences
@@ -83,32 +79,28 @@ enum OnboardingStep: String, Codable {
 /// 사용자 데이터 수집 설정
 /// Firestore의 users/{accountId}/settings/dataCollection에 저장
 struct UserDataCollectionSettings: Codable {
-    var accountId: UUID
-    
+    var accountId: String              // Firebase Auth UID (String, not UUID)
+
     // 활성화된 데이터 타입 (스키마 ID 배열)
     var enabledDataTypes: [String]      // UUID를 String으로 변환
     var typeSettings: [String: DataTypeSettings]  // UUID를 String 키로 사용
-    
+
     // 권한 설정
     var permissions: DataPermissions
-    
+
     // 수집 주기
     var collectionFrequency: CollectionFrequency
-    
+
     // 익명화 옵션
     var anonymizationLevel: AnonymizationLevel
     var allowMLTraining: Bool           // ML 학습 허용 여부
     var allowDataSharing: Bool         // 익명화된 데이터 공유 허용 여부
-    
+
     // 데이터 보관 기간
     var dataRetentionDays: Int?        // nil이면 무기한
     var autoDeleteAfterDays: Int?       // 자동 삭제 기간
-    
+
     var updatedAt: Date
-    
-    var accountIdString: String {
-        accountId.uuidString
-    }
 }
 
 struct DataTypeSettings: Codable {

@@ -12,16 +12,11 @@ import Foundation
 /// 실제 사용자 계정 정보 (PII - Personal Identifiable Information)
 /// Firebase Auth와 연동, Firestore의 users/{accountId}/account에 저장
 struct UserAccount: Identifiable, Codable {
-    let id: UUID
+    let id: String                    // Firebase Auth UID (String, not UUID)
     var email: String?
     var displayName: String?
     var createdAt: Date
     var lastLoginAt: Date
-    
-    // Firebase 호환성을 위해 String 변환
-    var accountIdString: String {
-        id.uuidString
-    }
 }
 
 // MARK: - Anonymous User Identity
@@ -44,17 +39,13 @@ struct AnonymousUserIdentity: Identifiable, Codable {
 /// 보안 규칙으로 접근 제어 필요
 struct IdentityMapping: Identifiable, Codable {
     let id: UUID
-    var accountId: UUID
+    var accountId: String              // Firebase Auth UID (String, not UUID)
     var anonymousUserId: UUID
     var encryptedKey: String          // 암호화된 매핑 키
     var createdAt: Date
     var isActive: Bool
     var deletionRequestedAt: Date?
-    
-    var accountIdString: String {
-        accountId.uuidString
-    }
-    
+
     var anonymousUserIdString: String {
         anonymousUserId.uuidString
     }
@@ -65,7 +56,7 @@ struct IdentityMapping: Identifiable, Codable {
 /// Firestore의 users/{accountId}/consents/{consentId}에 저장
 struct ConsentRecord: Identifiable, Codable {
     let id: UUID
-    var accountId: UUID
+    var accountId: String              // Firebase Auth UID (String, not UUID)
     var consentType: ConsentType
     var purpose: ConsentPurpose
     var isGranted: Bool
@@ -75,10 +66,6 @@ struct ConsentRecord: Identifiable, Codable {
     var version: String                // 동의 버전 (정책 변경 추적)
     var createdAt: Date
     var updatedAt: Date
-    
-    var accountIdString: String {
-        accountId.uuidString
-    }
 }
 
 enum ConsentType: String, Codable {
@@ -100,14 +87,10 @@ enum ConsentPurpose: String, Codable {
 /// 사용자별 동의 상태
 /// Firestore의 users/{accountId}/settings/consentStatus에 저장
 struct UserConsentStatus: Codable {
-    var accountId: UUID
+    var accountId: String              // Firebase Auth UID (String, not UUID)
     var consents: [String: ConsentRecord]  // ConsentType.rawValue를 키로 사용
     var lastUpdatedAt: Date
-    
-    var accountIdString: String {
-        accountId.uuidString
-    }
-    
+
     func canUseForMLTraining() -> Bool {
         guard let consent = consents[ConsentType.mlTraining.rawValue],
               consent.isGranted,
@@ -116,7 +99,7 @@ struct UserConsentStatus: Codable {
         }
         return true
     }
-    
+
     func canCollectData() -> Bool {
         guard let consent = consents[ConsentType.dataCollection.rawValue],
               consent.isGranted,
@@ -132,16 +115,12 @@ struct UserConsentStatus: Codable {
 /// Firestore의 users/{accountId}/deletion_requests/{requestId}에 저장
 struct DataDeletionRequest: Identifiable, Codable {
     let id: UUID
-    var accountId: UUID
+    var accountId: String              // Firebase Auth UID (String, not UUID)
     var requestType: DeletionType
     var requestedAt: Date
     var status: DeletionStatus
     var completedAt: Date?
     var errorMessage: String?
-    
-    var accountIdString: String {
-        accountId.uuidString
-    }
 }
 
 enum DeletionType: String, Codable {
@@ -163,17 +142,13 @@ enum DeletionStatus: String, Codable {
 /// Firestore의 deletion_logs/{logId}에 저장
 struct DeletionLog: Codable {
     var deletionId: UUID
-    var accountId: UUID
+    var accountId: String              // Firebase Auth UID (String, not UUID)
     var anonymousUserId: UUID
     var deletedDataPoints: Int
     var deletedInsights: Int
     var deletedAt: Date
     var verificationHash: String      // 삭제 검증 해시
-    
-    var accountIdString: String {
-        accountId.uuidString
-    }
-    
+
     var anonymousUserIdString: String {
         anonymousUserId.uuidString
     }

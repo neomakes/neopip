@@ -116,12 +116,12 @@ class IdentityMappingService: ObservableObject {
         let anonymousUserId = UUID()
         let mappingId = UUID()
 
-        // Create encrypted key
-        let encryptedKey = try encryption.encryptUUID(UUID(uuidString: accountId)!)
+        // Create encrypted key using the accountId string
+        let encryptedKey = try encryption.encrypt(accountId)
 
         let mapping = IdentityMapping(
             id: mappingId,
-            accountId: UUID(uuidString: accountId)!,
+            accountId: accountId,  // Use Firebase UID directly as String
             anonymousUserId: anonymousUserId,
             encryptedKey: encryptedKey,
             createdAt: Date(),
@@ -168,7 +168,7 @@ class IdentityMappingService: ObservableObject {
             throw IdentityMappingError.userNotAuthenticated
         }
 
-        let accountId = UUID(uuidString: currentUser.uid)!
+        let accountId = currentUser.uid  // Use Firebase UID directly as String
         let requestId = UUID()
 
         let deletionRequest = DataDeletionRequest(
