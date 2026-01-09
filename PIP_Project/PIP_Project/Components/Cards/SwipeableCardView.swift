@@ -291,7 +291,7 @@ struct CardInputView: View {
             .padding(.vertical, 8)
 
         case .timeSlotChart(let key, let label, let range, let defaultValues):
-            TimeSlotBarChart(
+            TimeSlotCurveChart(
                 values: Binding(
                     get: { getTimeSlotValues(key: key, defaultValues: defaultValues) },
                     set: { inputs[key] = $0 }
@@ -311,7 +311,7 @@ struct CardInputView: View {
     }
 
     private func getTimeSlotValues(key: String, defaultValues: [Double]) -> [Double] {
-        if let values = inputs[key] as? [Double], values.count == 6 {
+        if let values = inputs[key] as? [Double], values.count == defaultValues.count {
             return values
         }
         return defaultValues

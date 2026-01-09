@@ -142,9 +142,10 @@ struct GemSlot: View {
             let isTodayEmpty = (index == totalCount - 1 && !gemRecord.isCompleted)
             let finalOpacity: Double = {
                 if isTodayEmpty {
-                    // Even in the mid region, keep today's empty gem faint; apply fades for top/bottom too
+                    // Today's empty gem should always be visible at minimum opacity
+                    // Don't apply endFade - today's gem is at the bottom and endFade would make it invisible
                     let emptyBase: Double = 0.22
-                    return min(1.0, emptyBase * Double(topFade * endFade))
+                    return min(1.0, emptyBase * Double(topFade))
                 }
                 if normalizedY >= midScreenStart && normalizedY <= midScreenEnd {
                     // Fully opaque in the mid region (respect completion factor)
@@ -159,10 +160,10 @@ struct GemSlot: View {
                 ZStack {
                     Ellipse()
                         .fill(radialGradient(for: gemRecord, index: index, totalCount: totalCount))
-                        .frame(width: 120, height: 40)
+                        .frame(width: 90, height: 30)  // 기존 120x40에서 90x30으로 축소
                 }
                 .scaleEffect(perspectiveScale(for: normalizedY))  // 위치에 따라 크기 변화 적용 ✨
-                .offset(y: 40)  // 젬 이미지 아래로 더 낮게 위치
+                .offset(y: 30)  // 기존 40에서 30으로 조정
                 .opacity(finalOpacity)  // 젬의 투명도와 동일하게 적용
                 
                 VStack(spacing: 12) {
@@ -175,7 +176,7 @@ struct GemSlot: View {
                     Image("gem_\(gemIndexForAsset(gemRecord.gemIndex))")
                         .resizable()
                         .aspectRatio(contentMode: .fit)
-                        .frame(height: 100)
+                        .frame(height: 70)  // 기존 100에서 70으로 축소
                         .scaleEffect(perspectiveScale(for: normalizedY))  // 크기 조절 적용 ✨
                         .opacity(finalOpacity)  // y 위치에 따라 투명도 조절
                     
@@ -197,7 +198,7 @@ struct GemSlot: View {
                 }
             }
         }
-        .frame(height: 120)  // 고정 높이로 GeometryReader가 작동하도록
+        .frame(height: 90)  // 고정 높이 (기존 120에서 90으로 축소)
     }
     
     // gem_1 ~ gem_18 순환 적용 (처음 기록된 것부터 1,2,3,...,18,1,2,... 순서)
@@ -242,8 +243,8 @@ struct GemSlot: View {
     private func perspectiveScale(for normalizedY: CGFloat) -> CGFloat {
         // NaN이나 음수 값 방지
         let safeNormalizedY = max(0, min(1, normalizedY.isFinite ? normalizedY : 0))
-        // 더 극적인 변화: 0.1배 ~ 2.5배
-        return 0.1 + (safeNormalizedY * 2.4)
+        // 적절한 크기 범위: 0.3배 ~ 1.5배 (기존 0.1~2.5배에서 축소)
+        return 0.3 + (safeNormalizedY * 1.2)
     }
     
     private func perspectiveOpacity(for normalizedY: CGFloat) -> Double {

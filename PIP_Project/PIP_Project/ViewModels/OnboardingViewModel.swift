@@ -246,6 +246,18 @@ class OnboardingViewModel: ObservableObject {
                 // Save initial stats to Firebase
                 print("💾 [Onboarding] Saving initial user stats to Firebase...")
                 await saveUserStats(initialStats)
+
+                // Create Goal documents for each selected goal
+                print("💾 [Onboarding] Creating Goal documents...")
+                for goalCategory in selectedGoals {
+                    await createGoal(for: goalCategory)
+                }
+
+                // Create ProgramEnrollment documents for each selected program
+                print("💾 [Onboarding] Creating ProgramEnrollment documents...")
+                for programId in selectedPrograms {
+                    await createProgramEnrollment(for: programId)
+                }
             }
 
             // Mark as completed locally
@@ -267,6 +279,82 @@ class OnboardingViewModel: ObservableObject {
     }
 
     // MARK: - Private Helpers
+
+    /// Create a Goal document for a selected category
+    private func createGoal(for category: GoalCategory) async {
+        let goal = Goal(
+            id: UUID(),
+            accountId: authService.currentUser?.uid ?? "",
+            title: category.displayName,
+            description: "Goal created during onboarding",
+            category: category,
+            targetDate: Calendar.current.date(byAdding: .month, value: 3, to: Date()),
+            startDate: Date(),
+            status: .active,
+            progress: 0.0,
+            gemVisualization: GemVisualization(
+                gemType: .sphere,
+                colorTheme: .teal,
+                brightness: 0.5,
+                size: 100.0
+            ),
+            milestones: [],
+            relatedDataPointIds: [],
+            createdAt: Date(),
+            updatedAt: Date()
+        )
+
+        await withCheckedContinuation { continuation in
+            dataService.saveGoal(goal)
+                .receive(on: DispatchQueue.main)
+                .sink { completion in
+                    switch completion {
+                    case .finished:
+                        print("✅ [Onboarding] Goal created: \(goal.title)")
+                    case .failure(let error):
+                        print("❌ [Onboarding] Failed to create goal: \(error)")
+                        self.errorMessage = "Failed to create goal: \(error.localizedDescription)"
+                    }
+                    continuation.resume()
+                } receiveValue: { _ in }
+                .store(in: &cancellables)
+        }
+    }
+
+    /// Create a ProgramEnrollment document for a selected program
+    private func createProgramEnrollment(for programId: UUID) async {
+        let enrollment = ProgramEnrollment(
+            id: UUID(),
+            accountId: authService.currentUser?.uid ?? "",
+            anonymousUserId: nil, // Will be set later by backend
+            programId: programId,
+            status: .active,
+            startDate: Date(),
+            targetCompletionDate: Calendar.current.date(byAdding: .day, value: 21, to: Date()),
+            actualCompletionDate: nil,
+            initialMetrics: [:],
+            successProgress: 0.0,
+            successRate: nil,
+            createdAt: Date(),
+            updatedAt: Date()
+        )
+
+        await withCheckedContinuation { continuation in
+            dataService.createProgramEnrollment(enrollment)
+                .receive(on: DispatchQueue.main)
+                .sink { completion in
+                    switch completion {
+                    case .finished:
+                        print("✅ [Onboarding] Program enrollment created: \(enrollment.programIdString)")
+                    case .failure(let error):
+                        print("❌ [Onboarding] Failed to create program enrollment: \(error)")
+                        self.errorMessage = "Failed to create program enrollment: \(error.localizedDescription)"
+                    }
+                    continuation.resume()
+                } receiveValue: { _ in }
+                .store(in: &cancellables)
+        }
+    }
 
     /// Save user profile to Firebase
     private func saveUserProfile(_ profile: UserProfile) async {

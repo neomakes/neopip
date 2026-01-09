@@ -83,6 +83,7 @@ class MockDataService: DataServiceProtocol {
     private var mockAnalysisCards: [InsightAnalysisCard] = []
     private var mockDashboardData: [String: [DashboardItem]] = [:]
     private var mockOrbVisualization: OrbVisualization?
+    private var mockProgramEnrollments: [ProgramEnrollment] = []
     
     // MARK: - Data Type Schema Registry
     /// Dynamic data type definition registry
@@ -1375,6 +1376,37 @@ class MockDataService: DataServiceProtocol {
             .prefix(10)
 
         return Just(Array(recommended))
+            .setFailureType(to: Error.self)
+            .eraseToAnyPublisher()
+    }
+
+    // MARK: - Program Enrollments (Mock)
+    func createProgramEnrollment(_ enrollment: ProgramEnrollment) -> AnyPublisher<ProgramEnrollment, Error> {
+        mockProgramEnrollments.append(enrollment)
+        return Just(enrollment)
+            .setFailureType(to: Error.self)
+            .eraseToAnyPublisher()
+    }
+
+    func fetchProgramEnrollments() -> AnyPublisher<[ProgramEnrollment], Error> {
+        let activeEnrollments = mockProgramEnrollments.filter { $0.status == .active }
+        return Just(activeEnrollments)
+            .setFailureType(to: Error.self)
+            .eraseToAnyPublisher()
+    }
+
+    func fetchProgramEnrollment(id: UUID) -> AnyPublisher<ProgramEnrollment?, Error> {
+        let enrollment = mockProgramEnrollments.first { $0.id == id }
+        return Just(enrollment)
+            .setFailureType(to: Error.self)
+            .eraseToAnyPublisher()
+    }
+
+    func updateProgramEnrollment(_ enrollment: ProgramEnrollment) -> AnyPublisher<ProgramEnrollment, Error> {
+        if let index = mockProgramEnrollments.firstIndex(where: { $0.id == enrollment.id }) {
+            mockProgramEnrollments[index] = enrollment
+        }
+        return Just(enrollment)
             .setFailureType(to: Error.self)
             .eraseToAnyPublisher()
     }

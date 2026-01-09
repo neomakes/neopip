@@ -1087,6 +1087,162 @@ class FirebaseDataService: DataServiceProtocol {
             .eraseToAnyPublisher()
     }
     
+    // MARK: - Program Enrollments
+    func createProgramEnrollment(_ enrollment: ProgramEnrollment) -> AnyPublisher<ProgramEnrollment, Error> {
+        return Future { [weak self] promise in
+            guard let self = self else {
+                promise(.failure(NSError(domain: "FirebaseDataService", code: -1, userInfo: [NSLocalizedDescriptionKey: "Service deallocated"])))
+                return
+            }
+
+            Task {
+                do {
+                    guard let currentUser = Auth.auth().currentUser else {
+                        throw NSError(domain: "FirebaseDataService", code: -1, userInfo: [NSLocalizedDescriptionKey: "User not authenticated"])
+                    }
+
+                    let accountId = currentUser.uid
+                    var updatedEnrollment = enrollment
+                    updatedEnrollment.accountId = accountId
+                    updatedEnrollment.updatedAt = Date()
+
+                    print("💾 [Firebase] Creating program enrollment: \(updatedEnrollment.id)")
+
+                    try self.db
+                        .collection("users")
+                        .document(accountId)
+                        .collection("program_enrollments")
+                        .document(updatedEnrollment.id.uuidString)
+                        .setData(from: updatedEnrollment)
+
+                    print("✅ [Firebase] Created program enrollment successfully")
+                    promise(.success(updatedEnrollment))
+                } catch {
+                    print("❌ [Firebase] Error creating program enrollment: \(error)")
+                    promise(.failure(error))
+                }
+            }
+        }
+        .eraseToAnyPublisher()
+    }
+
+    func fetchProgramEnrollments() -> AnyPublisher<[ProgramEnrollment], Error> {
+        return Future { [weak self] promise in
+            guard let self = self else {
+                promise(.failure(NSError(domain: "FirebaseDataService", code: -1, userInfo: [NSLocalizedDescriptionKey: "Service deallocated"])))
+                return
+            }
+
+            Task {
+                do {
+                    guard let currentUser = Auth.auth().currentUser else {
+                        throw NSError(domain: "FirebaseDataService", code: -1, userInfo: [NSLocalizedDescriptionKey: "User not authenticated"])
+                    }
+
+                    let accountId = currentUser.uid
+                    print("📥 [Firebase] Fetching program enrollments for user: \(accountId)")
+
+                    let snapshot = try await self.db
+                        .collection("users")
+                        .document(accountId)
+                        .collection("program_enrollments")
+                        .whereField("status", isEqualTo: "active")
+                        .order(by: "startDate", descending: true)
+                        .getDocuments()
+
+                    let enrollments = try snapshot.documents.compactMap { doc in
+                        try doc.data(as: ProgramEnrollment.self)
+                    }
+
+                    print("✅ [Firebase] Fetched \(enrollments.count) program enrollments")
+                    promise(.success(enrollments))
+                } catch {
+                    print("❌ [Firebase] Error fetching program enrollments: \(error)")
+                    promise(.failure(error))
+                }
+            }
+        }
+        .eraseToAnyPublisher()
+    }
+
+    func fetchProgramEnrollment(id: UUID) -> AnyPublisher<ProgramEnrollment?, Error> {
+        return Future { [weak self] promise in
+            guard let self = self else {
+                promise(.failure(NSError(domain: "FirebaseDataService", code: -1, userInfo: [NSLocalizedDescriptionKey: "Service deallocated"])))
+                return
+            }
+
+            Task {
+                do {
+                    guard let currentUser = Auth.auth().currentUser else {
+                        throw NSError(domain: "FirebaseDataService", code: -1, userInfo: [NSLocalizedDescriptionKey: "User not authenticated"])
+                    }
+
+                    let accountId = currentUser.uid
+                    print("📥 [Firebase] Fetching program enrollment: \(id)")
+
+                    let snapshot = try await self.db
+                        .collection("users")
+                        .document(accountId)
+                        .collection("program_enrollments")
+                        .document(id.uuidString)
+                        .getDocument()
+
+                    guard snapshot.exists else {
+                        print("⚠️ [Firebase] Program enrollment not found: \(id)")
+                        promise(.success(nil))
+                        return
+                    }
+
+                    let enrollment = try snapshot.data(as: ProgramEnrollment.self)
+                    print("✅ [Firebase] Fetched program enrollment: \(id)")
+                    promise(.success(enrollment))
+                } catch {
+                    print("❌ [Firebase] Error fetching program enrollment: \(error)")
+                    promise(.failure(error))
+                }
+            }
+        }
+        .eraseToAnyPublisher()
+    }
+
+    func updateProgramEnrollment(_ enrollment: ProgramEnrollment) -> AnyPublisher<ProgramEnrollment, Error> {
+        return Future { [weak self] promise in
+            guard let self = self else {
+                promise(.failure(NSError(domain: "FirebaseDataService", code: -1, userInfo: [NSLocalizedDescriptionKey: "Service deallocated"])))
+                return
+            }
+
+            Task {
+                do {
+                    guard let currentUser = Auth.auth().currentUser else {
+                        throw NSError(domain: "FirebaseDataService", code: -1, userInfo: [NSLocalizedDescriptionKey: "User not authenticated"])
+                    }
+
+                    let accountId = currentUser.uid
+                    var updatedEnrollment = enrollment
+                    updatedEnrollment.updatedAt = Date()
+
+                    print("💾 [Firebase] Updating program enrollment: \(updatedEnrollment.id)")
+
+                    try self.db
+                        .collection("users")
+                        .document(accountId)
+                        .collection("program_enrollments")
+                        .document(updatedEnrollment.id.uuidString)
+                        .setData(from: updatedEnrollment)
+
+                    print("✅ [Firebase] Updated program enrollment successfully")
+                    promise(.success(updatedEnrollment))
+                } catch {
+                    print("❌ [Firebase] Error updating program enrollment: \(error)")
+                    promise(.failure(error))
+                }
+            }
+        }
+        .eraseToAnyPublisher()
+    }
+    
     // MARK: - Value Analysis
     func fetchValueAnalysis() -> AnyPublisher<ValueAnalysis, Error> {
         // TODO: Implement Firebase logic

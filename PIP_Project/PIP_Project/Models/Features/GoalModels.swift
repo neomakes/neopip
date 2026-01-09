@@ -559,3 +559,37 @@ struct GoalRecommendationInput: Codable {
     var userPreferences: UserPreferencesForGoal
     var mlFeatures: [String: Double]       // ML 모델 특징값
 }
+
+// MARK: - Program Enrollment
+/// 프로그램 등록 (사용자가 선택한 프로그램)
+/// Firestore의 users/{accountId}/program_enrollments/{enrollmentId}에 저장
+struct ProgramEnrollment: Identifiable, Codable {
+    let id: UUID
+    var accountId: String              // Firebase Auth UID
+    var anonymousUserId: UUID?         // Anonymous User ID (나중에 설정)
+    var programId: UUID
+    var status: ProgramEnrollmentStatus
+    var startDate: Date
+    var targetCompletionDate: Date?
+    var actualCompletionDate: Date?
+    var initialMetrics: [String: Double]?  // 프로그램 시작 시 초기값
+    var successProgress: Double        // 0.0 ~ 1.0 (진행률)
+    var successRate: Double?           // 0.0 ~ 1.0 (완료 후 계산)
+    var createdAt: Date
+    var updatedAt: Date
+    
+    var enrollmentIdString: String {
+        id.uuidString
+    }
+    
+    var programIdString: String {
+        programId.uuidString
+    }
+}
+
+enum ProgramEnrollmentStatus: String, Codable {
+    case active       // 진행 중
+    case completed    // 완료
+    case paused       // 일시 정지
+    case abandoned    // 포기
+}

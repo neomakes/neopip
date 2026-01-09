@@ -47,6 +47,12 @@ protocol DataServiceProtocol {
     func fetchProgram(id: UUID) -> AnyPublisher<Program?, Error>
     func fetchRecommendedPrograms(for userId: String) -> AnyPublisher<[Program], Error>
 
+    // MARK: - Program Enrollments
+    func createProgramEnrollment(_ enrollment: ProgramEnrollment) -> AnyPublisher<ProgramEnrollment, Error>
+    func fetchProgramEnrollments() -> AnyPublisher<[ProgramEnrollment], Error>
+    func fetchProgramEnrollment(id: UUID) -> AnyPublisher<ProgramEnrollment?, Error>
+    func updateProgramEnrollment(_ enrollment: ProgramEnrollment) -> AnyPublisher<ProgramEnrollment, Error>
+
     // MARK: - Achievements
     func fetchAchievements() -> AnyPublisher<[Achievement], Error>
     

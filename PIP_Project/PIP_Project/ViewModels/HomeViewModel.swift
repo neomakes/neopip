@@ -65,6 +65,15 @@ class HomeViewModel: ObservableObject {
 
         // 매일 자정에 데이터 새로고침 (Streak 업데이트를 위함)
         setupDailyRefresh()
+
+        // Listen for card save notifications to refresh today's gem
+        NotificationCenter.default.publisher(for: .didSaveCardData)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                print("📥 [HomeViewModel] Received didSaveCardData notification, refreshing...")
+                self?.loadInitialData()
+            }
+            .store(in: &cancellables)
     }
     
     // MARK: - Public Methods

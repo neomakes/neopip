@@ -38,7 +38,7 @@ enum CardInput {
     case slider(key: String, label: String, range: ClosedRange<Double>, value: Double = 50.0)
     case toggle(key: String, label: String, value: Bool = false)
     case picker(key: String, label: String, options: [String], selectedIndex: Int = 0)
-    case timeSlotChart(key: String, label: String, range: ClosedRange<Double>, values: [Double] = [50, 50, 50, 50, 50, 50])
+    case timeSlotChart(key: String, label: String, range: ClosedRange<Double>, values: [Double] = Array(repeating: 50.0, count: 5))
 }
 
 // MARK: - Text Input

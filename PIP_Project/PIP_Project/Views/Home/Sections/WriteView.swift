@@ -81,18 +81,29 @@ struct WriteView: View {
         let generated = viewModel.generateCards()
         self.cards = generated
         self.currentPage = 1
-        self.cardInputs = generated.map { card in
-            var dict: [String: Any] = [:]
-            for input in card.inputs {
-                switch input {
-                case .slider(let key, _, _, let defaultValue): dict[key] = defaultValue
-                case .toggle(let key, _, let defaultValue): dict[key] = defaultValue
-                case .picker(let key, _, _, let selectedIndex): dict[key] = selectedIndex
-                case .timeSlotChart(let key, _, _, let defaultValues): dict[key] = defaultValues
+        
+        // cachedInputs가 카드 수와 맞으면 사용, 아니면 default
+        if viewModel.cachedInputs.count == generated.count {
+            self.cardInputs = viewModel.cachedInputs
+            print("WriteView: Loaded cached inputs for \(generated.count) cards")
+        } else {
+            self.cardInputs = generated.map { card in
+                var dict: [String: Any] = [:]
+                for input in card.inputs {
+                    switch input {
+                    case .slider(let key, _, _, let defaultValue): dict[key] = defaultValue
+                    case .toggle(let key, _, let defaultValue): dict[key] = defaultValue
+                    case .picker(let key, _, _, let selectedIndex): dict[key] = selectedIndex
+                    case .timeSlotChart(let key, _, _, let defaultValues): dict[key] = defaultValues
+                    }
                 }
+                return dict
             }
-            return dict
+            viewModel.cachedInputs = self.cardInputs
+            viewModel.saveCachedInputs()
+            print("WriteView: Initialized default inputs for \(generated.count) cards")
         }
+        
         self.textInputs = Array(repeating: "", count: generated.count)
     }
 
@@ -105,6 +116,8 @@ struct WriteView: View {
             set: { new in
                 guard index < cardInputs.count else { return }
                 cardInputs[index] = new
+                viewModel.updateLocalCache(inputs: new, for: index)
+                print("WriteView: Updated inputs for card \(index)")
             }
         )
     }
@@ -174,24 +187,32 @@ struct WriteView: View {
                 currentPage = (currentPage - 2 + cards.count) % cards.count + 1
             }
         }
+        // Save to cache when card changes
+        viewModel.cachedInputs = self.cardInputs
+        viewModel.saveCachedInputs()
+        print("WriteView: Saved cache on previousCard")
     }
 
     private func skipCard(at index: Int) {
         guard index < cards.count else { return }
         withAnimation {
-            // move skipped card to back without saving
+            // move skipped card to back - KEEP the current inputs
             let movedCard = cards.remove(at: index)
-            _ = cardInputs.remove(at: index)
-            _ = textInputs.remove(at: index)
+            let movedInputs = cardInputs.remove(at: index)
+            let movedText = textInputs.remove(at: index)
 
             cards.append(movedCard)
-            cardInputs.append(defaultInputs(for: movedCard))
-            textInputs.append("")
+            cardInputs.append(movedInputs)  // Keep existing inputs
+            textInputs.append(movedText)    // Keep existing text
             // advance page (wrap)
             if cards.count > 0 {
                 currentPage = currentPage % cards.count + 1
             }
         }
+        // Save to cache when card changes
+        viewModel.cachedInputs = self.cardInputs
+        viewModel.saveCachedInputs()
+        print("WriteView: Saved cache on skipCard")
     }
 
     private func saveCard(at index: Int) {
@@ -205,20 +226,23 @@ struct WriteView: View {
                 try await viewModel.saveCard(card, inputs: inputs, textInput: text)
                 await MainActor.run {
                     withAnimation {
-                        // move card to back instead of removing
+                        // move card to back - KEEP the current inputs (user can see what they saved)
                         let movedCard = cards.remove(at: index)
-                        _ = cardInputs.remove(at: index)
-                        _ = textInputs.remove(at: index)
+                        let movedInputs = cardInputs.remove(at: index)
+                        let movedText = textInputs.remove(at: index)
 
                         cards.append(movedCard)
-                        // reset the inputs for the moved card to defaults
-                        cardInputs.append(defaultInputs(for: movedCard))
-                        textInputs.append("")
+                        cardInputs.append(movedInputs)  // Keep existing inputs
+                        textInputs.append(movedText)    // Keep existing text
                         // advance page (wrap)
                         if cards.count > 0 {
                             currentPage = currentPage % cards.count + 1
                         }
                     }
+                    // Update cache after saving
+                    viewModel.cachedInputs = self.cardInputs
+                    viewModel.saveCachedInputs()
+                    print("WriteView: Saved cache on saveCard")
                     isSaving = false
                 }
             } catch {
