@@ -1,3 +1,641 @@
+# 🏛️ 02. 정적 아키텍처 및 설계
+
+이 문서는 PIP 프로젝트의 핵심 아키텍처와 설계에 대한 정적인 문서들을 통합한 것입니다. (DB 모델, 온보딩, View/ViewModel 구현 계획 등)
+
+---
+
+## 목차
+
+1.  [DB 모델 설계](#1-db-모델-설계) (`DB_MODEL_DESIGN.md`)
+2.  [온보딩 플로우 설계](#2-온보딩-플로우-설계) (`ONBOARDING_FLOW_DESIGN.md`)
+3.  [Views 및 ViewModels 구현 기획안](#3-views-및-viewmodels-구현-기획안) (`VIEWS_VIEWMODELS_IMPLEMENTATION_PLAN.md`)
+
+---
+
+## 1. DB 모델 설계
+(Source: `01_Planning/DB_MODEL_DESIGN.md`)
+
+# 🗄️ PIP 프로젝트 DB 설계 (핵심 요약)
+
+이 문서는 PIP 프로젝트의 핵심 데이터 모델과 구조를 간결하게 설명합니다. 현재 DB 스키마는 **21개의 핵심 테이블**로 구성되어 있습니다.
+
+상세한 필드 정보와 전체 스키마는 `01_Planning/DATABASE_SCHEMA_DBDIAGRAM.sql` 파일을 참조하세요.
+
+## 1. 핵심 아키텍처: 개인정보 보호 설계
+
+우리 앱은 사용자의 개인정보(PII)와 분석 데이터를 물리적으로 분리하여 프라이버시를 최우선으로 보호합니다.
+
+-   **🔴 PII 영역 (User-specific):** 사용자 계정에 직접 연결되는 데이터 (프로필, 목표 등)
+-   **🟢 익명 영역 (Anonymous):** 개인을 식별할 수 없는 순수 분석/머신러닝용 데이터 (시계열 데이터, 인사이트 등)
+
+```mermaid
+graph LR
+    subgraph PII["🔴 PII 영역 (users/{accountId})"]
+        UA[UserAccount]
+        UP[UserProfile]
+        G[Goal]
+    end
+    
+    subgraph Anonymous["🟢 익명화 영역 (anonymous_users/{anonymousUserId})"]
+        AUI[AnonymousUserIdentity]
+        TSP[TimeSeriesDataPoint]
+        INS[Insight]
+    end
+    
+    subgraph Mapping["🔐 매핑 영역 (identity_mappings)"]
+        IM[IdentityMapping]
+    end
+    
+    UA -->|IdentityMapping| IM
+    AUI -->|IdentityMapping| IM
+```
+
+## 2. 데이터 모델 ERD (21 Tables)
+
+아래 다이어그램은 현재의 핵심 데이터 모델(21개 테이블) 간의 관계를 보여줍니다.
+
+> **[참고]** 더 상세하고 인터랙티브한 ERD는 [dbdiagram.io](https://dbdiagram.io)에서 `DATABASE_SCHEMA_DBDIAGRAM.sql` 파일을 열어 확인하세요.
+
+```mermaid
+erDiagram
+    user_accounts ||--|| user_profiles : "has"
+    user_accounts ||--|| user_stats : "has"
+    user_accounts ||--o{ identity_mappings : "maps"
+    user_accounts ||--o{ daily_gems : "has"
+    user_accounts ||--o{ period_reports : "has"
+    user_accounts ||--o{ goals : "sets"
+    user_accounts ||--o{ user_program_enrollments : "enrolls in"
+    user_accounts ||--o{ badges : "earns"
+    user_accounts ||--o{ value_analysis : "analyzes"
+
+    anonymous_user_identities ||--o{ identity_mappings : "maps"
+    anonymous_user_identities ||--o{ time_series_data_points : "records"
+    anonymous_user_identities ||--o{ ml_feature_vectors : "generates"
+    anonymous_user_identities ||--o{ ml_model_outputs : "produces"
+    anonymous_user_identities ||--o{ insights : "gains"
+    anonymous_user_identities ||--o{ orb_visualizations : "visualizes"
+    anonymous_user_identities ||--o{ insight_analysis_cards : "gets"
+    anonymous_user_identities ||--o{ prediction_data : "predicts for"
+    anonymous_user_identities ||--o{ user_program_enrollments : "enrolls in"
+    anonymous_user_identities ||--o{ program_specific_data_points : "records for"
+
+    programs ||--o{ user_program_enrollments : "has"
+    programs ||--o{ program_success_metrics : "defines"
+
+    ml_feature_vectors ||--|| ml_model_outputs : "input for"
+    ml_model_outputs ||--o{ insights : "leads to"
+    ml_model_outputs ||--o{ orb_visualizations : "creates"
+    ml_model_outputs ||--o{ prediction_data : "contains"
+    
+    insights ||--|| orb_visualizations : "visualized by"
+    insights ||--o{ insight_analysis_cards : "detailed in"
+
+    user_program_enrollments ||--o{ program_specific_data_points : "has"
+```
+
+## 3. 데이터 영역 및 캐시 전략
+
+| 계층 (Layer) | 🔴 PII 영역 (개인식별) | 🟢 익명 영역 (익명) | 🌐 공유 & 🔐 보안 영역 |
+| :--- | :--- | :--- | :--- |
+| **🔐 Identity** | `user_accounts` (캐시 안 함) | `anonymous_user_identities` (서버 전용) | `identity_mappings` (서버 전용) |
+| **👤 User Profile** | `user_profiles` (적극적 캐시) | | |
+| **🔬 Time Series Data** | | `time_series_data_points` (쓰기 후 동기화)<br>`ml_feature_vectors` (서버 전용)<br>`ml_model_outputs` (서버 전용) | |
+| **📊 Aggregation** | `daily_gems` (시간 기반 캐시)<br>`period_reports` (시간 기반 캐시) | | |
+| **💡 Insight & Viz** | | `insights` (서버 우선 조회)<br>`orb_visualizations` (서버 우선 조회)<br>`insight_analysis_cards` (서버 우선 조회)<br>`prediction_data` (서버 우선 조회) | |
+| **🎯 Goal & Program** | `goals` (상태 기반 캐시)<br>`user_program_enrollments` (상태 기반 캐시) | `program_specific_data_points` (쓰기 후 동기화) | `programs` (적극적 캐시)<br>`program_success_metrics` (적극적 캐시) |
+| **🏆 Achievement & Status** | `user_stats` (적극적 캐시)<br>`badges` (적극적 캐시)<br>`value_analysis` (적극적 캐시) | | |
+
+## 4. 주요 모델 설명 (21개)
+
+-   **user_accounts**: 사용자 인증 및 계정 정보
+-   **anonymous_user_identities**: 개인 식별이 불가능한 익명 ID
+-   **identity_mappings**: `user_accounts`와 `anonymous_user_identities`를 연결하는 보안 매핑
+-   **user_profiles**: 이름, 사진 등 사용자 프로필 및 개인 설정
+-   **time_series_data_points**: 모든 측정 데이터(마음, 행동, 신체)가 기록되는 핵심 시계열 데이터
+-   **ml_feature_vectors**: 시계열 데이터로부터 추출된 머신러닝 특징 벡터
+-   **ml_model_outputs**: ML 모델 실행 결과 (재생성 성능, 예측 정확도 등)
+-   **daily_gems**: 하루의 데이터를 요약하여 보여주는 시각적 요소
+-   **period_reports**: 주간/월간 등 기간별 리포트
+-   **insights**: 시계열 데이터를 분석하여 도출된 통찰 또는 패턴
+-   **orb_visualizations**: 주간/월간 데이터 패턴을 시각화하는 요소
+-   **insight_analysis_cards**: 인사이트를 스토리 형식으로 보여주는 카드뉴스
+-   **prediction_data**: 특정 지표에 대한 미래 예측 데이터
+-   **goals**: 사용자가 설정한 개인 목표
+-   **programs**: 목표 달성을 돕는 추천 프로그램 (글로벌 카탈로그)
+-   **user_program_enrollments**: 사용자가 참여중인 프로그램의 진행 상태
+-   **program_specific_data_points**: 특정 프로그램 진행 중에만 수집되는 데이터
+-   **program_success_metrics**: 프로그램의 성공 여부를 판단하는 기준 지표
+-   **user_stats**: 총 기록 수, 연속 기록일 등 사용자의 전반적인 통계
+-   **badges**: 특정 조건을 달성했을 때 얻는 뱃지
+-   **value_analysis**: 사용자가 추구하는 가치를 월별로 분석한 데이터
+
+## 5. 앞으로의 작업 (To-Do)
+
+-   [ ] Firestore 실제 컬렉션/도큐먼트 구조 설계 및 문서화
+-   [ ] 주요 엔티티별 최소 필드 정의 (UserAccount, TimeSeriesDataPoint 등)
+-   [ ] 데이터 수집/집계/인사이트 생성 플로우 간단 도식화
+-   [ ] Cloud Functions 자동화 설계 (예: 집계, 익명화, 삭제)
+-   [ ] 데이터 마이그레이션/초기화 전략 수립
+-   [ ] (선택) dbdiagram.io 등 외부 ERD 툴로 시각화
+
+---
+
+## 2. 온보딩 플로우 설계
+(Source: `01_Planning/ONBOARDING_FLOW_DESIGN.md`)
+
+# 🎯 온보딩 플로우 설계: 목표 기반 개인화 시작
+
+이 문서는 PIP 앱의 초기 온보딩 경험을 설계합니다. 사용자가 처음 앱을 켰을 때 목표를 설정하고, 데이터 수집의 목적을 이해하며, 기대할 수 있는 인사이트를 미리 경험할 수 있도록 합니다.
+
+---
+
+## 1. 온보딩 플로우의 핵심 가치
+
+### 1.1. 왜 목표 기반 온보딩인가?
+
+**문제점:**
+- 사용자가 앱의 가치를 즉시 이해하지 못함
+- 어떤 데이터를 왜 수집해야 하는지 불명확
+- 초기 사용 후 이탈률이 높음
+
+**해결책:**
+- **목표 설정을 통한 개인화**: 사용자의 구체적인 목표를 설정하여 앱을 "나만의 도구"로 만들기
+- **데이터 수집 목적 명확화**: 수집하는 데이터가 목표 달성에 어떻게 도움이 되는지 설명
+- **인사이트 가치 미리보기**: 목표 달성 후 받을 수 있는 인사이트를 시뮬레이션으로 보여주기
+
+### 1.2. 핵심 원칙
+
+1. **차분한 명료함 (Calm Clarity)**: 압도적이지 않으면서도 명확한 정보 제공
+2. **점진적 공개**: 한 번에 모든 것을 보여주지 않고, 단계별로 정보 제공
+3. **즉각적 가치 제공**: 온보딩 중에도 사용자가 "아, 이게 나에게 도움이 되겠구나"를 느낄 수 있도록
+4. **게이미피케이션**: 목표 설정과 데이터 수집을 즐거운 경험으로 만들기
+
+---
+
+## 2. 온보딩 플로우 구조
+
+### 2.1. 전체 플로우 다이어그램
+
+```
+LaunchView
+    ↓
+[온보딩 체크] → 이미 완료? → MainTabView
+    ↓ 아니오
+WelcomeView (1단계)
+    ↓
+GoalSelectionView (2단계)
+    ↓
+DataCollectionIntroView (3단계)
+    ↓
+InsightPreviewView (4단계)
+    ↓
+OnboardingCompleteView (5단계)
+    ↓
+MainTabView (첫 Gem 생성 유도)
+```
+
+### 2.2. 단계별 상세 설계
+
+#### **1단계: WelcomeView - 환영 및 가치 제안**
+
+**목적**: PIP가 무엇인지, 왜 사용해야 하는지 간단히 소개
+
+**내용:**
+- PIP 로고 및 브랜딩
+- 핵심 가치 제안: "나를 이해하는 가장 스마트한 방법"
+- 간단한 설명: "당신의 감정, 행동, 신체 데이터를 분석하여 개인화된 인사이트를 제공합니다"
+- "시작하기" 버튼
+
+**UX 특징:**
+- 최소한의 텍스트
+- 시각적 메타포 (Gem/Orb) 미리보기
+- 부드러운 애니메이션
+
+**소요 시간**: 약 10-15초
+
+---
+
+#### **2단계: GoalSelectionView - 목표 설정 (틴더 스타일)**
+
+**목적**: 사용자의 구체적인 목표를 설정하여 개인화된 경험 제공
+
+**UI/UX (틴더 스타일)**:
+- 틴더처럼 카드를 좌우로 스와이프하여 목표 선택
+- 카드 스택 형식으로 목표 카테고리 표시:
+  - 🧘 웰니스 & 마음의 평온
+  - 💪 생산성 향상
+  - 😊 감정 관리
+  - 🏃 신체 건강
+  - 👥 사회적 관계
+  - 📚 학습 & 성장
+  - ✨ 커스텀 목표 (직접 입력)
+- **좌측 스와이프**: 관심 없음 (다음 카드로)
+- **우측 스와이프**: 선택 (목표에 추가)
+- **상단 스와이프**: 나중에 보기
+- 선택한 목표는 하단에 표시 (최대 2개)
+- 한 두개의 목표 선택 후 "다음" 버튼 활성화
+
+**인터랙션:**
+- 각 카테고리를 Gem 형태의 카드로 표시
+- 스와이프 시 부드러운 애니메이션
+- 선택 시 Gem이 밝아지는 피드백
+- 최소 1개, 최대 2개 선택 권장
+
+**데이터 저장:**
+- 선택한 목표들을 `UserProfile.initialGoals`에 저장
+- 이후 Goal 뷰에서 자동으로 생성
+
+**UX 특징:**
+- 틴더처럼 직관적인 스와이프 인터랙션
+- 시각적으로 매력적인 Gem 카드
+- 선택 피드백이 즉각적
+- 부담 없는 선택 (나중에 변경 가능 안내)
+
+**소요 시간**: 약 30-60초
+
+---
+
+#### **3단계: ProgramSelectionView - 프로그램 선택**
+
+**목적**: 선택한 목표에 맞는 구체적인 프로그램 제시 및 선택
+
+**UI/UX:**
+- 선택한 목표에 맞는 프로그램 목록 표시
+- 각 프로그램 카드 클릭 시 상세 정보:
+  - **간단한 설명**: 프로그램이 무엇인지
+  - **기대 효과**: 어떤 효과를 기대할 수 있는지
+  - **필요한 데이터 목록**: 어떤 데이터를 수집해야 하는지
+- 프로그램 선택 후 "시작하기" 버튼
+
+**소요 시간**: 약 1-2분
+
+---
+
+#### **4단계: DataConsentView - 민감 정보 동의**
+
+**목적**: 필요한 데이터에 대한 명시적 동의 수집
+
+**내용:**
+- 선택한 프로그램에 필요한 데이터 목록:
+  - 날씨
+  - 스크린타임
+  - 위치
+  - 심박수
+  - 걸음수
+  - 건강 데이터 (수면, 활동량 등)
+- 각 데이터별:
+  - 수집 목적 설명
+  - 사용 방법 설명
+  - 개인정보 보호 정책 링크
+  - 개별 동의 토글
+
+**인터랙션:**
+- 필수 데이터와 선택 데이터 구분
+- 필수 데이터는 동의 필수
+- 선택 데이터는 선택적 동의
+- "모두 동의" 옵션 제공 (선택 데이터 포함)
+
+**데이터 저장:**
+```swift
+UserDataCollectionSettings(
+    accountId: accountId,
+    enabledDataTypes: ["mood", "stress", "weather", "location", "heartRate", "steps"],
+    permissions: DataPermissions(
+        screenTime: .granted,
+        healthKit: .granted,
+        location: .granted,
+        // ...
+    ),
+    // ...
+)
+```
+
+**UX 특징:**
+- 명확한 정보 제공
+- 사용자 선택권 존중
+- 투명한 데이터 사용 정책
+
+**소요 시간**: 약 1-2분
+
+---
+
+#### **4단계: InsightPreviewView - 인사이트 미리보기**
+
+**목적**: 데이터 수집 후 받을 수 있는 인사이트를 시뮬레이션으로 보여주기
+
+**내용:**
+- 목표별 맞춤 인사이트 예시:
+  - 예시 1: "이번 주 감정 패턴 분석"
+    - 시각화: Orb 애니메이션
+    - 텍스트: "당신의 감정 점수가 평균 0.72로, 이전 주 대비 5% 상승했습니다"
+  
+  - 예시 2: "목표 달성 예측"
+    - 시각화: 진행률 차트
+    - 텍스트: "현재 진행 속도라면 목표 달성까지 약 3주가 소요될 것으로 예상됩니다"
+
+- 인사이트의 가치 강조:
+  - "이런 인사이트를 통해 당신만의 최적의 패턴을 발견할 수 있습니다"
+  - "데이터가 쌓일수록 더 정확하고 개인화된 인사이트를 받을 수 있습니다"
+
+**UX 특징:**
+- 실제 인사이트 뷰와 유사한 디자인
+- 애니메이션으로 생동감 제공
+- "이제 시작하기" 버튼으로 다음 단계 유도
+
+**소요 시간**: 약 30-45초
+
+---
+
+#### **5단계: OnboardingCompleteView - 완료 및 첫 기록 유도**
+
+**목적**: 온보딩 완료를 축하하고, 첫 저널 기록을 유도
+
+**내용:**
+- 축하 메시지: "준비가 완료되었습니다!"
+- 첫 Gem 생성 유도:
+  - "지금 바로 첫 번째 저널을 작성하고 당신만의 Gem을 만들어보세요"
+  - "매일의 기록이 모여 당신을 이해하는 데이터가 됩니다"
+  
+- 빠른 시작 가이드:
+  - "하단 탭바의 Write 탭에서 카드를 스와이프하여 감정을 기록하세요"
+  - "기록이 완료되면 오늘의 Gem이 생성됩니다"
+
+**인터랙션:**
+- "첫 기록 시작하기" 버튼 → MainTabView로 이동 (Write 탭 자동 활성화)
+- "나중에 하기" 버튼 → MainTabView로 이동 (Home 탭 표시)
+
+**UX 특징:**
+- 성취감을 주는 디자인
+- 명확한 다음 액션 제시
+- 부담 없는 선택권 제공
+
+**소요 시간**: 약 15-20초
+
+---
+
+## 3. 데이터 모델
+
+### 3.1. OnboardingState
+
+```swift
+struct OnboardingState: Codable {
+    var isCompleted: Bool
+    var completedSteps: [OnboardingStep]
+    var selectedGoals: [GoalCategory]
+    var completedAt: Date?
+    var skippedSteps: [OnboardingStep]
+}
+
+enum OnboardingStep: String, Codable {
+    case welcome
+    case goalSelection
+    case dataCollectionIntro
+    case insightPreview
+    case onboardingComplete
+}
+```
+
+### 3.2. UserProfile 확장
+
+```swift
+// 기존 UserProfile에 추가
+struct UserProfile: Codable {
+    // ... 기존 필드들
+    
+    // 온보딩 관련
+    var onboardingState: OnboardingState
+    var initialGoals: [GoalCategory]  // 온보딩에서 선택한 초기 목표
+    var firstJournalDate: Date?        // 첫 저널 작성 날짜
+}
+```
+
+### 3.3. OnboardingGoal (임시 목표)
+
+```swift
+struct OnboardingGoal: Identifiable, Codable {
+    let id: UUID
+    var category: GoalCategory
+    var title: String
+    var description: String
+    var iconName: String
+    var isSelected: Bool
+}
+```
+
+---
+
+## 4. 구현 전략
+
+### 4.1. 앱 진입점 수정
+
+**현재 구조:**
+```
+LaunchView → MainTabView
+```
+
+**수정 후 구조:**
+```
+LaunchView → OnboardingCheck → OnboardingFlow 또는 MainTabView
+```
+
+### 4.2. OnboardingCheck 로직
+
+```swift
+struct OnboardingCheckView: View {
+    @StateObject private var viewModel = OnboardingViewModel()
+    
+    var body: some View {
+        Group {
+            if viewModel.shouldShowOnboarding {
+                OnboardingFlowView()
+            } else {
+                MainTabView()
+            }
+        }
+        .onAppear {
+            viewModel.checkOnboardingStatus()
+        }
+    }
+}
+```
+
+### 4.3. OnboardingFlowView
+
+```swift
+struct OnboardingFlowView: View {
+    @State private var currentStep: OnboardingStep = .welcome
+    @State private var selectedGoals: [GoalCategory] = []
+    
+    var body: some View {
+        ZStack {
+            PrimaryBackground()
+                .ignoresSafeArea()
+            
+            switch currentStep {
+            case .welcome:
+                WelcomeView(onNext: { currentStep = .goalSelection })
+            case .goalSelection:
+                GoalSelectionView(
+                    selectedGoals: $selectedGoals,
+                    onNext: { currentStep = .dataCollectionIntro }
+                )
+            case .dataCollectionIntro:
+                DataCollectionIntroView(
+                    selectedGoals: selectedGoals,
+                    onNext: { currentStep = .insightPreview }
+                )
+            case .insightPreview:
+                InsightPreviewView(
+                    selectedGoals: selectedGoals,
+                    onNext: { currentStep = .onboardingComplete }
+                )
+            case .onboardingComplete:
+                OnboardingCompleteView(
+                    onStart: {
+                        // 온보딩 완료 처리
+                        // MainTabView로 이동 + 첫 저널 유도
+                    }
+                )
+            }
+        }
+    }
+}
+```
+
+---
+
+## 5. UX 고려사항
+
+### 5.1. 진행률 표시
+
+- 상단에 진행 바 또는 단계 인디케이터 표시
+- 예: "1 / 5" 또는 점으로 표시
+
+### 5.2. 뒤로가기 처리
+
+- 각 단계에서 뒤로가기 가능
+- 단, WelcomeView에서는 뒤로가기 없음 (앱 종료 또는 건너뛰기)
+
+### 5.3. 건너뛰기 옵션
+
+- DataCollectionIntroView와 InsightPreviewView에서 "건너뛰기" 제공
+- 건너뛴 단계는 나중에 다시 볼 수 있도록 설정에 옵션 제공
+
+### 5.4. 애니메이션
+
+- 단계 전환 시 부드러운 페이드/슬라이드 애니메이션
+- Gem/Orb 시각화 시 미묘한 애니메이션으로 생동감 제공
+
+### 5.5. 접근성
+
+- VoiceOver 지원
+- 다이나믹 타입 지원
+- 색상 대비 준수
+
+---
+
+## 6. 온보딩 완료 후 첫 경험
+
+### 6.1. MainTabView 첫 진입 시
+
+- **Write 탭 자동 활성화** (선택한 경우): 온보딩에서 "첫 기록 시작하기" 선택 시 바로 Write 탭으로 이동
+- **Write 탭 강조**: 처음 사용자를 위해 Write 탭 버튼에 시각적 강조 (예: 맥박 애니메이션)
+- **튜토리얼 툴팁**: Write 탭에서 "카드를 스와이프하여 감정을 기록하세요" 가이드 제공
+
+### 6.2. 첫 저널 작성 후
+
+- **축하 애니메이션**: 첫 저널 작성 완료 시 특별한 애니메이션
+- **자동 이동**: Home 탭으로 자동 이동하여 생성된 첫 Gem 표시
+- **뱃지 부여**: "첫 Gem" 뱃지 자동 부여
+- **인사이트 안내**: "데이터가 쌓이면 더 많은 인사이트를 받을 수 있습니다"
+
+### 6.3. 5개 탭의 역할
+
+- **Home**: 일일 기록된 Gem 확인 (Railroad 뷰)
+- **Insight**: 데이터 분석 및 인사이트 조회
+- **Write**: 카드 스와이프를 통한 일일 감정/신체/행동 기록 (新)
+- **Goal**: 목표 설정 및 진행도 추적
+- **Status**: 전체 현황 및 설정
+
+---
+
+## 7. 온보딩 재진입
+
+### 7.1. 설정에서 다시 보기
+
+- Status 탭 → Settings → "온보딩 다시 보기" 옵션
+- 선택한 단계부터 다시 시작 가능
+
+### 7.2. 목표 변경
+
+- GoalView에서 온보딩에서 설정한 초기 목표 수정 가능
+- 목표 추가/삭제 시 관련 인사이트도 업데이트
+
+---
+
+## 8. 측정 지표 (Analytics)
+
+온보딩의 효과를 측정하기 위한 지표:
+
+- **온보딩 완료율**: 시작한 사용자 중 완료한 비율
+- **목표 선택 분포**: 어떤 목표가 가장 많이 선택되는지
+- **첫 저널 작성율**: 온보딩 완료 후 첫 저널을 작성한 비율
+- **온보딩 완료 후 7일 리텐션**: 온보딩 완료 후 7일 후에도 사용하는 비율
+- **건너뛴 단계**: 어떤 단계가 가장 많이 건너뛰어지는지
+
+---
+
+## 9. 향후 개선 사항
+
+### 9.1. 개인화 강화
+
+- 사용자의 응답에 따라 온보딩 플로우 동적 조정
+- 더 많은 목표 카테고리 추가
+- 목표별 맞춤 인사이트 예시 확대
+
+### 9.2. 게이미피케이션 강화
+
+- 온보딩 중에도 작은 성취감 제공
+- 진행률에 따른 시각적 보상
+
+### 9.3. 소셜 요소
+
+- 친구 초대 기능 (온보딩 완료 후)
+- 목표 공유 기능
+
+---
+
+## 10. 구현 우선순위
+
+### Phase 1 (MVP) - ✅ 완료 (2026.01.09)
+- [x] OnboardingState 모델 생성
+- [x] WriteViewModel 핵심 로직 구현 (카드 입력, 저장)
+- [x] HomeViewModel 구현 (DailyGems, UserStats 조회)
+- [x] TimeSlotBarChart MVP 구현
+
+### Phase 2 - 🔄 진행 중 (예상 완료: 2026.01.15)
+- [ ] HomeView "Today" 버그 수정
+- [ ] WriteView UX 개선 및 완성
+- [ ] OnboardingFlow UI 구현 (WelcomeView → GoalSelectionView)
+- [ ] InsightView 기본 구현
+
+### Phase 3 - 예정 (2026.01.20 이후)
+- [ ] 애니메이션 및 시각화 개선
+- [ ] 접근성 개선
+- [ ] Analytics 연동
+- [ ] 온보딩 재진입 기능
+
+**마지막 업데이트**: 2026.01.09  
+**버전**: 1.1  
+**상태**: 진행 중 (Phase 2)
+
+---
+
+---
+
+## 3. Views 및 ViewModels 구현 기획안
+(Source: `01_Planning/VIEWS_VIEWMODELS_IMPLEMENTATION_PLAN.md`)
+
 # 📱 Views 및 ViewModels 구현 기획안
 
 **작성일**: 2025.12  
@@ -83,9 +721,69 @@ Models
 
 ---
 
-## 2. HomeView 및 ViewModel
+## 2. HomeView, WriteView 및 ViewModels
 
-### 2.1. HomeView 구조
+### 2.1. HomeView & WriteView 연동 (✅ 2026.01.09 완성)
+
+**구조:**
+- **HomeView**: 홈 화면 (RailRoad + DailyGems 표시)
+- **WriteView**: 카드 기반 데이터 입력 (Sheet로 표시)
+- **WriteViewModel**: 카드 생성, 저장, UserStats 업데이트
+
+**주요 기능:**
+```swift
+// HomeView: 기록 버튼 클릭 → WriteView 표시
+Button { showWriteSheet = true } { Image(systemName: "plus.circle.fill") }
+    .sheet(isPresented: $showWriteSheet) { WriteView(viewModel: writeViewModel) }
+
+// WriteView: 카드 스와이프 입력 후 저장
+SwipeableCardView(
+    card: card,
+    onCheck: {
+        await viewModel.saveCard(card, inputs: inputs, textInput: notes)
+        // ↓ 자동으로 updateUserStats() 호출
+        // ↓ HomeView 새로고침 (NotificationCenter)
+    }
+)
+```
+
+### 2.2. WriteViewModel (✅ 2026.01.09 완성)
+
+**완성 사항:**
+- ✅ generateCards(): 카테고리별 카드 생성 (TimeSlotChart 포함)
+- ✅ saveCard(): TimeSeriesDataPoint + DailyGem 저장
+- ✅ updateUserStats(): totalDataPoints, totalGemsCreated, totalDaysActive 자동 증가
+- ✅ calculateAndUpdateStreak(): currentStreak/longestStreak 정확 계산
+- ✅ TimeSlotBarChart MVP: 6구간 바 차트, 드래그 입력
+
+**Streak 계산 로직:**
+```
+1. saveCard() 호출 시 isNewGem 플래그 생성 (새로운 날짜인지 판별)
+2. updateUserStats()에서 isNewGem 기반으로 카운트 증가
+3. calculateAndUpdateStreak(): 로컬 데이터의 unique 날짜에서 streak 계산
+   - 어제부터 시작하여 과거로 거슬러감
+   - 데이터 있는 날 카운트 → currentStreak
+   - longestStreak보다 크면 업데이트
+```
+
+**데이터 흐름:**
+```
+WriteView.saveCard()
+    ↓
+WriteViewModel.saveCard()
+    ├─ TimeSeriesDataPoint 생성 & 저장
+    ├─ DailyGem 생성/업데이트 & 저장
+    └─ updateUserStats() 호출 ← 자동!
+        ├─ totalDataPoints += 1
+        ├─ isNewGem? totalGemsCreated & totalDaysActive += 1
+        ├─ calculateAndUpdateStreak()
+        └─ Firebase 업데이트
+    
+    ↓ NotificationCenter 발송
+HomeView 자동 새로고침
+```
+
+### 2.3. HomeView 구조
 
 ```swift
 struct HomeView: View {
@@ -210,51 +908,42 @@ struct WriteSheet: View {
 
 ### 2.3. HomeViewModel (✅ 2025.12.23 완성)
 
+### 2.4. HomeViewModel (✅ 2026.01.09 완성)
+
 **완성 사항:**
-- ✅ UserStats 모델을 통한 currentStreak 조회
-- ✅ last7Days 계산 로직 (최근 7일 데이터)
-- ✅ 스트리크 계산: MockDataService에서 오늘 데이터부터 거꾸로 확인하며 연속 기록 일수 계산
+- ✅ DailyGems 조회 및 last7Days 계산
+- ✅ UserStats 조회 (totalGemsCreated, currentStreak 등)
+- ✅ Streak 계산 로직 (DailyGems 기반)
+- ✅ 자정 자동 새로고침 기능 (setupDailyRefresh)
+- ✅ NotificationCenter를 통한 실시간 갱신 (didSaveCardData)
+- ✅ Combine 기반 반응형 데이터 바인딩
 
-**스트리크 계산 알고리즘:**
-```
-1. 모든 데이터 포인트의 날짜를 중복 제거
-2. 최신 날짜부터 정렬 (내림차순)
-3. 오늘부터 시작해서 연속된 날짜에 데이터 있는지 확인
-4. 연속이 끊기면 중단
-5. 최종 카운트 = currentStreak
-```
-
+**주요 기능:**
 ```swift
 @MainActor
 class HomeViewModel: ObservableObject {
     @Published var dailyGems: [DailyGem] = []
     @Published var userStats: UserStats?
-    @Published var isLoading = false
-    @Published var errorMessage: String?
     @Published var last7Days: [GemRecord] = []
     @Published var userName: String?
     
-    let dataService: DataServiceProtocol
-    var cancellables = Set<AnyCancellable>()
+    // Computed properties (DailyGems 기반)
+    var totalGemsCreated: Int { Set(dailyGems.map { startOfDay($0.date) }).count }
+    var currentStreak: Int { /* 어제부터 연속 기록 일수 */ }
     
-    init(dataService: DataServiceProtocol? = nil) {
-        self.dataService = dataService ?? MockDataService.shared
-        self.userName = "Neo"
-        loadInitialData()
-    }
-    
-    func loadInitialData() {
-        isLoading = true
-        errorMessage = nil
-        
-        let calendar = Calendar.current
-        let endDate = Date()
-        guard let startDate = calendar.date(byAdding: .day, value: -30, to: endDate) else {
-            isLoading = false
-            return
-        }
-        
-        // DailyGems 로드
+    func loadInitialData() async { /* Firebase/MockData 조회 */ }
+    func setupDailyRefresh() { /* 자정마다 새로고침 */ }
+}
+```
+
+**Streak 계산 알고리즘:**
+- DailyGems 배열에서 unique한 날짜 추출
+- 어제(yesterday)부터 시작하여 과거로 거슬러감
+- 데이터가 있는 날을 연속으로 카운트
+- 데이터가 없는 날을 만나면 중단 → currentStreak 결정
+
+**다음 과제:**
+- ⚠️ HomeView "Today" 버그 수정 필요 (Gem이 없어도 표시됨)
         dataService.fetchDailyGems(from: startDate, to: endDate)
             .receive(on: DispatchQueue.main)
             .sink(

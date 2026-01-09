@@ -188,92 +188,86 @@ class OnboardingViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
 
-        do {
-            // Create anonymous user if not authenticated
-            if !authService.isAuthenticated {
-                // User can use app without account (anonymous mode)
-                // Identity will be created when needed
-            }
+        // Create anonymous user if not authenticated
+        if !authService.isAuthenticated {
+            // User can use app without account (anonymous mode)
+            // Identity will be created when needed
+        }
 
-            // Save onboarding state
-            let onboardingState = OnboardingState(
-                isCompleted: true,
-                completedSteps: OnboardingStep.allCases.map { $0.rawValue },
-                selectedGoals: selectedGoals.map { $0.rawValue },
-                completedAt: Date(),
-                skippedSteps: []
+        // Save onboarding state
+        let onboardingState = OnboardingState(
+            isCompleted: true,
+            completedSteps: OnboardingStep.allCases.map { $0.rawValue },
+            selectedGoals: selectedGoals.map { $0.rawValue },
+            completedAt: Date(),
+            skippedSteps: []
+        )
+
+        // Create and save UserProfile to Firebase
+        if authService.isAuthenticated {
+            let userProfile = UserProfile(
+                accountId: authService.currentUser?.uid ?? "",
+                displayName: authService.currentUser?.displayName,
+                email: authService.currentUser?.email,
+                profileImageURL: authService.currentUser?.photoURL?.absoluteString,
+                backgroundImageURL: nil,
+                createdAt: Date(),
+                lastActiveAt: Date(),
+                preferences: UserPreferences(
+                    theme: .system,
+                    notificationsEnabled: true,
+                    language: "en",
+                    timeZone: TimeZone.current.identifier
+                ),
+                onboardingState: onboardingState,
+                initialGoals: selectedGoals,
+                firstJournalDate: nil
             )
 
-            // Create and save UserProfile to Firebase
-            if authService.isAuthenticated {
-                let userProfile = UserProfile(
-                    accountId: authService.currentUser?.uid ?? "",
-                    displayName: authService.currentUser?.displayName,
-                    email: authService.currentUser?.email,
-                    profileImageURL: authService.currentUser?.photoURL?.absoluteString,
-                    backgroundImageURL: nil,
-                    createdAt: Date(),
-                    lastActiveAt: Date(),
-                    preferences: UserPreferences(
-                        theme: .system,
-                        notificationsEnabled: true,
-                        language: "en",
-                        timeZone: TimeZone.current.identifier
-                    ),
-                    onboardingState: onboardingState,
-                    initialGoals: selectedGoals,
-                    firstJournalDate: nil
-                )
+            // Save profile to Firebase
+            print("💾 [Onboarding] Saving user profile to Firebase...")
+            await saveUserProfile(userProfile)
 
-                // Save profile to Firebase
-                print("💾 [Onboarding] Saving user profile to Firebase...")
-                await saveUserProfile(userProfile)
+            // Create initial UserStats
+            let initialStats = UserStats(
+                accountId: authService.currentUser?.uid ?? "",
+                totalDataPoints: 0,
+                totalDaysActive: 0,
+                currentStreak: 0,
+                longestStreak: 0,
+                totalGoalsCompleted: 0,
+                totalProgramsCompleted: 0,
+                averageEmotionScore: 0.0,
+                totalGemsCreated: 0,
+                lastUpdated: Date()
+            )
 
-                // Create initial UserStats
-                let initialStats = UserStats(
-                    accountId: authService.currentUser?.uid ?? "",
-                    totalDataPoints: 0,
-                    totalDaysActive: 0,
-                    currentStreak: 0,
-                    longestStreak: 0,
-                    totalGoalsCompleted: 0,
-                    totalProgramsCompleted: 0,
-                    averageEmotionScore: 0.0,
-                    totalGemsCreated: 0,
-                    lastUpdated: Date()
-                )
+            // Save initial stats to Firebase
+            print("💾 [Onboarding] Saving initial user stats to Firebase...")
+            await saveUserStats(initialStats)
 
-                // Save initial stats to Firebase
-                print("💾 [Onboarding] Saving initial user stats to Firebase...")
-                await saveUserStats(initialStats)
-
-                // Create Goal documents for each selected goal
-                print("💾 [Onboarding] Creating Goal documents...")
-                for goalCategory in selectedGoals {
-                    await createGoal(for: goalCategory)
-                }
-
-                // Create ProgramEnrollment documents for each selected program
-                print("💾 [Onboarding] Creating ProgramEnrollment documents...")
-                for programId in selectedPrograms {
-                    await createProgramEnrollment(for: programId)
-                }
+            // Create Goal documents for each selected goal
+            print("💾 [Onboarding] Creating Goal documents...")
+            for goalCategory in selectedGoals {
+                await createGoal(for: goalCategory)
             }
 
-            // Mark as completed locally
-            authStateManager.completeOnboarding()
-
-            // Save selected goals and programs locally (backup)
-            UserDefaults.standard.set(selectedGoals.map { $0.rawValue }, forKey: "initialGoals")
-            UserDefaults.standard.set(selectedPrograms.map { $0.uuidString }, forKey: "selectedPrograms")
-            UserDefaults.standard.set(consentedDataTypes, forKey: "consentedDataTypes")
-
-            print("✅ [Onboarding] Completed successfully")
-
-        } catch {
-            errorMessage = "Failed to complete onboarding: \(error.localizedDescription)"
-            print("❌ [Onboarding] Error: \(error)")
+            // Create ProgramEnrollment documents for each selected program
+            print("💾 [Onboarding] Creating ProgramEnrollment documents...")
+            for programId in selectedPrograms {
+                await createProgramEnrollment(for: programId)
+            }
         }
+
+        // Mark as completed locally
+        authStateManager.completeOnboarding()
+
+        // Save selected goals and programs locally (backup)
+        UserDefaults.standard.set(selectedGoals.map { $0.rawValue }, forKey: "initialGoals")
+        UserDefaults.standard.set(selectedPrograms.map { $0.uuidString }, forKey: "selectedPrograms")
+        UserDefaults.standard.set(consentedDataTypes, forKey: "consentedDataTypes")
+
+        print("✅ [Onboarding] Completed successfully")
 
         isLoading = false
     }
@@ -285,7 +279,7 @@ class OnboardingViewModel: ObservableObject {
         let goal = Goal(
             id: UUID(),
             accountId: authService.currentUser?.uid ?? "",
-            title: category.displayName,
+            title: category.rawValue.capitalized,
             description: "Goal created during onboarding",
             category: category,
             targetDate: Calendar.current.date(byAdding: .month, value: 3, to: Date()),
@@ -304,7 +298,7 @@ class OnboardingViewModel: ObservableObject {
             updatedAt: Date()
         )
 
-        await withCheckedContinuation { continuation in
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
             dataService.saveGoal(goal)
                 .receive(on: DispatchQueue.main)
                 .sink { completion in
@@ -339,7 +333,7 @@ class OnboardingViewModel: ObservableObject {
             updatedAt: Date()
         )
 
-        await withCheckedContinuation { continuation in
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
             dataService.createProgramEnrollment(enrollment)
                 .receive(on: DispatchQueue.main)
                 .sink { completion in
@@ -358,7 +352,7 @@ class OnboardingViewModel: ObservableObject {
 
     /// Save user profile to Firebase
     private func saveUserProfile(_ profile: UserProfile) async {
-        await withCheckedContinuation { continuation in
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
             dataService.saveUserProfile(profile)
                 .receive(on: DispatchQueue.main)
                 .sink { completion in
@@ -377,7 +371,7 @@ class OnboardingViewModel: ObservableObject {
 
     /// Save user stats to Firebase
     private func saveUserStats(_ stats: UserStats) async {
-        await withCheckedContinuation { continuation in
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
             dataService.updateUserStats(stats)
                 .receive(on: DispatchQueue.main)
                 .sink { completion in
