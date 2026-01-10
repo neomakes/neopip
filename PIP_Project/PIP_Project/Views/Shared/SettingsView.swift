@@ -73,6 +73,9 @@ struct SettingsView: View {
     private func performLogout() {
         isLoggingOut = true
         do {
+            // 📝 WriteViewModel 캐시 정리 (Firebase는 계정별로 자동 격리)
+            WriteViewModel().clearDraftDataForLogout()
+            
             try authService.signOut()
             print("✅ Logged out successfully")
         } catch {
@@ -86,6 +89,9 @@ struct SettingsView: View {
         authStateManager.resetOnboarding()
         print("🔄 Onboarding reset")
         do {
+            // 📝 WriteViewModel 캐시 정리 (Firebase는 계정별로 자동 격리)
+            WriteViewModel().clearDraftDataForLogout()
+            
             try authService.signOut()
             print("✅ Logged out successfully with onboarding reset")
         } catch {

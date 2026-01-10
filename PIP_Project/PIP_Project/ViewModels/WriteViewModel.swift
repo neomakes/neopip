@@ -94,6 +94,25 @@ class WriteViewModel: ObservableObject {
         saveLocalDataPoints()
     }
     
+    // MARK: - Logout Data Cleanup
+    
+    /// 로그아웃 시 호출: 계정별 로컬 캐시 정리
+    /// Firebase는 accountId/anonymousUserId로 자동 격리되므로 서버 정리 불필요
+    func clearDraftDataForLogout() {
+        print("🗑️ WriteViewModel: Clearing draft data on logout")
+        
+        // 로컬 캐시 제거 (UserDefaults)
+        UserDefaults.standard.removeObject(forKey: "cachedCardInputs")
+        UserDefaults.standard.removeObject(forKey: "localTimeSeriesData")
+        UserDefaults.standard.removeObject(forKey: "lastSyncDate")
+        
+        // 인메모리 캐시 초기화
+        cachedInputs.removeAll()
+        localDataPoints.removeAll()
+        
+        print("✅ WriteViewModel: Draft data cleared")
+    }
+    
     // MARK: - Card Generation
     
     /// 데이터 입력 카드 생성 (스키마 기반)
@@ -251,6 +270,7 @@ class WriteViewModel: ObservableObject {
     }
 
     /// 비동기 블록으로 저장 동작을 노출합니다. 오류는 호출자에게 전달됩니다.
+    /// Firebase에 isDraft=true로 저장하여 나중에 수정/삭제 가능하도록 함
     func saveCard(_ card: CardData, inputs: [String: Any], textInput: String) async throws {
         let now = Date()
         var values: [String: DataValue] = [:]
@@ -273,21 +293,26 @@ class WriteViewModel: ObservableObject {
             values["notes"] = .string(textInput)
         }
 
+        // ✅ isDraft=true로 Firebase에 직접 저장 (계정별 격리됨)
         let dataPoint = TimeSeriesDataPoint(
             timestamp: now,
             category: card.type.toDataCategory(),
             values: values,
-            notes: textInput.isEmpty ? nil : textInput
+            notes: textInput.isEmpty ? nil : textInput,
+            isDraft: true  // ← Draft 표시 (미완성 상태)
         )
 
-        // 1️⃣ TimeSeriesDataPoint 로컬 저장
+        // 1️⃣ Firebase TimeSeriesDataPoint 저장 (계정별로 자동 격리)
+        try await dataService.saveData(dataPoint, for: card.type.toDataCategory())
+        
+        // 2️⃣ 로컬 캐시에도 추가 (오프라인 지원)
         localDataPoints.append(dataPoint)
         saveLocalDataPoints()
 
-        // 2️⃣ DailyGem 생성/수정 (오늘의 Gem이 활성화되어 불투명해짐)
+        // 3️⃣ DailyGem 생성/수정 (오늘의 Gem이 활성화되어 불투명해짐)
         let savedGem = await createOrUpdateDailyGem(for: now, dataPointId: dataPoint.id.uuidString)
 
-        // 3️⃣ UserStats 업데이트 (totalDataPoints, totalGemsCreated, streak 등)
+        // 4️⃣ UserStats 업데이트 (totalDataPoints, totalGemsCreated, streak 등)
         await updateUserStats(for: now, savedGem: savedGem)
 
         // HomeViewModel에 새로고침 알림 (UI 반영)

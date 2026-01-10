@@ -42,6 +42,9 @@ struct TimeSeriesDataPoint: Identifiable, Codable {
     var predictions: [String: Double]? // 예측값
     var anomalies: [String]?          // 이상 징후
     
+    // Draft 상태 (임시 저장)
+    var isDraft: Bool = false         // True: 미완성 카드, False: 완성된 카드
+    
     var createdAt: Date
     var updatedAt: Date
     
@@ -64,7 +67,8 @@ struct TimeSeriesDataPoint: Identifiable, Codable {
         anonymousUserId: UUID? = nil,
         notes: String? = nil,
         tags: [String] = [],
-        context: [String: String]? = nil
+        context: [String: String]? = nil,
+        isDraft: Bool = false
     ) {
         let now = Date()
         let calendar = Calendar.current
@@ -89,6 +93,7 @@ struct TimeSeriesDataPoint: Identifiable, Codable {
         self.features = nil
         self.predictions = nil
         self.anomalies = nil
+        self.isDraft = isDraft
         self.createdAt = now
         self.updatedAt = now
     }
