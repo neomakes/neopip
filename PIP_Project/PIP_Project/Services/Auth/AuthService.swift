@@ -31,8 +31,8 @@ class AuthService: ObservableObject {
     private var authStateHandle: AuthStateDidChangeListenerHandle?
 
     private init() {
-        self.currentUser = auth.currentUser
-        self.isAuthenticated = auth.currentUser != nil
+        // Do not set initial state here. Wait for listener to determine valid session and sync status.
+        // This prevents "Flash of Onboarding" for fresh installs with keychain sessions.
     }
 
     // MARK: - Auth State Listener
@@ -41,6 +41,12 @@ class AuthService: ObservableObject {
     func startAuthStateListener() {
         authStateHandle = auth.addStateDidChangeListener { [weak self] _, user in
             Task { @MainActor in
+                if let user = user {
+                    // Sync onboarding state BEFORE updating authentication status
+                    // This blocks the UI transition to Home/Onboarding until we know the truth
+                    await self?.syncOnboardingState(userId: user.uid)
+                }
+                
                 self?.currentUser = user
                 self?.isAuthenticated = user != nil
             }
@@ -137,7 +143,9 @@ class AuthService: ObservableObject {
             let user = authResult.user
 
             // Load or create identity mapping
-            let anonymousUserId = try await identityMapping.getAnonymousUserId()
+            _ = try await identityMapping.getAnonymousUserId()
+            
+            // Note: Onboarding sync is now handled by startAuthStateListener to avoid race conditions.
 
             currentUser = user
             isAuthenticated = true
@@ -248,7 +256,12 @@ class AuthService: ObservableObject {
                 skippedSteps: []
             ),
             initialGoals: [],
-            firstJournalDate: nil
+            firstJournalDate: nil,
+            
+            // New flattened fields
+            enabledDataTypes: [],
+            anonymizationLevel: .none,
+            permissions: nil
         )
 
         do {
@@ -261,6 +274,32 @@ class AuthService: ObservableObject {
         } catch let err as NSError {
             print("❌ [AuthService] Error creating user profile document: Domain:\(err.domain) Code:\(err.code) Desc:\(err.localizedDescription) UserInfo: \(err.userInfo)")
             throw err
+        }
+    }
+
+    /// Syncs local onboarding state with remote user profile
+    private func syncOnboardingState(userId: String) async {
+        print("📥 [AuthService] Syncing onboarding state for user: \(userId)")
+        
+        do {
+            let document = try await db.collection("users")
+                .document(userId)
+                .collection("profile")
+                .document("data")
+                .getDocument()
+            
+            if document.exists,
+               let profile = try? document.data(as: UserProfile.self),
+               let onboardingState = profile.onboardingState,
+               onboardingState.isCompleted {
+                
+                print("✅ [AuthService] Remote profile indicates onboarding complete. Updating local state.")
+                AuthStateManager.shared.completeOnboarding()
+            } else {
+                print("ℹ️ [AuthService] Remote onboarding not complete or profile missing.")
+            }
+        } catch {
+            print("⚠️ [AuthService] Failed to sync onboarding state: \(error)")
         }
     }
 
@@ -292,7 +331,7 @@ class AuthService: ObservableObject {
     private func mapError(_ error: NSError) -> String {
         // Try Auth error first
         if error.domain == "FIRAuthErrorDomain",
-           let authErrorCode = AuthErrorCode(rawValue: error.code) {
+           AuthErrorCode(rawValue: error.code) != nil {
             return mapAuthError(error)
         }
 

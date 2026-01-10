@@ -8,6 +8,7 @@
 import Foundation
 import SwiftUI
 import Combine
+import FirebaseAuth
 
 /// Manages authentication state for the app
 @MainActor
@@ -23,6 +24,13 @@ class AuthStateManager: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
 
     private init() {
+        // 🧟 Check for "Zombie Session" (Authenticated in Keychain but no local data)
+        // This happens on fresh install after deleting app without explicit logout
+        if Auth.auth().currentUser != nil && !hasCompletedOnboarding() {
+            print("🧟 [AuthStateManager] Zombie session detected! Cleaning up...")
+            try? Auth.auth().signOut()
+        }
+        
         observeAuthChanges()
     }
 

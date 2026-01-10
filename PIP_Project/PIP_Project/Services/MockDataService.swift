@@ -1056,7 +1056,12 @@ class MockDataService: DataServiceProtocol {
                 skippedSteps: []
             ),
             initialGoals: [.wellness, .productivity],
-            firstJournalDate: Date(timeIntervalSinceNow: -25 * 86400)
+            firstJournalDate: Date(timeIntervalSinceNow: -25 * 86400),
+            
+            // New flattened fields
+            enabledDataTypes: ["mood", "sleep", "activity"],
+            anonymizationLevel: .none,
+            permissions: nil
         )
     }
     

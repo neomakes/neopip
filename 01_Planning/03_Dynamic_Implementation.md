@@ -104,13 +104,13 @@
 
 ---
 
-### 🎯 Goal & Program Layer (60% 완료)
+### 🎯 Goal & Program Layer (60% 완료 - Goals Merged)
 
 | 테이블 | 상태 | 구현 내용 | Firestore 경로 |
 |---|---|---|---|
-| **goals** | ✅ 완료 | 전체 CRUD 구현 | `users/{accountId}/goals/{goalId}` |
-| **programs** | ✅ 완료 | 읽기 구현 (글로벌 카탈로그) | `programs/{programId}` |
-| **user_program_enrollments** | ❌ 미구현 | 모델 존재, Firestore 연동 필요 | - |
+| **goals** | 🔽 병합 | `UserProfile.goals`로 병합됨 (단순 배열) | `users/{accountId}/profile/data` |
+| **programs** | ✅ 완료 | 읽기 구현 (글로벌 카탈로그) - MVP 우선순위 낮음 | `programs/{programId}` |
+| **user_program_enrollments** | ⏸️ 보류 | 모델 존재, Firestore 연동 필요 | - |
 | **program_specific_data_points** | ❌ 미구현 | 모델 미정의 | - |
 | **program_success_metrics** | ❌ 미구현 | 모델 미정의 | - |
 
@@ -218,15 +218,23 @@
 - [x] **Phase 1: Auth & Identity** (완료 - 2025.12)
 - [x] **Phase 2: User Profile & Goals & DailyGems** (완료 - 2026.01.08)
 - [x] **Phase 2.5: UserStats Auto Update** (완료 - 2026.01.09)
+- [x] **Phase 2.6: DB Optimization (Goals Merged)** (완료 - 2026.01.10)
+- [x] **Phase 2.7: Service Refactoring & File Reorg** (완료 - 2026.01.10)
 - [ ] **Phase 3: UI Bug Fixes & Onboarding** ← 현재 단계
 - [ ] **Phase 4: Insight Layer Integration**
 - [ ] **Phase 5: Advanced Features (Program Enrollment, Value Analysis)**
 
 ---
 
-**마지막 업데이트:** 2026-01-09  
-**커밋:** `WriteViewModel.updateUserStats()` 구현 완료  
+**마지막 업데이트:** 2026-01-10  
+**커밋:** `FirebaseDataService` 리팩토링 및 빌드 에러 수정 완료  
 **다음 포커스:** HomeView "Today" 버그 수정, OnboardingFlow 구현
+
+### 📋 최근 기술적 개선 (2026-01-10)
+1. **DB 스키마 최적화**: `goals` 테이블 제거 및 `UserProfile` 병합
+2. **서비스 모듈화**: `FirebaseDataService`를 기능별 Extension으로 분리 (`Profile`, `Goals`, `Programs`)
+3. **디렉토리 구조 개선**: `Services/Firebase/` 폴더로 관련 파일 이동 및 정리
+4. **빌드 안정화**: `private` 접근 제어자 수정으로 Extension 접근 문제 해결
 
 ---
 

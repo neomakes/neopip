@@ -49,20 +49,22 @@ Table identity_mappings {
 
 Table user_profiles {
   id uuid [pk, note: "Firestore Doc ID"]
-  account_id uuid [not null, unique, ref: > user_accounts.id]
+  account_id string [not null, unique, note: "Firebase Auth UID"]
+  display_name string [null]
   profile_image_url string [null]
   background_image_url string [null]
-  feature_color string [null, note: "JSON: {primary: #RRGGBB, secondary: #RRGGBB, tertiary: #RRGGBB}"]
   
+  preferences string [not null, note: "JSON: {theme, notifications, ...}"]
   onboarding_state string [null, note: "JSON: {completedSteps: [...], selectedGoals: [...]}"]
-  enabled_data_types string [not null, note: "JSON array: [mood, stress, energy, focus, ...]"]
-  anonymization_level string [not null, note: "full|partial|none"]
-  permissions string [not null, note: "JSON: {location: true, healthKit: false, ...}"]
+  goals string [null, note: "JSON array: ['Sleep', 'Focus', ...]"]
+  enabled_data_types string [not null, note: "JSON array: [mood, stress, ...]"]
+  anonymization_level string [not null, note: "none|pseudonymized|fullyAnonymized"]
+  permissions string [null, note: "JSON: {location: granted, ...}"]
   
   created_at timestamp [not null]
-  updated_at timestamp [not null]
+  last_active_at timestamp [not null]
   
-  Note: "PII 영역 (users/{accountId}/profile) - 프로필 + 설정 + 온보딩"
+  Note: "PII 영역 (users/{accountId}/profile) - 프로필 + 설정 + 온보딩 + 목표"
 }
 
 // ==================== 3. TIME SERIES DATA LAYER (시계열 데이터) ====================
@@ -271,31 +273,9 @@ Table prediction_data {
 
 // ==================== 6. GOAL & PROGRAM LAYER (목표 & 프로그램) ====================
 
-Table goals {
-  id uuid [pk, note: "Firestore Doc ID"]
-  account_id uuid [not null, ref: > user_accounts.id]
-  
-  title string [not null]
-  description string [not null]
-  category string [not null, note: "mind|behavior|physical"]
-  
-  status string [not null, note: "active|completed|paused|abandoned"]
-  progress double [not null, note: "0.0 ~ 1.0"]
-  
-  start_date date [not null]
-  target_date date [null]
-  
-  related_data_point_ids string [not null, note: "JSON array: related TimeSeriesDataPoint IDs"]
-  
-  created_at timestamp [not null]
-  updated_at timestamp [not null]
-  
-  Indexes {
-    (account_id, status) [type: composite]
-  }
-  
-  Note: "PII 영역 - 커스텀 목표 (프로그램과 독립적)"
-}
+// Table goals {
+// Dropped: Merged into user_profiles as simple JSON array for MVP
+// }
 
 Table programs {
   id uuid [pk, note: "Firestore Doc ID"]

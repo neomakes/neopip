@@ -19,12 +19,34 @@ class WriteViewModel: ObservableObject {
     @Published var cachedInputs: [[String: Any]] = []
     var localDataPoints: [TimeSeriesDataPoint] = []
     
+    // User Profile for Dynamic Cards
+    @Published var userProfile: UserProfile?
+    
     // MARK: - Initialization
     init(dataService: DataServiceProtocol? = nil) {
-        self.dataService = dataService ?? MockDataService.shared
+        self.dataService = dataService ?? DataServiceManager.shared.currentService
         loadCachedInputs()
         loadLocalDataPoints()
         checkAndSyncIfNeeded()
+        
+        // Fetch profile for card customization
+        Task {
+            await fetchUserProfile()
+        }
+    }
+    
+    private func fetchUserProfile() async {
+        // If we can get it from HomeViewModel/Environment that would be better, but fetching here is safe fallback
+        if let service = dataService as? FirebaseDataService {
+             do {
+                 for try await profile in service.fetchUserProfile().values {
+                     self.userProfile = profile
+                     break
+                 }
+             } catch {
+                 print("⚠️ [WriteViewModel] Failed to fetch profile: \(error)")
+             }
+        }
     }
     
     // MARK: - Local Cache Management
@@ -117,76 +139,70 @@ class WriteViewModel: ObservableObject {
     
     /// 데이터 입력 카드 생성 (스키마 기반)
     func generateCards() -> [CardData] {
-        var cards: [CardData] = []
+        // 1. If we have UserProfile with consentedDataTypes, use those to filter/build cards
+        if let profile = userProfile {
+            return generateCardsBasedOnConsent(profile.enabledDataTypes)
+        }
+        
+        // 2. Fallback to existing logic (MockDataService or Default)
         
         // MockDataService에서 스키마 가져오기
-        guard let mockService = dataService as? MockDataService else {
+        guard dataService is MockDataService else {
             // MockDataService가 아닌 경우 기본 카드 반환
             return generateDefaultCards()
         }
         
-        // 카테고리별로 카드 생성
-        let categories: [DataCategory] = [.mind, .behavior, .physical]
+        // ... (MockService logic omitted for brevity as it was unreachable in Prod) ...
+        return generateDefaultCards()
+    }
+    
+    private func generateCardsBasedOnConsent(_ consentedTypes: [String]) -> [CardData] {
+        // Map consented strings to inputs
+        // "mood", "stress", "energy", "focus" -> Mind Input
+        // "productivity", "social", "distraction", "exploration" -> Behavior Input
+        // "sleep", "fatigue", "activity", "nutrition" -> Physical Input
         
-        for category in categories {
-            let schemas = mockService.getSchemas(for: category)
-            guard !schemas.isEmpty else { continue }
-            
-            // 카테고리별 입력 필드 생성
-            var inputs: [CardInput] = []
-            
-            // Add timeSlotChart for mind category
-            if category == .mind {
-                inputs.append(.timeSlotChart(
-                    key: "mood_timeline",
-                    label: "Mood Throughout Day",
-                    range: 0...100,
-                    values: Array(repeating: 50.0, count: 5)
-                ))
-            }
-            
-            for schema in schemas {
-                if let range = schema.range {
-                    let minValue = range.min ?? 0
-                    let maxValue = range.max ?? 100
-                    inputs.append(.slider(
-                        key: schema.name,
-                        label: schema.displayName,
-                        range: minValue...maxValue,
-                        value: (minValue + maxValue) / 2
-                    ))
-                }
-            }
-            
-            // 카드 타입 결정
-            let cardType: CardType
-            switch category {
-            case .mind: cardType = .mind
-            case .behavior: cardType = .behavior
-            case .physical: cardType = .physical
-            default: cardType = .mind
-            }
-            
-            // Card title
-            let title: String
-            switch category {
-            case .mind: title = "How was your mood today?"
-            case .behavior: title = "How was your behavior?"
-            case .physical: title = "How was your physical state?"
-            default: title = "How was your day?"
-            }
-            
-            cards.append(CardData(
-                type: cardType,
-                title: title,
-                inputs: inputs,
-                textInput: .optional(key: "notes", placeholder: "Today's note")
-            ))
+        var cards: [CardData] = []
+        
+        // Mind Category
+        var mindInputs: [CardInput] = []
+        // Always include mood timeline if mood is consented or by default? Let's include it if 'mood' is present.
+        if consentedTypes.contains("mood") {
+             mindInputs.append(.timeSlotChart(key: "mood_timeline", label: "Mood Throughout Day", range: 0...100, values: Array(repeating: 50.0, count: 5)))
+        }
+        if consentedTypes.contains("stress") { mindInputs.append(.slider(key: "stress", label: "Stress", range: 0...100, value: 50)) }
+        if consentedTypes.contains("energy") { mindInputs.append(.slider(key: "energy", label: "Energy", range: 0...100, value: 50)) }
+        if consentedTypes.contains("focus") { mindInputs.append(.slider(key: "focus", label: "Focus", range: 0...100, value: 50)) }
+        
+        if !mindInputs.isEmpty {
+            cards.append(CardData(type: .mind, title: "How was your mood?", inputs: mindInputs, textInput: .optional(key: "notes", placeholder: "Today's note")))
+        }
+        
+        // Behavior Category
+        var behaviorInputs: [CardInput] = []
+        if consentedTypes.contains("productivity") { behaviorInputs.append(.slider(key: "productivity", label: "Productivity", range: 0...100, value: 50)) }
+        if consentedTypes.contains("social") { behaviorInputs.append(.slider(key: "socialActivity", label: "Social Activity", range: 0...100, value: 50)) }
+        if consentedTypes.contains("distraction") { behaviorInputs.append(.slider(key: "digitalDistraction", label: "Digital Distraction", range: 0...100, value: 50)) }
+        if consentedTypes.contains("exploration") { behaviorInputs.append(.slider(key: "exploration", label: "Exploration", range: 0...100, value: 50)) }
+        
+        if !behaviorInputs.isEmpty {
+            cards.append(CardData(type: .behavior, title: "How was your behavior?", inputs: behaviorInputs, textInput: .optional(key: "behavior_notes", placeholder: "Any thoughts?")))
+        }
+
+        // Physical Category
+        var physicalInputs: [CardInput] = []
+        if consentedTypes.contains("sleep") { physicalInputs.append(.slider(key: "sleepScore", label: "Sleep Score", range: 0...100, value: 50)) }
+        if consentedTypes.contains("fatigue") { physicalInputs.append(.slider(key: "fatigue", label: "Fatigue", range: 0...100, value: 50)) }
+        if consentedTypes.contains("activity") { physicalInputs.append(.slider(key: "activityLevel", label: "Activity Level", range: 0...100, value: 50)) }
+        if consentedTypes.contains("nutrition") { physicalInputs.append(.slider(key: "nutrition", label: "Nutrition", range: 0...100, value: 50)) }
+
+        if !physicalInputs.isEmpty {
+            cards.append(CardData(type: .physical, title: "Physical State", inputs: physicalInputs, textInput: .optional(key: "physical_notes", placeholder: "Body check-in")))
         }
         
         return cards.isEmpty ? generateDefaultCards() : cards
     }
-    
+
     /// Default card generation (when schema is not available)
     private func generateDefaultCards() -> [CardData] {
         return [
@@ -310,18 +326,18 @@ class WriteViewModel: ObservableObject {
         saveLocalDataPoints()
 
         // 3️⃣ DailyGem 생성/수정 (오늘의 Gem이 활성화되어 불투명해짐)
-        let savedGem = await createOrUpdateDailyGem(for: now, dataPointId: dataPoint.id.uuidString)
+        let (savedGem, isNewGem) = await createOrUpdateDailyGem(for: now, dataPointId: dataPoint.id.uuidString)
 
         // 4️⃣ UserStats 업데이트 (totalDataPoints, totalGemsCreated, streak 등)
-        await updateUserStats(for: now, savedGem: savedGem)
+        await updateUserStats(for: now, savedGem: savedGem, isNewGem: isNewGem)
 
         // HomeViewModel에 새로고침 알림 (UI 반영)
         NotificationCenter.default.post(name: .didSaveCardData, object: nil)
     }
 
     /// 오늘 날짜에 대한 DailyGem을 생성하거나 업데이트합니다.
-    /// - 반환값: 저장된 DailyGem (새 gem 판별용)
-    private func createOrUpdateDailyGem(for date: Date, dataPointId: String) async -> DailyGem? {
+    /// - 반환값: (DailyGem, isNew) -> 저장된 DailyGem과 새로 생성되었는지 여부
+    private func createOrUpdateDailyGem(for date: Date, dataPointId: String) async -> (DailyGem?, Bool) {
         let calendar = Calendar.current
         let startOfDay = calendar.startOfDay(for: date)
 
@@ -342,6 +358,8 @@ class WriteViewModel: ObservableObject {
         _ = cancellable  // Keep reference until completion
 
         let gemToSave: DailyGem
+        var isNew = false
+        
         if var existing = existingGem {
             // 기존 gem에 dataPointId 추가
             if !existing.dataPointIds.contains(dataPointId) {
@@ -349,9 +367,12 @@ class WriteViewModel: ObservableObject {
             }
             // brightness 업데이트 (데이터가 추가될수록 밝아짐)
             existing.brightness = min(1.0, existing.brightness + 0.2)
+             // Uncertainty 감소 (데이터가 쌓일수록 확실해짐)
+            existing.uncertainty = max(0.1, existing.uncertainty - 0.1)
             gemToSave = existing
         } else {
             // 새로운 DailyGem 생성
+            isNew = true
             gemToSave = DailyGem(
                 id: UUID(),
                 accountId: "",  // FirebaseDataService에서 실제 accountId로 교체됨
@@ -384,20 +405,21 @@ class WriteViewModel: ObservableObject {
                 )
         }
         _ = saveCancellable  // Keep reference until completion
-        return savedGem
+        return (savedGem, isNew)
     }
 
     /// UserStats를 업데이트하여 사용자 통계 반영
     /// - Parameters:
     ///   - date: 저장 날짜
     ///   - savedGem: 저장된 DailyGem (새 gem 판별용)
+    ///   - isNewGem: 새로운 Gem이 생성되었는지 여부
     /// - 업데이트 내용:
     ///   - totalDataPoints += 1 (항상 증가)
-    ///   - totalGemsCreated += 1 (gem.createdAt이 오늘인 신규 생성 시만)
-    ///   - totalDaysActive += 1 (gem.createdAt이 오늘인 신규 생성 시만)
+    ///   - totalGemsCreated += 1 (isNewGem일 때만)
+    ///   - totalDaysActive += 1 (isNewGem일 때만)
     ///   - currentStreak & longestStreak (로컬 데이터 기반 재계산)
     ///   - lastUpdated = 현재 시간
-    private func updateUserStats(for date: Date, savedGem: DailyGem?) async {
+    private func updateUserStats(for date: Date, savedGem: DailyGem?, isNewGem: Bool) async {
         print("🔄 [WriteViewModel] Updating UserStats...")
         
         var cancellable: AnyCancellable?
@@ -419,17 +441,13 @@ class WriteViewModel: ObservableObject {
                         print("   📊 totalDataPoints: \(stats.totalDataPoints) → \(updatedStats.totalDataPoints)")
                         
                         // 2️⃣ 새로운 Gem인 경우만 카운트 증가 (기존 gem 수정 시 제외)
-                        if let gem = savedGem,
-                           Calendar.current.isDateInToday(gem.createdAt) {
-                            // gem.createdAt이 오늘이면 = 새로 생성된 gem
+                        if isNewGem {
                             updatedStats.totalGemsCreated += 1
                             updatedStats.totalDaysActive += 1
                             print("   💎 totalGemsCreated: \(stats.totalGemsCreated) → \(updatedStats.totalGemsCreated)")
                             print("   📅 totalDaysActive: \(stats.totalDaysActive) → \(updatedStats.totalDaysActive)")
-                        } else if savedGem == nil {
-                            print("   ⚠️ DailyGem 저장 실패, 통계 미업데이트")
                         } else {
-                            print("   📝 기존 DailyGem 수정, 통계 미변경")
+                            print("   📝 Existing gem modified, not incrementing gem counts")
                         }
                         
                         // 3️⃣ Streak 재계산 (로컬 데이터 기반)

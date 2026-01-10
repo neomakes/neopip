@@ -24,7 +24,13 @@ struct UserProfile: Codable {
     var preferences: UserPreferences
     var onboardingState: OnboardingState?
     var initialGoals: [GoalCategory]
+    var goals: [String]? // Merged goals from 'goals' table (simple string array for MVP)
     var firstJournalDate: Date?
+    
+    // Data Collection Settings (Flattened from UserDataCollectionSettings)
+    var enabledDataTypes: [String]
+    var anonymizationLevel: AnonymizationLevel
+    var permissions: DataPermissions?
 }
 
 // MARK: - User Preferences
@@ -63,6 +69,7 @@ struct OnboardingState: Codable {
     var selectedGoals: [String]          // GoalCategory.rawValue 배열
     var completedAt: Date?
     var skippedSteps: [String]
+    // consentedDataTypes removed -> moved to UserProfile.enabledDataTypes
 }
 
 enum OnboardingStep: String, Codable {
@@ -75,46 +82,7 @@ enum OnboardingStep: String, Codable {
     case onboardingComplete
 }
 
-// MARK: - Data Collection Settings
-/// 사용자 데이터 수집 설정
-/// Firestore의 users/{accountId}/settings/dataCollection에 저장
-struct UserDataCollectionSettings: Codable {
-    var accountId: String              // Firebase Auth UID (String, not UUID)
-
-    // 활성화된 데이터 타입 (스키마 ID 배열)
-    var enabledDataTypes: [String]      // UUID를 String으로 변환
-    var typeSettings: [String: DataTypeSettings]  // UUID를 String 키로 사용
-
-    // 권한 설정
-    var permissions: DataPermissions
-
-    // 수집 주기
-    var collectionFrequency: CollectionFrequency
-
-    // 익명화 옵션
-    var anonymizationLevel: AnonymizationLevel
-    var allowMLTraining: Bool           // ML 학습 허용 여부
-    var allowDataSharing: Bool         // 익명화된 데이터 공유 허용 여부
-
-    // 데이터 보관 기간
-    var dataRetentionDays: Int?        // nil이면 무기한
-    var autoDeleteAfterDays: Int?       // 자동 삭제 기간
-
-    var updatedAt: Date
-}
-
-struct DataTypeSettings: Codable {
-    var schemaId: UUID
-    var isEnabled: Bool
-    var collectionMethod: CollectionMethod
-    var sensitivityOverride: SensitivityLevel?  // 사용자가 설정한 민감도
-    var customRange: ValueRange?                // 사용자 정의 범위
-    var notes: String?
-    
-    var schemaIdString: String {
-        schemaId.uuidString
-    }
-}
+// UserDataCollectionSettings & DataTypeSettings removed (Simplified Schema)
 
 enum CollectionFrequency: String, Codable {
     case realTime    // 실시간

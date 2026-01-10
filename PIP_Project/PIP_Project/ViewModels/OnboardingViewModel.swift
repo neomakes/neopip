@@ -177,7 +177,9 @@ class OnboardingViewModel: ObservableObject {
         consentedDataTypes = [
             "mood", "stress", "energy", "focus",
             "weather", "location", "screenTime",
-            "heartRate", "steps", "sleep"
+            "heartRate", "steps", "sleep",
+            "productivity", "social", "distraction", "exploration",
+            "fatigue", "activity", "nutrition"
         ]
     }
 
@@ -221,7 +223,10 @@ class OnboardingViewModel: ObservableObject {
                 ),
                 onboardingState: onboardingState,
                 initialGoals: selectedGoals,
-                firstJournalDate: nil
+                firstJournalDate: nil,
+                enabledDataTypes: consentedDataTypes,
+                anonymizationLevel: .none, // Default to none aka internal use only
+                permissions: nil // Permissions managed by device system currently
             )
 
             // Save profile to Firebase
