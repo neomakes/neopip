@@ -12,12 +12,12 @@ struct GoalSelectionView: View {
     @ObservedObject var viewModel: OnboardingViewModel
 
     let goals: [(category: GoalCategory, icon: String, title: String, description: String)] = [
+        (.physical, "🏃", "Physical Health", "Build a stronger body"),
         (.wellness, "🧘", "Wellness & Peace", "Find inner calm and balance"),
         (.productivity, "💪", "Productivity", "Achieve more with less stress"),
         (.emotional, "😊", "Emotional Control", "Master your emotions"),
-        (.physical, "🏃", "Physical Health", "Build a stronger body"),
-        (.social, "👥", "Social Relations", "Meaningful connections"),
-        (.learning, "📚", "Learning & Growth", "Expand your knowledge")
+        (.learning, "📚", "Learning & Growth", "Expand your knowledge"),
+        (.social, "👥", "Social Relations", "Meaningful connections")
     ]
 
     var body: some View {
@@ -31,7 +31,7 @@ struct GoalSelectionView: View {
                     .font(.pip.hero)
                     .foregroundColor(.white)
 
-                Text("Select up to 2 goals that matter to you")
+                Text("Select up to 3 goals that matter to you")
                     .font(.pip.body)
                     .foregroundColor(.gray)
             }
@@ -75,6 +75,12 @@ struct GoalSelectionView: View {
 
             // Action buttons
             VStack(spacing: 12) {
+                // Helper text
+                Text("You can change these later in Settings")
+                    .font(.pip.caption)
+                    .foregroundColor(.gray)
+                    .padding(.bottom, 4)
+
                 // Next button
                 Button(action: {
                     viewModel.nextStep()

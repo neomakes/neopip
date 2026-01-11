@@ -128,8 +128,8 @@ class OnboardingViewModel: ObservableObject {
         if selectedGoals.contains(goal) {
             selectedGoals.removeAll { $0 == goal }
         } else {
-            // Limit to 2 goals as per design
-            if selectedGoals.count < 2 {
+            // Limit to 3 goals as per design decision (better UX than 2)
+            if selectedGoals.count < 3 {
                 selectedGoals.append(goal)
             }
         }
