@@ -18,10 +18,6 @@ struct TimeSeriesDataPoint: Identifiable, Codable {
     // 시계열 메타데이터
     var timestamp: Date               // 정확한 시각
     var date: Date                    // 날짜 (일자 기준)
-    var timeOfDay: TimeOfDay?
-    var dayOfWeek: Int?               // 1=일요일, 7=토요일
-    var weekOfYear: Int?
-    var month: Int?
     
     // 데이터 값 (동적 구조)
     var values: [String: DataValue]   // "mood": 75, "sleep_score": 80 등
@@ -42,9 +38,6 @@ struct TimeSeriesDataPoint: Identifiable, Codable {
     var predictions: [String: Double]? // 예측값
     var anomalies: [String]?          // 이상 징후
     
-    // Draft 상태 (임시 저장)
-    var isDraft: Bool = false         // True: 미완성 카드, False: 완성된 카드
-    
     var createdAt: Date
     var updatedAt: Date
     
@@ -58,6 +51,7 @@ struct TimeSeriesDataPoint: Identifiable, Codable {
     
     // MARK: - Convenience Initializer
     init(
+        id: UUID = UUID(),
         timestamp: Date,
         category: DataCategory? = nil,
         values: [String: DataValue] = [:],
@@ -67,21 +61,15 @@ struct TimeSeriesDataPoint: Identifiable, Codable {
         anonymousUserId: UUID? = nil,
         notes: String? = nil,
         tags: [String] = [],
-        context: [String: String]? = nil,
-        isDraft: Bool = false
+        context: [String: String]? = nil
     ) {
         let now = Date()
         let calendar = Calendar.current
-        let components = calendar.dateComponents([.weekday, .weekOfYear, .month], from: timestamp)
         
-        self.id = UUID()
+        self.id = id
         self.anonymousUserId = anonymousUserId ?? UUID()
         self.timestamp = timestamp
         self.date = calendar.startOfDay(for: timestamp)
-        self.timeOfDay = Self.calculateTimeOfDay(timestamp)
-        self.dayOfWeek = components.weekday
-        self.weekOfYear = components.weekOfYear
-        self.month = components.month
         self.values = values
         self.source = source
         self.confidence = confidence
@@ -93,30 +81,9 @@ struct TimeSeriesDataPoint: Identifiable, Codable {
         self.features = nil
         self.predictions = nil
         self.anomalies = nil
-        self.isDraft = isDraft
         self.createdAt = now
         self.updatedAt = now
     }
-    
-    private static func calculateTimeOfDay(_ date: Date) -> TimeOfDay? {
-        let calendar = Calendar.current
-        let hour = calendar.component(.hour, from: date)
-        
-        switch hour {
-        case 6..<12: return .morning
-        case 12..<18: return .afternoon
-        case 18..<22: return .evening
-        case 22...23, 0..<6: return .night
-        default: return nil
-        }
-    }
-}
-
-enum TimeOfDay: String, Codable {
-    case morning    // 오전 (6-12)
-    case afternoon  // 오후 (12-18)
-    case evening    // 저녁 (18-22)
-    case night      // 밤 (22-6)
 }
 
 // MARK: - ML Feature Vector

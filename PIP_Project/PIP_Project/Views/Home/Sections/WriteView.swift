@@ -9,7 +9,13 @@ struct WriteView: View {
     @State private var textInputs: [String] = []
     @State private var isSaving: Bool = false
     @State private var alertMessage: String?
-    @State private var currentPage: Int = 1
+    @State private var totalCardsCount: Int = 3
+    
+    // 현재 페이지 계산 (전체 - 남은카드 + 1). 카드가 없으면 0.
+    private var currentPage: Int {
+        guard !cards.isEmpty else { return 0 }
+        return totalCardsCount - cards.count + 1
+    }
 
     init(isPresented: Binding<Bool>? = nil) {
         self.isPresented = isPresented
@@ -20,7 +26,7 @@ struct WriteView: View {
             // Primary background behind the card stack
             PrimaryBackground().ignoresSafeArea()
 
-            if cards.isEmpty {
+            if cards.isEmpty || viewModel.isRestoring {
                 VStack {
                     Spacer()
                     ProgressView()
@@ -76,18 +82,38 @@ struct WriteView: View {
         }
     }
 
+
+    
     // MARK: - Helpers
     private func setupCards() {
-        let generated = viewModel.generateCards()
-        self.cards = generated
-        self.currentPage = 1
+        // 1. 전체 카드 수 확인
+        let totalCount = viewModel.getTotalCardsCount()
+        self.totalCardsCount = totalCount
         
-        // cachedInputs가 카드 수와 맞으면 사용, 아니면 default
-        if viewModel.cachedInputs.count == generated.count {
+        // 2. 이미 처리된 카드를 제외하고 남은 카드만 가져오기 (Draft Restoration)
+        let remainingCards = viewModel.getRemainingCards()
+        self.cards = remainingCards
+        
+        // 3. 현재 페이지 번호 계산 (Computed property currentPage가 자동 처리)
+        print("WriteView: Restoration - Total: \(totalCount), Remaining: \(remainingCards.count), Current: \(currentPage)")
+        
+        // 남은 카드가 없으면 자동 닫기 (또는 완료 화면)
+        if remainingCards.isEmpty {
+            print("WriteView: All cards completed. Dismissing.")
+            isPresented?.wrappedValue = false
+            return
+        }
+        
+        // cachedInputs 처리 (남은 카드에 대한 캐시만 적용)
+        // 주의: cachedInputs은 이전 세션의 '남은 카드들'의 input일 수 있음.
+        // viewModel.cachedInputs와 remainingCards의 개수가 다를 수 있음 (중간에 스키마 변경 등)
+        // 안전하게: cachedInputs 개수가 remainingCards 개수와 같을 때만 적용
+        if viewModel.cachedInputs.count == remainingCards.count {
             self.cardInputs = viewModel.cachedInputs
-            print("WriteView: Loaded cached inputs for \(generated.count) cards")
+            print("WriteView: Loaded cached inputs for \(remainingCards.count) cards")
         } else {
-            self.cardInputs = generated.map { card in
+            // Default Inputs 생성
+            self.cardInputs = remainingCards.map { card in
                 var dict: [String: Any] = [:]
                 for input in card.inputs {
                     switch input {
@@ -99,12 +125,14 @@ struct WriteView: View {
                 }
                 return dict
             }
+            // 캐시 초기화
             viewModel.cachedInputs = self.cardInputs
             viewModel.saveCachedInputs()
-            print("WriteView: Initialized default inputs for \(generated.count) cards")
+            print("WriteView: Initialized default inputs for \(remainingCards.count) cards")
         }
         
-        self.textInputs = Array(repeating: "", count: generated.count)
+        // 저장된 노트 복원
+        self.textInputs = remainingCards.map { viewModel.getNotes(for: $0) }
     }
 
     private func bindingForInputs(at index: Int) -> Binding<[String: Any]> {
@@ -154,7 +182,7 @@ struct WriteView: View {
             isLast: idx == cards.count - 1,
             isTop: idx == 0,
             currentPage: idx == 0 ? currentPage : nil,
-            totalPages: idx == 0 ? cards.count : nil,
+            totalPages: idx == 0 ? totalCardsCount : nil,
             onSwipeLeft: { skipCard(at: idx) },
             onSwipeRight: { saveCard(at: idx) },
             onCheck: { saveCard(at: idx) },
@@ -182,10 +210,7 @@ struct WriteView: View {
             let lastText = textInputs.popLast() ?? ""
             cardInputs.insert(lastInputs, at: 0)
             textInputs.insert(lastText, at: 0)
-            // move page back (wrap)
-            if cards.count > 0 {
-                currentPage = (currentPage - 2 + cards.count) % cards.count + 1
-            }
+            // move page back (wrap) - Computed property updates automatically
         }
         // Save to cache when card changes
         viewModel.cachedInputs = self.cardInputs
@@ -204,10 +229,7 @@ struct WriteView: View {
             cards.append(movedCard)
             cardInputs.append(movedInputs)  // Keep existing inputs
             textInputs.append(movedText)    // Keep existing text
-            // advance page (wrap)
-            if cards.count > 0 {
-                currentPage = currentPage % cards.count + 1
-            }
+            // advance page (wrap) - Computed property updates automatically
         }
         // Save to cache when card changes
         viewModel.cachedInputs = self.cardInputs
@@ -216,32 +238,27 @@ struct WriteView: View {
     }
 
     private func saveCard(at index: Int) {
-        guard index < cards.count else { return }
+        guard index < cards.count, index < cardInputs.count, index < textInputs.count else { return }
+        let card = cards[index]
+        let inputs = cardInputs[index]
+        let text = textInputs[index]
+        
+        // 마지막 카드인지 확인 (남은 카드가 1개일 때)
+        let isLast = (cards.count == 1)
+        
         isSaving = true
         Task {
-            let card = cards[index]
-            let inputs = cardInputs[index]
-            let text = textInputs[index]
             do {
-                try await viewModel.saveCard(card, inputs: inputs, textInput: text)
+                try await viewModel.saveCard(card, inputs: inputs, textInput: text, isLast: isLast)
                 await MainActor.run {
                     withAnimation {
-                        // move card to back - KEEP the current inputs (user can see what they saved)
-                        let movedCard = cards.remove(at: index)
-                        let movedInputs = cardInputs.remove(at: index)
-                        let movedText = textInputs.remove(at: index)
-
-                        cards.append(movedCard)
-                        cardInputs.append(movedInputs)  // Keep existing inputs
-                        textInputs.append(movedText)    // Keep existing text
-                        // advance page (wrap)
-                        if cards.count > 0 {
-                            currentPage = currentPage % cards.count + 1
+                        cards.remove(at: index)
+                        cardInputs.remove(at: index)
+                        textInputs.remove(at: index)
+                        if cards.isEmpty {
+                            isPresented?.wrappedValue = false
                         }
                     }
-                    // Update cache after saving
-                    viewModel.cachedInputs = self.cardInputs
-                    viewModel.saveCachedInputs()
                     print("WriteView: Saved cache on saveCard")
                     isSaving = false
                 }

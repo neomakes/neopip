@@ -45,10 +45,13 @@ class AuthService: ObservableObject {
                     // Sync onboarding state BEFORE updating authentication status
                     // This blocks the UI transition to Home/Onboarding until we know the truth
                     await self?.syncOnboardingState(userId: user.uid)
+                    
+                    self?.currentUser = user
+                    self?.isAuthenticated = true
+                } else {
+                    self?.currentUser = nil
+                    self?.isAuthenticated = false
                 }
-                
-                self?.currentUser = user
-                self?.isAuthenticated = user != nil
             }
         }
     }
@@ -108,12 +111,26 @@ class AuthService: ObservableObject {
             }
 
             // Create identity mapping
-            print("🔑 [AuthService] Creating identity mapping...")
-            let anonymousUserId = try await identityMapping.getAnonymousUserId()
-            print("✅ [AuthService] Identity mapping created: \(anonymousUserId)")
+            do {
+                print("🔑 [AuthService] Creating identity mapping...")
+                let anonymousUserId = try await identityMapping.getAnonymousUserId()
+                print("✅ [AuthService] Identity mapping created: \(anonymousUserId)")
+            } catch let mappingError as NSError {
+                // Identity mapping 실패 시 상세 로그 출력
+                print("❌ [AuthService] Identity mapping failed:")
+                print("   Domain: \(mappingError.domain)")
+                print("   Code: \(mappingError.code)")
+                print("   Description: \(mappingError.localizedDescription)")
+                print("   UserInfo: \(mappingError.userInfo)")
 
-            currentUser = user
-            isAuthenticated = true
+                // 중요: Identity mapping 실패 시 사용자 삭제 및 롤백
+                print("🔄 [AuthService] Rolling back - deleting Auth user due to identity mapping failure")
+                try? await user.delete()
+                print("🗑️ [AuthService] Auth user deleted")
+                throw mappingError
+            }
+
+            // Do NOT set isAuthenticated = true here manually. Let the listener handle it.
 
             return user
         } catch let error as NSError {
@@ -143,12 +160,7 @@ class AuthService: ObservableObject {
             let user = authResult.user
 
             // Load or create identity mapping
-            _ = try await identityMapping.getAnonymousUserId()
-            
-            // Note: Onboarding sync is now handled by startAuthStateListener to avoid race conditions.
-
-            currentUser = user
-            isAuthenticated = true
+            // Do NOT set isAuthenticated = true here manually. Let the listener handle it.
 
             return user
         } catch let error as NSError {

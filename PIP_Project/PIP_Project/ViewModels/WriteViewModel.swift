@@ -21,17 +21,34 @@ class WriteViewModel: ObservableObject {
     
     // User Profile for Dynamic Cards
     @Published var userProfile: UserProfile?
+    @Published var isRestoring: Bool = false
+
+    // Enrolled Programs for dynamic program cards
+    @Published var enrolledPrograms: [EnrolledProgramInfo] = []
+
+    /// 프로그램 카드 생성을 위한 간단한 정보 구조체
+    struct EnrolledProgramInfo: Identifiable {
+        let id: String
+        let name: String
+        let inputs: [CardInput]
+    }
+    
+    // 수정 모드 여부 (기존 DataPoint ID가 있으면 true)
+    var isEditMode: Bool { existingDataPointId != nil }
+    private var existingDataPointId: UUID?
     
     // MARK: - Initialization
     init(dataService: DataServiceProtocol? = nil) {
         self.dataService = dataService ?? DataServiceManager.shared.currentService
         loadCachedInputs()
         loadLocalDataPoints()
+        loadDraftAccumulation() // Load draft state
         checkAndSyncIfNeeded()
         
-        // Fetch profile for card customization
+        // Fetch profile and restore data
         Task {
             await fetchUserProfile()
+            await restoreTodayData()
         }
     }
     
@@ -128,11 +145,122 @@ class WriteViewModel: ObservableObject {
         UserDefaults.standard.removeObject(forKey: "localTimeSeriesData")
         UserDefaults.standard.removeObject(forKey: "lastSyncDate")
         
+        // Draft Accumulation 제거
+        UserDefaults.standard.removeObject(forKey: "draftAccumulatedValues")
+        UserDefaults.standard.removeObject(forKey: "draftAccumulatedNotes")
+        
         // 인메모리 캐시 초기화
         cachedInputs.removeAll()
         localDataPoints.removeAll()
+        accumulatedValues.removeAll()
+        accumulatedNotes.removeAll()
         
         print("✅ WriteViewModel: Draft data cleared")
+    }
+
+    // MARK: - Data Restoration
+
+    /// 오늘 날짜의 데이터를 DB(또는 로컬)에서 복원합니다.
+    /// DB를 Source of Truth로 사용하여 항상 최신 데이터를 가져옵니다.
+    /// 오늘 날짜의 데이터를 복원합니다.
+    /// Local-First Strategy: 로컬 캐시를 우선 표시하고, 백그라운드에서 서버 데이터를 병합합니다.
+    func restoreTodayData() async {
+        print("🔄 [WriteViewModel] Restoring today's data (Local-First Strategy)...")
+        
+        let hasLocalDraft = !accumulatedValues.isEmpty
+        
+        // 1. 로컬 데이터가 있으면 즉시 복원 (딜레이 제거)
+        if hasLocalDraft {
+            print("   ⚡️ Local draft exists. Restoring immediately.")
+            restoreInputsFromAccumulation()
+            await MainActor.run { objectWillChange.send() }
+        } else {
+            // 로컬 데이터가 없으면 로딩 표시
+            await MainActor.run { isRestoring = true }
+        }
+        
+        // 2. 백그라운드 DB 동기화 (Source of Truth 확인 및 병합)
+        let today = Date()
+        let dbDataPoint = await fetchDailyLogDataPoint(for: today)
+        
+        await MainActor.run {
+            if let dataPoint = dbDataPoint {
+                print("   ✅ Found saved data point in DB: \(dataPoint.id)")
+                
+                // Safe Merge: 로컬 데이터 우선, DB 데이터 병합
+                self.existingDataPointId = dataPoint.id
+                
+                if self.accumulatedValues.isEmpty {
+                    // Case 1: 로컬이 비어있으면 DB 데이터로 전면 교체
+                    self.accumulatedValues = dataPoint.values
+                    if let notes = dataPoint.notes {
+                        self.accumulatedNotes = notes.components(separatedBy: "\n\n")
+                    } else {
+                         self.accumulatedNotes = []
+                    }
+                    print("   📥 Remote data applied (Local was empty).")
+                } else {
+                    // Case 2: 로컬이 있으면 'Safe Merge' 수행 (누락된 데이터만 채움)
+                    print("   🐢 Local data exists. Performing safe merge...")
+                    self.mergeServerData(serverValues: dataPoint.values)
+                }
+                
+                // 저장 및 UI 갱신
+                self.saveDraftAccumulation() // Merge된 상태 저장
+                self.restoreInputsFromAccumulation()
+            } else {
+                print("   → No saved data in DB.")
+            }
+            
+            self.isRestoring = false
+            self.objectWillChange.send()
+        }
+    }
+    
+    /// 서버 데이터를 로컬 데이터에 안전하게 병합 (로컬 우선)
+    private func mergeServerData(serverValues: [String: DataValue]) {
+        for (category, val) in serverValues {
+            if accumulatedValues[category] == nil {
+                // 로컬에 해당 카테고리가 없으면 서버 데이터 추가
+                accumulatedValues[category] = val
+            } else {
+                // 카테고리가 있으면 내부 필드 병합 (Shallow Merge for Object)
+                if case .object(let serverObj) = val,
+                   case .object(var localObj) = accumulatedValues[category] {
+                    var isModified = false
+                    for (k, v) in serverObj {
+                        // 로컬에 없는 키만 추가 (로컬 값 유지)
+                        if localObj[k] == nil {
+                            localObj[k] = v
+                            isModified = true
+                        }
+                    }
+                    if isModified {
+                        accumulatedValues[category] = .object(localObj)
+                    }
+                }
+            }
+        }
+    }
+    
+    private func fetchDailyLogDataPoint(for date: Date) async -> TimeSeriesDataPoint? {
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: date)
+        
+        return await withCheckedContinuation { continuation in
+            // .dailyLog 카테고리는 필터링이 어려울 수 있음 (DataPoint 자체엔 category 필드가 있지만 인덱스 필요할수도)
+            // 대신 fetchDataPoints(for: date)를 쓰고 로컬 필터링 사용
+            dataService.fetchDataPoints(for: startOfDay)
+                .sink(
+                    receiveCompletion: { _ in },
+                    receiveValue: { points in
+                        // .dailyLog 카테고리이면서 가장 최신 것
+                        let dailyLog = points.first { $0.category == .dailyLog }
+                        continuation.resume(returning: dailyLog)
+                    }
+                )
+                .store(in: &cancellables)
+        }
     }
     
     // MARK: - Card Generation
@@ -199,8 +327,33 @@ class WriteViewModel: ObservableObject {
         if !physicalInputs.isEmpty {
             cards.append(CardData(type: .physical, title: "Physical State", inputs: physicalInputs, textInput: .optional(key: "physical_notes", placeholder: "Body check-in")))
         }
-        
+
+        // Program Cards (등록된 프로그램에 따라 동적 생성)
+        for program in enrolledPrograms {
+            let programCard = CardData(
+                id: UUID(uuidString: program.id) ?? UUID(),
+                type: .program,
+                title: program.name,
+                inputs: program.inputs,
+                textInput: .optional(key: "program_notes", placeholder: "Program reflection")
+            )
+            cards.append(programCard)
+        }
+
         return cards.isEmpty ? generateDefaultCards() : cards
+    }
+
+    /// 프로그램 등록 시 호출하여 프로그램 카드 추가
+    func registerProgram(id: String, name: String, inputs: [CardInput]) {
+        let programInfo = EnrolledProgramInfo(id: id, name: name, inputs: inputs)
+        enrolledPrograms.append(programInfo)
+        print("📋 [WriteViewModel] Registered program card: \(name)")
+    }
+
+    /// 프로그램 해제 시 호출하여 프로그램 카드 제거
+    func unregisterProgram(id: String) {
+        enrolledPrograms.removeAll { $0.id == id }
+        print("🗑️ [WriteViewModel] Unregistered program card: \(id)")
     }
 
     /// Default card generation (when schema is not available)
@@ -286,53 +439,299 @@ class WriteViewModel: ObservableObject {
     }
 
     /// 비동기 블록으로 저장 동작을 노출합니다. 오류는 호출자에게 전달됩니다.
-    /// Firebase에 isDraft=true로 저장하여 나중에 수정/삭제 가능하도록 함
-    func saveCard(_ card: CardData, inputs: [String: Any], textInput: String) async throws {
-        let now = Date()
-        var values: [String: DataValue] = [:]
+    // MARK: - Accumulation State (카테고리별 구조)
+    /// 카테고리별로 그룹화된 값 저장
+    /// 구조: { "mind": { "mood_timeline": [...], "stress": 50, "notes": "..." }, "behavior": {...}, "program_meditation": {...} }
+    private var accumulatedValues: [String: DataValue] = [:]
+    private var accumulatedNotes: [String] = []  // 레거시 호환용 (전체 노트 합본)
 
+    // MARK: - Saving Logic (Batch)
+
+    /// 카드의 데이터를 임시 저장하고, 마지막 카드일 경우 서버에 전송합니다.
+    /// - Parameters:
+    ///   - card: 현재 저장하는 카드 (카테고리 정보 포함)
+    ///   - inputs: 카드의 입력값들
+    ///   - textInput: 카드의 노트 입력
+    ///   - isLast: 마지막 카드인지 여부
+    func saveCard(_ card: CardData, inputs: [String: Any], textInput: String, isLast: Bool) async throws {
+        // 1. Accumulate Data (카테고리별로 병합)
+        accumulate(card: card, inputs: inputs, textInput: textInput)
+
+        // 2. 마지막 카드라면 커밋 (서버 저장)
+        if isLast {
+            try await commitSession()
+        }
+    }
+
+    /// 카테고리별로 값과 노트를 저장합니다.
+    private func accumulate(card: CardData, inputs: [String: Any], textInput: String) {
+        // 카테고리 키 결정 (mind, behavior, physical, program_xxx)
+        let categoryKey = getCategoryKey(for: card)
+
+        // 기존 카테고리 데이터 가져오기 또는 새로 생성
+        var categoryValues: [String: DataValue] = [:]
+        if case .object(let existing) = accumulatedValues[categoryKey] {
+            categoryValues = existing
+        }
+
+        // Input 값을 DataValue로 변환하여 카테고리 내에 병합
         for (key, value) in inputs {
             if let doubleValue = value as? Double {
-                values[key] = .double(doubleValue)
+                categoryValues[key] = .double(doubleValue)
             } else if let intValue = value as? Int {
-                values[key] = .integer(intValue)
+                categoryValues[key] = .integer(intValue)
             } else if let stringValue = value as? String {
-                values[key] = .string(stringValue)
+                categoryValues[key] = .string(stringValue)
             } else if let doubleArray = value as? [Double] {
-                values[key] = .array(doubleArray.map { .double($0) })
+                categoryValues[key] = .array(doubleArray.map { .double($0) })
             } else if let intArray = value as? [Int] {
-                values[key] = .array(intArray.map { .integer($0) })
+                categoryValues[key] = .array(intArray.map { .integer($0) })
             }
         }
 
+        // 노트를 카테고리 내에 저장
         if !textInput.isEmpty {
-            values["notes"] = .string(textInput)
+            categoryValues["notes"] = .string(textInput)
+            // 레거시 호환용 전체 노트 배열에도 추가
+            accumulatedNotes.append(textInput)
         }
 
-        // ✅ isDraft=true로 Firebase에 직접 저장 (계정별 격리됨)
+        // 카테고리 값 업데이트
+        accumulatedValues[categoryKey] = .object(categoryValues)
+
+        print("📦 [WriteViewModel] Accumulated data for '\(categoryKey)'. Total categories: \(accumulatedValues.count)")
+
+        // Draft 저장 (Persistence)
+        saveDraftAccumulation()
+    }
+
+    /// 카드 타입에 따른 카테고리 키 반환
+    private func getCategoryKey(for card: CardData) -> String {
+        switch card.type {
+        case .mind:
+            return "mind"
+        case .behavior:
+            return "behavior"
+        case .physical:
+            return "physical"
+        case .program:
+            // 프로그램 카드의 경우 enrolledPrograms에서 매칭되는 프로그램 ID 사용
+            // 카드 ID로 프로그램을 찾아 일관된 키 생성
+            if let program = enrolledPrograms.first(where: { UUID(uuidString: $0.id) == card.id }) {
+                return "program_\(program.id)"
+            }
+            // fallback: 카드 ID 기반
+            return "program_\(card.id.uuidString.prefix(8))"
+        }
+    }
+
+    private func commitSession() async throws {
+        print("💾 [WriteViewModel] Committing session...")
+        let now = Date()
+
+        // 전체 노트 병합 (레거시 호환 - 선택적)
+        let combinedNotes = accumulatedNotes.isEmpty ? nil : accumulatedNotes.joined(separator: "\n\n")
+
+        // 1️⃣ 통합 TimeSeriesDataPoint 생성 (.dailyLog)
+        // 기존 ID가 있으면 재사용 (수정 모드), 아니면 새로 생성
+        let dataPointId = existingDataPointId ?? UUID()
         let dataPoint = TimeSeriesDataPoint(
+            id: dataPointId,
             timestamp: now,
-            category: card.type.toDataCategory(),
-            values: values,
-            notes: textInput.isEmpty ? nil : textInput,
-            isDraft: true  // ← Draft 표시 (미완성 상태)
+            category: .dailyLog,
+            values: accumulatedValues,  // 이미 카테고리별로 구조화된 값
+            notes: combinedNotes  // 레거시 호환용 전체 노트
         )
 
-        // 1️⃣ Firebase TimeSeriesDataPoint 저장 (계정별로 자동 격리)
-        try await dataService.saveData(dataPoint, for: card.type.toDataCategory())
-        
-        // 2️⃣ 로컬 캐시에도 추가 (오프라인 지원)
+        print("   → Values structure:")
+        for (category, value) in accumulatedValues {
+            if case .object(let obj) = value {
+                print("      \(category): \(obj.keys.joined(separator: ", "))")
+            }
+        }
+
+        // 2️⃣ Firebase TimeSeriesDataPoint 저장
+        do {
+            try await dataService.saveData(dataPoint, for: .dailyLog)
+        } catch {
+            print("❌ [WriteViewModel] Critical Error: Failed to save TimeSeriesDataPoint: \(error)")
+            throw error
+        }
+
+        // 3️⃣ 로컬 캐시에도 추가
         localDataPoints.append(dataPoint)
         saveLocalDataPoints()
 
-        // 3️⃣ DailyGem 생성/수정 (오늘의 Gem이 활성화되어 불투명해짐)
+        // 4️⃣ DailyGem 생성/수정
+        print("   → Creating/Updating DailyGem...")
         let (savedGem, isNewGem) = await createOrUpdateDailyGem(for: now, dataPointId: dataPoint.id.uuidString)
 
-        // 4️⃣ UserStats 업데이트 (totalDataPoints, totalGemsCreated, streak 등)
-        await updateUserStats(for: now, savedGem: savedGem, isNewGem: isNewGem)
+        // 5️⃣ UserStats 업데이트 (통합 1회)
+        print("   → Updating UserStats...")
+        // 수정인 경우(existingDataPointId가 있었던 경우) totalDataPoints 증가 방지
+        let isUpdate = (existingDataPointId != nil)
+        await updateUserStats(for: now, savedGem: savedGem, isNewGem: isNewGem, isUpdate: isUpdate)
 
-        // HomeViewModel에 새로고침 알림 (UI 반영)
+        // 6️⃣ Reset Accumulation
+        accumulatedValues = [:]
+        accumulatedNotes = []
+        self.existingDataPointId = nil // 리셋
+        clearDraftAccumulation() // persistence 제거
+
+        // HomeViewModel 새로고침 알림
         NotificationCenter.default.post(name: .didSaveCardData, object: nil)
+        print("✅ [WriteViewModel] Session committed successfully")
+    }
+    
+    // MARK: - Draft Persistence
+    
+    private func saveDraftAccumulation() {
+        // DataValue는 Codable이므로 JSON 인코딩 가능 (DataValue 정의 확인 필요, 만약 아니라면 변환 로직 필요)
+        // DataValue가 Codable이라고 가정 (DataModels.swift 확인)
+        // 안타깝게도 DataValue Enum에 대한 Codable conformance를 확인하지 못했으므로, 
+        // 안전하게 Dictionary<String, Any>로 변환해서 저장하거나, DataValue가 Codable인지 확인해야 함.
+        // DataModels.swift를 보면 DataValue는 Codable임.
+        
+        if let valuesData = try? JSONEncoder().encode(accumulatedValues),
+           let notesData = try? JSONEncoder().encode(accumulatedNotes) {
+            UserDefaults.standard.set(valuesData, forKey: "draftAccumulatedValues")
+            UserDefaults.standard.set(notesData, forKey: "draftAccumulatedNotes")
+            
+            // 기존 DataPoint ID 저장 (수정 모드 유지를 위해)
+            if let id = existingDataPointId {
+                UserDefaults.standard.set(id.uuidString, forKey: "draftExistingDataPointId")
+            }
+            
+            print("💾 [WriteViewModel] Draft accumulation saved")
+        }
+    }
+    
+    private func loadDraftAccumulation() {
+        if let valuesData = UserDefaults.standard.data(forKey: "draftAccumulatedValues"),
+           let loadedValues = try? JSONDecoder().decode([String: DataValue].self, from: valuesData) {
+            self.accumulatedValues = loadedValues
+        }
+        
+        if let notesData = UserDefaults.standard.data(forKey: "draftAccumulatedNotes"),
+           let loadedNotes = try? JSONDecoder().decode([String].self, from: notesData) {
+            self.accumulatedNotes = loadedNotes
+        }
+        
+        if let idString = UserDefaults.standard.string(forKey: "draftExistingDataPointId"),
+           let id = UUID(uuidString: idString) {
+            self.existingDataPointId = id
+        }
+        
+        print("📂 [WriteViewModel] Draft accumulation loaded: keys=\(accumulatedValues.count), notes=\(accumulatedNotes.count)")
+        
+        // Draft 로드 후 cachedInputs 복원 (UI 반영)
+        restoreInputsFromAccumulation()
+    }
+    
+    private func clearDraftAccumulation() {
+        UserDefaults.standard.removeObject(forKey: "draftAccumulatedValues")
+        UserDefaults.standard.removeObject(forKey: "draftAccumulatedNotes")
+        UserDefaults.standard.removeObject(forKey: "draftExistingDataPointId")
+        UserDefaults.standard.removeObject(forKey: "cachedCardInputs") // 카드 캐시도 함께 날림 (세션 완료되었으므로)
+        cachedInputs = []
+    }
+    
+    // MARK: - Restoration Helper
+    /// 이미 입력된(accumulated) 데이터를 기반으로 필터링된 카드를 반환합니다.
+    func getRemainingCards() -> [CardData] {
+        let allCards = generateCards()
+
+        // 수정 모드(이미 DB 저장된 데이터 복원)라면 모든 카드를 보여줌 (수정 가능하도록)
+        if isEditMode {
+            print("📝 [WriteViewModel] Edit mode active: Returning all cards for editing.")
+            return allCards
+        }
+
+        let remaining = allCards.filter { card in
+            // 카테고리 키로 이미 저장된 데이터가 있는지 확인
+            let categoryKey = getCategoryKey(for: card)
+            return accumulatedValues[categoryKey] == nil
+        }
+
+        return remaining
+    }
+
+    // MARK: - Input Restoration Logic
+
+    /// accumulatedValues(카테고리별 구조)를 cachedInputs([String: Any])로 변환
+    private func restoreInputsFromAccumulation() {
+        print("🔄 [WriteViewModel] Restoring cachedInputs from accumulation...")
+        let cards = generateCards()
+        var newInputs: [[String: Any]] = []
+
+        for card in cards {
+            var cardInput: [String: Any] = [:]
+            let categoryKey = getCategoryKey(for: card)
+
+            // 해당 카테고리의 저장된 값 가져오기
+            var categoryValues: [String: DataValue] = [:]
+            if case .object(let obj) = accumulatedValues[categoryKey] {
+                categoryValues = obj
+            }
+
+            for input in card.inputs {
+                let key = keyForInput(input)
+                // 카테고리 내에서 저장된 값이 있으면 변환, 없으면 기본값 사용
+                if let dataValue = categoryValues[key], let value = extractAnyValue(from: dataValue) {
+                    cardInput[key] = value
+                } else {
+                    cardInput[key] = defaultValueForInput(input)
+                }
+            }
+            newInputs.append(cardInput)
+        }
+
+        self.cachedInputs = newInputs
+        print("   ✅ Restored \(newInputs.count) card inputs from categorized data")
+    }
+
+    /// 특정 카테고리의 노트를 가져옵니다.
+    func getNotes(for card: CardData) -> String {
+        let categoryKey = getCategoryKey(for: card)
+        if case .object(let obj) = accumulatedValues[categoryKey],
+           case .string(let notes) = obj["notes"] {
+            return notes
+        }
+        return ""
+    }
+    
+    private func keyForInput(_ input: CardInput) -> String {
+        switch input {
+        case .slider(let key, _, _, _): return key
+        case .toggle(let key, _, _): return key
+        case .picker(let key, _, _, _): return key
+        case .timeSlotChart(let key, _, _, _): return key
+        }
+    }
+    
+    private func defaultValueForInput(_ input: CardInput) -> Any {
+        switch input {
+        case .slider(_, _, _, let def): return def
+        case .toggle(_, _, let def): return def
+        case .picker(_, _, _, let idx): return idx
+        case .timeSlotChart(_, _, _, let def): return def
+        }
+    }
+    
+    private func extractAnyValue(from dataValue: DataValue) -> Any? {
+        switch dataValue {
+        case .integer(let v): return v
+        case .double(let v): return v
+        case .boolean(let v): return v
+        case .string(let v): return v
+        case .array(let arr): return arr.compactMap { extractAnyValue(from: $0) }
+        case .object(_): return nil
+        }
+    }
+
+    
+    func getTotalCardsCount() -> Int {
+        return generateCards().count
     }
 
     /// 오늘 날짜에 대한 DailyGem을 생성하거나 업데이트합니다.
@@ -419,7 +818,8 @@ class WriteViewModel: ObservableObject {
     ///   - totalDaysActive += 1 (isNewGem일 때만)
     ///   - currentStreak & longestStreak (로컬 데이터 기반 재계산)
     ///   - lastUpdated = 현재 시간
-    private func updateUserStats(for date: Date, savedGem: DailyGem?, isNewGem: Bool) async {
+    ///   - isUpdate: 기존 DataPoint 수정 여부 (true면 totalDataPoints 증가 안함)
+    private func updateUserStats(for date: Date, savedGem: DailyGem?, isNewGem: Bool, isUpdate: Bool) async {
         print("🔄 [WriteViewModel] Updating UserStats...")
         
         var cancellable: AnyCancellable?
@@ -436,16 +836,18 @@ class WriteViewModel: ObservableObject {
                     receiveValue: { [weak self] stats in
                         var updatedStats = stats
                         
-                        // 1️⃣ totalDataPoints 증가 (모든 저장마다)
-                        updatedStats.totalDataPoints += 1
-                        print("   📊 totalDataPoints: \(stats.totalDataPoints) → \(updatedStats.totalDataPoints)")
+                        // 1️⃣ totalDataPoints 증가 (새로운 데이터일 때만)
+                        if !isUpdate {
+                            updatedStats.totalDataPoints += 1
+                            print("   📊 totalDataPoints: \(stats.totalDataPoints) → \(updatedStats.totalDataPoints)")
+                        } else {
+                            print("   📊 DataPoint update only, skipping count increment")
+                        }
                         
                         // 2️⃣ 새로운 Gem인 경우만 카운트 증가 (기존 gem 수정 시 제외)
                         if isNewGem {
-                            updatedStats.totalGemsCreated += 1
-                            updatedStats.totalDaysActive += 1
-                            print("   💎 totalGemsCreated: \(stats.totalGemsCreated) → \(updatedStats.totalGemsCreated)")
-                            print("   📅 totalDaysActive: \(stats.totalDaysActive) → \(updatedStats.totalDaysActive)")
+                            updatedStats.totalGems += 1
+                            print("   💎 totalGems: \(stats.totalGems) → \(updatedStats.totalGems)")
                         } else {
                             print("   📝 Existing gem modified, not incrementing gem counts")
                         }
@@ -453,8 +855,8 @@ class WriteViewModel: ObservableObject {
                         // 3️⃣ Streak 재계산 (로컬 데이터 기반)
                         self?.calculateAndUpdateStreak(stats: &updatedStats)
                         
-                        // 4️⃣ lastUpdated 갱신
-                        updatedStats.lastUpdated = Date()
+                        // 4️⃣ updatedAt 갱신
+                        updatedStats.updatedAt = Date()
                         
                         // 5️⃣ Firebase에 업데이트
                         var updateCancellable: AnyCancellable?
@@ -469,9 +871,8 @@ class WriteViewModel: ObservableObject {
                                 receiveValue: { stats in
                                     print("✅ [WriteViewModel] UserStats 저장 완료:")
                                     print("   📊 totalDataPoints: \(stats.totalDataPoints)")
-                                    print("   💎 totalGemsCreated: \(stats.totalGemsCreated)")
-                                    print("   🔥 currentStreak: \(stats.currentStreak)")
-                                    print("   📅 totalDaysActive: \(stats.totalDaysActive)")
+                                    print("   💎 totalGems: \(stats.totalGems)")
+                                    print("   🔥 streakDays: \(stats.streakDays)")
                                 }
                             )
                     }
@@ -481,8 +882,7 @@ class WriteViewModel: ObservableObject {
     }
 
     /// Streak을 계산하고 UserStats에 반영합니다.
-    /// - currentStreak: 어제부터 연속 기록된 일수 (오늘은 제외)
-    /// - longestStreak: 현재 streak이 이전 최장 streak을 넘으면 업데이트
+    /// - streakDays: 어제부터 연속 기록된 일수 (오늘은 제외)
     private func calculateAndUpdateStreak(stats: inout UserStats) {
         print("🔥 [WriteViewModel] Calculating streak from local data...")
         
@@ -500,27 +900,43 @@ class WriteViewModel: ObservableObject {
         
         // 어제부터 거슬러 올라가며 streak 계산
         guard let yesterday = calendar.date(byAdding: .day, value: -1, to: today) else {
-            stats.currentStreak = 0
+            stats.streakDays = 0
             return
         }
         
-        var streak = 0
-        var dayToCheck = yesterday
+        // 새로운 로직: 오늘부터 역순으로 확인
+        var currentStreak = 0
+        var checkDate = today
         
-        while datePresentDays.contains(dayToCheck) {
-            streak += 1
-            guard let prev = calendar.date(byAdding: .day, value: -1, to: dayToCheck) else { break }
-            dayToCheck = prev
+        while datePresentDays.contains(checkDate) {
+            currentStreak += 1
+            guard let prev = calendar.date(byAdding: .day, value: -1, to: checkDate) else { break }
+            checkDate = prev
         }
         
-        stats.currentStreak = streak
-        print("   🔥 currentStreak: \(streak)")
+        // 만약 오늘 기록이 없고 어제 기록이 있다면, 어제까지의 streak 유지?
+        // 보통 streak은 "현재 진행중인 연속"을 의미. 오늘 안했으면 오늘 기준으로는 끊긴 것임.
+        // 하지만 사용자 경험상 "어제까지 했으면 streak 유지"로 보이고 싶다면?
+        // -> UI에서 처리하거나, 여기서 'yesterday' 기준 streak도 계산해서 max를 취할 수도 있음.
+        // 하지만 "Current Streak"의 엄밀한 정의는 끊기면 0 또는 오늘 안했으면 어제까지의 값.
+        // 여기서는 "연속된 일수"를 오늘 포함해서 계산. 오늘 안했으면 0이 나올 수 있음 (위 로직상 today부터 체크하므로).
+        // 수정: 오늘 데이터가 없을 경우, 어제 데이터가 있으면 어제까지의 streak을 보여주는게 일반적임.
         
-        // longestStreak 업데이트
-        if streak > stats.longestStreak {
-            stats.longestStreak = streak
-            print("   🏆 longestStreak updated: \(stats.longestStreak)")
+        if currentStreak == 0 {
+             // 오늘 데이터가 없음. 어제부터 체크
+            if let yesterday = calendar.date(byAdding: .day, value: -1, to: today),
+               datePresentDays.contains(yesterday) {
+                checkDate = yesterday
+                while datePresentDays.contains(checkDate) {
+                    currentStreak += 1
+                    guard let prev = calendar.date(byAdding: .day, value: -1, to: checkDate) else { break }
+                    checkDate = prev
+                }
+            }
         }
+        
+        stats.streakDays = currentStreak
+        print("   🔥 streakDays: \(currentStreak)")
     }
 }
 

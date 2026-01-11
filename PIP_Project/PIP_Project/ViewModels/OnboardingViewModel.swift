@@ -229,6 +229,18 @@ class OnboardingViewModel: ObservableObject {
                 permissions: nil // Permissions managed by device system currently
             )
 
+            // Ensure Identity Mapping exists
+            print("🔑 [Onboarding] Ensuring identity mapping exists...")
+            do {
+                let mappingId = try await IdentityMappingService.shared.getAnonymousUserId()
+                print("✅ [Onboarding] Identity mapping verified: \(mappingId)")
+            } catch {
+                print("❌ [Onboarding] Failed to create/verify identity mapping: \(error)")
+                self.errorMessage = "Failed to setup identity. Please try again."
+                isLoading = false
+                return
+            }
+
             // Save profile to Firebase
             print("💾 [Onboarding] Saving user profile to Firebase...")
             await saveUserProfile(userProfile)
@@ -237,14 +249,10 @@ class OnboardingViewModel: ObservableObject {
             let initialStats = UserStats(
                 accountId: authService.currentUser?.uid ?? "",
                 totalDataPoints: 0,
-                totalDaysActive: 0,
-                currentStreak: 0,
-                longestStreak: 0,
-                totalGoalsCompleted: 0,
-                totalProgramsCompleted: 0,
-                averageEmotionScore: 0.0,
-                totalGemsCreated: 0,
-                lastUpdated: Date()
+                totalGems: 0,
+                streakDays: 0,
+                lastRecordedAt: nil,
+                updatedAt: Date()
             )
 
             // Save initial stats to Firebase

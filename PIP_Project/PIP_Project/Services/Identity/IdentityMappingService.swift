@@ -30,6 +30,9 @@ class IdentityMappingService: ObservableObject {
 
     /// Get anonymous user ID for the currently logged-in user
     /// Returns cached ID if available, otherwise fetches from Firestore or creates new
+    /// Get anonymous user ID for the currently logged-in user
+    /// Server-First Strategy: DB 확인 -> 없으면 생성. (캐시는 오프라인 Fallback용)
+    /// 이를 통해 DB 데이터가 삭제되더라도 자동으로 복구(재생성)됨.
     func getAnonymousUserId() async throws -> UUID {
         guard let currentUser = Auth.auth().currentUser else {
             throw IdentityMappingError.userNotAuthenticated
@@ -38,32 +41,34 @@ class IdentityMappingService: ObservableObject {
         let accountId = currentUser.uid
         print("🔍 [IdentityMapping] Getting anonymous ID for account: \(accountId)")
 
-        // 1. Check keychain cache
-        if let cachedId = try? loadAnonymousIdFromCache() {
-            print("✅ [IdentityMapping] Found cached anonymous ID: \(cachedId)")
-            return cachedId
-        }
-
-        // 2. Fetch from Firestore
+        // 1. Try Fetch from Firestore (Source of Truth)
         isLoading = true
         defer { isLoading = false }
 
         do {
             if let mapping = try await fetchMappingFromFirestore(accountId: accountId) {
-                // Save to cache
-                try saveAnonymousIdToCache(mapping.anonymousUserId)
+                // DB에 존재함 -> 캐시 업데이트 및 리턴
+                try? saveAnonymousIdToCache(mapping.anonymousUserId)
                 currentMapping = mapping
-                print("✅ [IdentityMapping] Fetched mapping from Firestore")
+                print("✅ [IdentityMapping] Resolved ID from Firestore: \(mapping.anonymousUserId)")
                 return mapping.anonymousUserId
+            } else {
+                print("⚠️ [IdentityMapping] Mapping not found in Firestore. Creating new one.")
             }
         } catch {
-            print("⚠️ [IdentityMapping] Failed to fetch mapping: \(error)")
+            print("⚠️ [IdentityMapping] Network/Fetch error: \(error). Falling back to cache.")
+            // 2. Fallback to Cache (Offline Support)
+            if let cachedId = try? loadAnonymousIdFromCache() {
+                print("✅ [IdentityMapping] Using cached ID (Offline Mode): \(cachedId)")
+                return cachedId
+            }
+            // 캐시도 없음 -> 에러 전파 혹은 재생성 시도 (아래로 진행)
         }
 
-        // 3. Create new mapping
+        // 3. Create new mapping (DB에 없거나, 최초 생성)
         print("🆕 [IdentityMapping] Creating new identity mapping...")
         let newMapping = try await createNewMapping(accountId: accountId)
-        try saveAnonymousIdToCache(newMapping.anonymousUserId)
+        try? saveAnonymousIdToCache(newMapping.anonymousUserId)
         currentMapping = newMapping
         print("✅ [IdentityMapping] Created new anonymous ID: \(newMapping.anonymousUserId)")
         return newMapping.anonymousUserId

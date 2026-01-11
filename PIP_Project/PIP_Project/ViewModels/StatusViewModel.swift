@@ -28,6 +28,17 @@ class StatusViewModel: ObservableObject {
         // Use injected service if provided, otherwise use currently active service from DataServiceManager
         self.dataService = dataService ?? DataServiceManager.shared.currentService
         loadInitialData()
+        setupNotificationObservers()
+    }
+    
+    private func setupNotificationObservers() {
+        NotificationCenter.default.publisher(for: .didSaveCardData)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                print("📥 [StatusViewModel] Received didSaveCardData notification, refreshing...")
+                self?.loadInitialData()
+            }
+            .store(in: &cancellables)
     }
     
     // MARK: - Public Methods
@@ -38,6 +49,14 @@ class StatusViewModel: ObservableObject {
         errorMessage = nil
         
         // UserProfile 로드
+        // Identity Verification (Debug)
+        if let uuidData = try? KeychainService.shared.load(for: .anonymousUserId),
+           let uuidStr = String(data: uuidData, encoding: .utf8) {
+            print("🔍 [StatusViewModel] Current Anonymous ID (Keychain): \(uuidStr)")
+        } else {
+            print("⚠️ [StatusViewModel] No Anonymous ID found in Keychain")
+        }
+        
         dataService.fetchUserProfile()
             .receive(on: DispatchQueue.main)
             .sink(

@@ -18,6 +18,7 @@ class AuthStateManager: ObservableObject {
 
     // MARK: - Published Properties
     @Published var authState: AuthState = .loading
+    @Published var hasOnboarded: Bool = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
 
     // MARK: - Dependencies
     private let authService = AuthService.shared
@@ -31,9 +32,12 @@ class AuthStateManager: ObservableObject {
             try? Auth.auth().signOut()
         }
         
+        // Sync initial state
+        hasOnboarded = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
+        
         observeAuthChanges()
     }
-
+    
     // MARK: - Auth State
 
     enum AuthState: Equatable {
@@ -58,10 +62,11 @@ class AuthStateManager: ObservableObject {
         }
 
         // Step 2: If authenticated, check onboarding status
-        let hasOnboarded = hasCompletedOnboarding()
-        print("   → hasCompletedOnboarding: \(hasOnboarded)")
+        // Use published property for reactivity, but verify with method if needed
+        let onboarded = hasOnboarded
+        print("   → hasCompletedOnboarding: \(onboarded)")
 
-        if !hasOnboarded {
+        if !onboarded {
             print("   ✅ Route: .onboarding (authenticated but not onboarded)")
             return .onboarding
         }
@@ -74,6 +79,8 @@ class AuthStateManager: ObservableObject {
     /// Handle auth state changes
     func handleAuthStateChange() {
         if authService.isAuthenticated {
+            // Re-check onboarding status when auth changes (e.g. after sync)
+            refreshOnboardingState()
             authState = .authenticated
         } else {
             authState = .unauthenticated
@@ -83,19 +90,25 @@ class AuthStateManager: ObservableObject {
     /// Mark onboarding as completed
     func completeOnboarding() {
         UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
+        hasOnboarded = true
     }
 
     /// Check if user has completed onboarding
     func hasCompletedOnboarding() -> Bool {
         let status = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
-        print("🔍 [AuthStateManager] hasCompletedOnboarding check: \(status)")
         return status
+    }
+    
+    /// Refresh published property from UserDefaults
+    func refreshOnboardingState() {
+        hasOnboarded = hasCompletedOnboarding()
     }
 
     /// Reset onboarding state (for new users or testing)
     func resetOnboarding() {
         print("🔄 [AuthStateManager] Resetting onboarding state...")
         UserDefaults.standard.set(false, forKey: "hasCompletedOnboarding")
+        hasOnboarded = false
         print("✅ [AuthStateManager] Onboarding state reset to: false")
     }
 

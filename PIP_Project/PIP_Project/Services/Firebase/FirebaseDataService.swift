@@ -52,8 +52,8 @@ class FirebaseDataService: DataServiceProtocol {
                         .collection("anonymous_users")
                         .document(anonymousUserId.uuidString)
                         .collection("data_points")
-                        .whereField("date", isGreaterThanOrEqualTo: Timestamp(date: startOfDay))
-                        .whereField("date", isLessThan: Timestamp(date: endOfDay))
+                        .whereField("timestamp", isGreaterThanOrEqualTo: Timestamp(date: startOfDay))
+                        .whereField("timestamp", isLessThan: Timestamp(date: endOfDay))
                         .order(by: "timestamp", descending: true)
                         .getDocuments()
 
@@ -92,8 +92,8 @@ class FirebaseDataService: DataServiceProtocol {
                         .collection("anonymous_users")
                         .document(anonymousUserId.uuidString)
                         .collection("data_points")
-                        .whereField("date", isGreaterThanOrEqualTo: Timestamp(date: start))
-                        .whereField("date", isLessThan: Timestamp(date: end))
+                        .whereField("timestamp", isGreaterThanOrEqualTo: Timestamp(date: start))
+                        .whereField("timestamp", isLessThan: Timestamp(date: end))
                         .order(by: "timestamp", descending: true)
                         .getDocuments()
 
@@ -148,23 +148,36 @@ class FirebaseDataService: DataServiceProtocol {
     }
     
     func saveData(_ dataPoint: TimeSeriesDataPoint, for category: DataCategory) async throws {
-        let anonymousUserId = try await getAnonymousUserId()
+        print("💾 [Firebase] saveData called for category: \(category)")
+        
+        let anonymousUserId: UUID
+        do {
+            anonymousUserId = try await getAnonymousUserId()
+            print("   → Resolved Anonymous ID: \(anonymousUserId)")
+        } catch {
+            print("❌ [Firebase] Failed to get Anonymous ID: \(error)")
+            throw error
+        }
 
         // Create a new data point with the anonymous user ID and category
         var updatedDataPoint = dataPoint
         updatedDataPoint.anonymousUserId = anonymousUserId
         updatedDataPoint.category = category
 
-        print("💾 [Firebase] Saving data for category \(category): \(updatedDataPoint.id)")
+        print("   → Saving document: \(updatedDataPoint.id)")
 
-        try db
-            .collection("anonymous_users")
-            .document(anonymousUserId.uuidString)
-            .collection("time_series_data")
-            .document(updatedDataPoint.id.uuidString)
-            .setData(from: updatedDataPoint)
-
-        print("✅ [Firebase] Saved data for category \(category) successfully")
+        do {
+            try await db
+                .collection("anonymous_users")
+                .document(anonymousUserId.uuidString)
+                .collection("data_points")
+                .document(updatedDataPoint.id.uuidString)
+                .setData(from: updatedDataPoint)
+            print("✅ [Firebase] Saved data for category \(category) successfully")
+        } catch {
+            print("❌ [Firebase] Firestore Write Failed: \(error)")
+            throw error
+        }
     }
     
     func deleteDataPoint(_ id: UUID) -> AnyPublisher<Void, Error> {
@@ -431,14 +444,10 @@ class FirebaseDataService: DataServiceProtocol {
                         let initialStats = UserStats(
                             accountId: accountId,
                             totalDataPoints: 0,
-                            totalDaysActive: 0,
-                            currentStreak: 0,
-                            longestStreak: 0,
-                            totalGoalsCompleted: 0,
-                            totalProgramsCompleted: 0,
-                            averageEmotionScore: 0.0,
-                            totalGemsCreated: 0,
-                            lastUpdated: Date()
+                            totalGems: 0,
+                            streakDays: 0,
+                            lastRecordedAt: nil,
+                            updatedAt: Date()
                         )
 
                         do {
@@ -534,8 +543,7 @@ class FirebaseDataService: DataServiceProtocol {
 
     // MARK: - Schemas
     func getSchemas(for category: DataCategory) -> [DataTypeSchema] {
-        // TODO: Implement Firebase logic to fetch schemas
-        return []
+        return DefaultSchemaProvider.shared.getSchemas(for: category)
     }
 }
 

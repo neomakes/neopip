@@ -27,53 +27,53 @@ class HomeViewModel: ObservableObject {
         return days.count
     }
 
-    /// Current streak computed from `dailyGems`.
-    /// Streak counts consecutive days with data ending at yesterday (today excluded unless you prefer otherwise).
+    /// Current streak from UserStats (Server Source of Truth)
     var currentStreak: Int {
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
-        guard !dailyGems.isEmpty else { return 0 }
-
-        // Build a set of days that have data
-        let presentDays = Set(dailyGems.map { calendar.startOfDay(for: $0.date) })
-
-        // Start counting from yesterday
-        guard let yesterday = calendar.date(byAdding: .day, value: -1, to: today) else { return 0 }
-        var streak = 0
-        var dayToCheck = yesterday
-
-        while presentDays.contains(dayToCheck) {
-            streak += 1
-            guard let prev = calendar.date(byAdding: .day, value: -1, to: dayToCheck) else { break }
-            dayToCheck = prev
-        }
-
-        return streak
+        return userStats?.streakDays ?? 0
     }    
     // MARK: - Dependencies
     let dataService: DataServiceProtocol
     var cancellables = Set<AnyCancellable>()
     
+    // Auth Listener
+    private var authListenerHandle: NSObjectProtocol?
+
     // MARK: - Initialization
     init(dataService: DataServiceProtocol? = nil) {
         // Use injected service if provided, otherwise use currently active service from DataServiceManager
         self.dataService = dataService ?? DataServiceManager.shared.currentService
-
+ 
         // default name is nil until we fetch profile
         self.userName = nil
+        
+        // Load data immediately (best effort)
         loadInitialData()
-
+ 
         // 매일 자정에 데이터 새로고침 (Streak 업데이트를 위함)
         setupDailyRefresh()
-
+ 
         // Listen for card save notifications to refresh today's gem
         NotificationCenter.default.publisher(for: .didSaveCardData)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 print("📥 [HomeViewModel] Received didSaveCardData notification, refreshing...")
-                self?.loadInitialData()
+                self?.loadInitialData(showLoading: false)
             }
             .store(in: &cancellables)
+            
+        // Listen for Auth changes to reload data (Crucial for app restarts/reinstalls)
+        authListenerHandle = Auth.auth().addStateDidChangeListener { [weak self] auth, user in
+            if let user = user {
+                print("👤 [HomeViewModel] User authenticated: \(user.uid). Reloading data.")
+                self?.loadInitialData()
+            }
+        }
+    }
+    
+    deinit {
+        if let handle = authListenerHandle {
+            Auth.auth().removeStateDidChangeListener(handle)
+        }
     }
     
     // MARK: - Public Methods
@@ -105,9 +105,11 @@ class HomeViewModel: ObservableObject {
     }
     
     /// 초기 데이터 로드 (최근 30일)
-    func loadInitialData() {
-        print("📥 [HomeViewModel] loadInitialData() called")
-        isLoading = true
+    func loadInitialData(showLoading: Bool = true) {
+        print("📥 [HomeViewModel] loadInitialData(showLoading: \(showLoading)) called")
+        if showLoading {
+            isLoading = true
+        }
         errorMessage = nil
         
         let calendar = Calendar.current
@@ -126,7 +128,9 @@ class HomeViewModel: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink(
                 receiveCompletion: { [weak self] completion in
-                    self?.isLoading = false
+                    if showLoading {
+                        self?.isLoading = false
+                    }
                     if case .failure(let error) = completion {
                         self?.errorMessage = error.localizedDescription
                         print("❌ [HomeViewModel] Error fetching gems: \(error.localizedDescription)")
@@ -334,12 +338,9 @@ class HomeViewModel: ObservableObject {
                     }
 
                     // 2. Get schemas from the data service
-                    guard let mockService = self.dataService as? MockDataService else {
-                        let error = NSError(domain: "HomeViewModel", code: 500, userInfo: [NSLocalizedDescriptionKey: "Data service is not a MockDataService."])
-                        completion(.failure(error))
-                        return
-                    }
-
+                    // No need to cast; getSchemas is part of DataServiceProtocol now (or assuming it is added/implemented)
+                    // We directly access self.dataService
+                    
                     var dataSets: [RadarChartDataSet] = []
                     let categories: [(category: DataCategory, color: Color)] = [
                         (.mind, .red),
@@ -349,7 +350,7 @@ class HomeViewModel: ObservableObject {
 
                     // 3. Process data for each category
                     for (category, color) in categories {
-                        let schemas = mockService.getSchemas(for: category)
+                        let schemas = self.dataService.getSchemas(for: category)
                         var chartDataItems: [RadarChartDataItem] = []
 
                         for schema in schemas {

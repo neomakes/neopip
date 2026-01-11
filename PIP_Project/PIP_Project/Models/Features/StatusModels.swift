@@ -11,16 +11,15 @@ import Foundation
 /// 사용자 통계
 /// Firestore의 users/{accountId}/stats에 저장
 struct UserStats: Codable {
-    var accountId: String          // Firebase Auth UID (String, not UUID)
-    var totalDataPoints: Int       // 총 데이터 포인트 수 (기록 수)
-    var totalDaysActive: Int
-    var currentStreak: Int         // 현재 연속 기록 일수
-    var longestStreak: Int         // 최장 연속 기록 일수
-    var totalGoalsCompleted: Int
-    var totalProgramsCompleted: Int
-    var averageEmotionScore: Double
-    var totalGemsCreated: Int
-    var lastUpdated: Date
+    var accountId: String          // Firebase Auth UID
+    
+    var totalDataPoints: Int       // 총 데이터 포인트 수
+    var totalGems: Int             // 총 생성된 Gem 수 (SQL: total_gems)
+    var streakDays: Int            // 현재 연속 기록 일수 (SQL: streak_days)
+    var wins: Int?                 // 완료한 프로그램 수 (SQL: wins)
+    
+    var lastRecordedAt: Date?      // 마지막 기록 일시 (SQL: last_recorded_at)
+    var updatedAt: Date            // 마지막 업데이트 일시 (SQL: updated_at)
 }
 
 // MARK: - Badge

@@ -33,6 +33,7 @@ struct DataTypeSchema: Identifiable, Codable {
 }
 
 enum DataCategory: String, Codable {
+    case dailyLog   // 일일 기록 (통합)
     case mind       // 마음
     case behavior   // 행동
     case physical   // 신체

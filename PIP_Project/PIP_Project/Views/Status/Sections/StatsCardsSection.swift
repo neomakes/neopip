@@ -7,10 +7,10 @@ struct StatsCardsSection: View {
     
     var body: some View {
         HStack(spacing: 12) {
-            // Wins
+            // Gems (Wins)
             StatsCard(
                 iconName: "icon_wins",
-                value: "\(viewModel.userStats?.totalProgramsCompleted ?? 0)",
+                value: "\(viewModel.userStats?.wins ?? 0)",
                 valueColor: .pip.status.numWins
             )
             
@@ -24,7 +24,7 @@ struct StatsCardsSection: View {
             // Streaks
             StatsCard(
                 iconName: "icon_streaks",
-                value: "\(viewModel.userStats?.currentStreak ?? 0)",
+                value: "\(viewModel.userStats?.streakDays ?? 0)",
                 valueColor: .pip.status.numStreaks
             )
         }

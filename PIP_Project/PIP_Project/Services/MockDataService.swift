@@ -1022,14 +1022,10 @@ class MockDataService: DataServiceProtocol {
         return UserStats(
             accountId: mockAccountId,
             totalDataPoints: totalDataPoints,
-            totalDaysActive: totalDaysActive,
-            currentStreak: currentStreak,
-            longestStreak: currentStreak,
-            totalGoalsCompleted: 2,
-            totalProgramsCompleted: 1,
-            averageEmotionScore: 0.72,
-            totalGemsCreated: mockDailyGems.count,
-            lastUpdated: Date()
+            totalGems: mockDailyGems.count,
+            streakDays: currentStreak,
+            lastRecordedAt: Date(),
+            updatedAt: Date()
         )
     }
     

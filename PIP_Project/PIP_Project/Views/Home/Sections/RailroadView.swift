@@ -141,12 +141,20 @@ struct GemSlot: View {
             // If this is today's gem and not completed, force it to be significantly transparent
             let isTodayEmpty = (index == totalCount - 1 && !gemRecord.isCompleted)
             let finalOpacity: Double = {
+                // 1. Today + Completed: Always 100% opaque (ignore bottom fade)
+                if index == totalCount - 1 && gemRecord.isCompleted {
+                    return 1.0
+                }
+                
+                // 2. Today + Empty: Ghostly transparent
                 if isTodayEmpty {
                     // Today's empty gem should always be visible at minimum opacity
                     // Don't apply endFade - today's gem is at the bottom and endFade would make it invisible
                     let emptyBase: Double = 0.22
                     return min(1.0, emptyBase * Double(topFade))
                 }
+                
+                // 3. Others: Standard perspective fade
                 if normalizedY >= midScreenStart && normalizedY <= midScreenEnd {
                     // Fully opaque in the mid region (respect completion factor)
                     return min(1.0, Double(completionFactor))
@@ -186,14 +194,24 @@ struct GemSlot: View {
             .offset(x: horizontalOffset(for: normalizedY))  // 좌우 위치 오프셋 적용 ✨
             .frame(maxWidth: .infinity)
             .onTapGesture {
-                if gemRecord.isCompleted {
-                    onTap?(gemRecord)
-                } else {
-                    // Prefer direct binding to present overlay if available
+                // If this is Today's gem (index == totalCount - 1),
+                // always open WriteView (overlay) regardless of completion status.
+                if index == totalCount - 1 {
                     if let binding = showWriteBinding {
                         binding.wrappedValue = true
                     } else {
                         onWriteRequested()
+                    }
+                } else {
+                    // Past gems: Show Detail if completed, otherwise WriteView
+                    if gemRecord.isCompleted {
+                        onTap?(gemRecord)
+                    } else {
+                         if let binding = showWriteBinding {
+                            binding.wrappedValue = true
+                        } else {
+                            onWriteRequested()
+                        }
                     }
                 }
             }

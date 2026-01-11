@@ -64,6 +64,7 @@ struct StatusView: View {
         }
         .onAppear {
             setNavigationTransparency()
+            viewModel.loadInitialData()
         }
     }
     

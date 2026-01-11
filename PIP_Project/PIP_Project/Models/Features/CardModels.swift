@@ -39,6 +39,15 @@ enum CardInput {
     case toggle(key: String, label: String, value: Bool = false)
     case picker(key: String, label: String, options: [String], selectedIndex: Int = 0)
     case timeSlotChart(key: String, label: String, range: ClosedRange<Double>, values: [Double] = Array(repeating: 50.0, count: 5))
+    
+    var key: String {
+        switch self {
+        case .slider(let key, _, _, _): return key
+        case .toggle(let key, _, _): return key
+        case .picker(let key, _, _, _): return key
+        case .timeSlotChart(let key, _, _, _): return key
+        }
+    }
 }
 
 // MARK: - Text Input
