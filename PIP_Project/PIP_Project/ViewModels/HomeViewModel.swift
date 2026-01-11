@@ -8,6 +8,7 @@
 import Foundation
 import Combine
 import SwiftUI
+import FirebaseAuth
 
 @MainActor
 class HomeViewModel: ObservableObject {
@@ -47,7 +48,11 @@ class HomeViewModel: ObservableObject {
         self.userName = nil
         
         // Load data immediately (best effort)
-        loadInitialData()
+        Task {
+            await MainActor.run { [weak self] in
+                self?.loadInitialData()
+            }
+        }
  
         // 매일 자정에 데이터 새로고침 (Streak 업데이트를 위함)
         setupDailyRefresh()
@@ -62,10 +67,14 @@ class HomeViewModel: ObservableObject {
             .store(in: &cancellables)
             
         // Listen for Auth changes to reload data (Crucial for app restarts/reinstalls)
-        authListenerHandle = Auth.auth().addStateDidChangeListener { [weak self] auth, user in
+        authListenerHandle = Auth.auth().addStateDidChangeListener { [weak self] (auth: Auth, user: User?) in
             if let user = user {
                 print("👤 [HomeViewModel] User authenticated: \(user.uid). Reloading data.")
-                self?.loadInitialData()
+                Task {
+                    await MainActor.run { [weak self] in
+                        self?.loadInitialData()
+                    }
+                }
             }
         }
     }
