@@ -14,7 +14,26 @@ struct DashboardSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             titleView
-            carouselView
+            
+            if viewModel.dashboardData.isEmpty {
+                // Empty state
+                VStack(alignment: .center, spacing: 12) {
+                    Text("Dashboard is being prepared")
+                        .font(.system(size: 14, weight: .regular))
+                        .foregroundColor(.gray)
+                    
+                    Text("Start recording your daily data to see insights")
+                        .font(.system(size: 12, weight: .regular))
+                        .foregroundColor(.gray.opacity(0.7))
+                }
+                .frame(height: 200)
+                .frame(maxWidth: .infinity)
+                .background(Color.white.opacity(0.06))
+                .cornerRadius(12)
+                .padding(.horizontal, 16)
+            } else {
+                carouselView
+            }
         }
     }
     

@@ -36,18 +36,14 @@ struct StatusView: View {
                             .padding(.bottom, 30)
                         
                         // MARK: - Achievements Section
-                        if !viewModel.achievements.isEmpty {
-                            AchievementsSection(
-                                achievements: viewModel.achievements,
-                                selectedIndex: $selectedAchievementIndex
-                            )
-                            .padding(.bottom, 30)
-                        }
+                        AchievementsSection(
+                            achievements: viewModel.achievements,
+                            selectedIndex: $selectedAchievementIndex
+                        )
+                        .padding(.bottom, 30)
                         
                         // MARK: - Values Section
-                        if let valueAnalysis = viewModel.valueAnalysis {
-                            ValuesSection(valueAnalysis: valueAnalysis)
-                        }
+                        ValuesSection(valueAnalysis: viewModel.valueAnalysis)
                         
                         Spacer(minLength: 100)
                     }

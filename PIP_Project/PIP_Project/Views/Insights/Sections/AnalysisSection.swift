@@ -29,7 +29,7 @@ struct AnalysisSection: View {
     private let minCardSize: CGFloat = 80
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(alignment: .leading, spacing: 16) {
             // MARK: - Analysis Title
             HStack {
                 HStack(alignment: .center, spacing:6) {
@@ -54,12 +54,16 @@ struct AnalysisSection: View {
                     Text("Analysis data is being prepared")
                         .font(.system(size: 14, weight: .regular))
                         .foregroundColor(.gray)
+                    
+                    Text("Record your daily data to see personalized insights")
+                        .font(.system(size: 12, weight: .regular))
+                        .foregroundColor(.gray.opacity(0.7))
                 }
                 .frame(height: 200)
                 .frame(maxWidth: .infinity)
                 .background(Color.white.opacity(0.06))
                 .cornerRadius(12)
-                .padding(.horizontal, 12)
+                .padding(.horizontal, 16)
             } else {
                 VStack(spacing: 12) {
                     // Carousel
@@ -135,7 +139,7 @@ struct AnalysisSection: View {
                         }
                     }
                 }
-                .padding(.horizontal, 8)
+                .padding(.horizontal, 16)
             }
         }
         .sheet(isPresented: $showStoryView) {

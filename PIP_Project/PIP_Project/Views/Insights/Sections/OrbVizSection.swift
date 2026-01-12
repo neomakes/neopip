@@ -34,11 +34,11 @@ struct OrbVizSection: View {
                                 ]),
                                 center: .center,
                                 startRadius: 0,
-                                endRadius: 100
+                                endRadius: 70
                             )
                         )
-                        .frame(width: 150, height: 60)
-                        .offset(y: 170)  // Orb 아래에 배치
+                        .frame(width: 106, height: 42)
+                        .offset(y: 120)  // Orb 아래에 배치
                     
                     VStack(spacing: 0) {
                         // Orb 이미지
@@ -47,7 +47,7 @@ struct OrbVizSection: View {
                             Image("liquid_orb")
                                 .resizable()
                                 .scaledToFit()
-                                .frame(width: 240, height: 240)
+                                .frame(width: 170, height: 170)
                             
                             // 2. 방사형 그라데이션 오버레이 (brightness 기반)
                             // 중심: 연한 회색(밝음) → 가장자리: 검은색(어두움)
@@ -59,7 +59,7 @@ struct OrbVizSection: View {
                                 ]),
                                 center: .center,
                                 startRadius: 0,
-                                endRadius: 120
+                                endRadius: 85
                             )
                             .opacity(orbViz.brightness * (isAnimating ? 0.7 : 1.0))  // 스케일이 커질 때 투명도 감소
                             .mask(
@@ -87,9 +87,9 @@ struct OrbVizSection: View {
                                     .scaledToFit()
                             )
                         }
-                        .frame(width: 240, height: 240)
+                        .frame(width: 170, height: 170)
                         .scaleEffect(isAnimating ? 1.05 : 0.95)  // 일렁이는 애니메이션
-                        .offset(y: isAnimating ? -15 : 0)  // 스케일이 커질 때 위로 이동
+                        .offset(y: isAnimating ? -10 : 0)  // 스케일이 커질 때 위로 이동 (15 -> 10으로 감소)
                     }
                 }
                 .onAppear {
@@ -99,9 +99,22 @@ struct OrbVizSection: View {
                 }
                 
             } else {
-                // 로딩 상태
-                ProgressView()
-                    .frame(width: 240, height: 240)
+                // Empty state - Orb is being prepared
+                VStack(alignment: .center, spacing: 12) {
+                    ProgressView()
+                        .tint(.white)
+                    
+                    Text("Your Orb is being prepared")
+                        .font(.system(size: 14, weight: .regular))
+                        .foregroundColor(.gray)
+                    
+                    Text("Record your first data to generate your unique visualization")
+                        .font(.system(size: 12, weight: .regular))
+                        .foregroundColor(.gray.opacity(0.7))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 40)
+                }
+                .frame(width: 170, height: 170)
             }
         }
     }

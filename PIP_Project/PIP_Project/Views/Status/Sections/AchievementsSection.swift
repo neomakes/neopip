@@ -25,7 +25,24 @@ struct AchievementsSection: View {
             .padding(.horizontal, 16)
             
             // Achievement carousel with navigation buttons integrated
-            VStack(spacing: 12) {
+            if achievements.isEmpty {
+                // Empty state
+                VStack(alignment: .center, spacing: 12) {
+                    Text("Achievements are being prepared")
+                        .font(.system(size: 14, weight: .regular))
+                        .foregroundColor(.gray)
+                    
+                    Text("Complete missions to unlock achievements")
+                        .font(.system(size: 12, weight: .regular))
+                        .foregroundColor(.gray.opacity(0.7))
+                }
+                .frame(height: 150)
+                .frame(maxWidth: .infinity)
+                .background(Color.white.opacity(0.06))
+                .cornerRadius(12)
+                .padding(.horizontal, 16)
+            } else {
+                VStack(spacing: 12) {
                 HStack(spacing: 12) {
                     // Left navigation button
                     Button(action: {
@@ -133,8 +150,9 @@ struct AchievementsSection: View {
                     }
                     Spacer()
                 }
+                }
+                .padding(.horizontal, 16)
             }
-            .padding(.horizontal, 16)
         }
     }
 }
