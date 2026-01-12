@@ -47,10 +47,10 @@ struct ProgramsSection: View {
             .padding(.horizontal, 16)
             
             // MARK: - Programs Carousel with Navigation
-            if viewModel.newPrograms.isEmpty {
+            if viewModel.availablePrograms.isEmpty {
                 // Empty state
                 VStack(alignment: .center, spacing: 12) {
-                    Text("Program recommendations are being prepared")
+                    Text("No programs available")
                         .font(.system(size: 14, weight: .regular))
                         .foregroundColor(.gray)
                 }
@@ -65,10 +65,10 @@ struct ProgramsSection: View {
                     ScrollViewReader { scrollView in
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: cardSpacing) {
-                                let repeatedPrograms = viewModel.newPrograms + viewModel.newPrograms + viewModel.newPrograms
+                                let repeatedPrograms = viewModel.availablePrograms + viewModel.availablePrograms + viewModel.availablePrograms
                                 ForEach(repeatedPrograms.indices, id: \.self) { index in
-                                    let actualIndex = index % viewModel.newPrograms.count
-                                    let program = viewModel.newPrograms[actualIndex]
+                                    let actualIndex = index % viewModel.availablePrograms.count
+                                    let program = viewModel.availablePrograms[actualIndex]
                                     ProgramCard(
                                         program: program,
                                         size: cardSize(for: actualIndex, currentIndex: currentIndex),
@@ -96,10 +96,10 @@ struct ProgramsSection: View {
                             let screenCenter = UIScreen.main.bounds.width / 2
                             let closestCard = positions.min(by: { abs($0.rect.midX - screenCenter) < abs($1.rect.midX - screenCenter) })
                             if let closestCard = closestCard {
-                                let actualIndex = closestCard.id % viewModel.newPrograms.count
+                                let actualIndex = closestCard.id % viewModel.availablePrograms.count
                                 currentIndex = actualIndex
                                 
-                                let count = viewModel.newPrograms.count
+                                let count = viewModel.availablePrograms.count
                                 if closestCard.id < count {
                                     isAdjustingScroll = true
                                     scrollView.scrollTo(count * 2 - 1, anchor: .center)
@@ -116,7 +116,7 @@ struct ProgramsSection: View {
                             }
                         }
                         .onAppear {
-                            let count = viewModel.newPrograms.count
+                            let count = viewModel.availablePrograms.count
                             if count > 0 {
                                 scrollView.scrollTo(count, anchor: .center)
                             }
@@ -126,7 +126,7 @@ struct ProgramsSection: View {
                     
                     // Page Indicators
                     HStack(spacing: 8) {
-                        ForEach(0..<viewModel.newPrograms.count, id: \.self) { index in
+                        ForEach(0..<viewModel.availablePrograms.count, id: \.self) { index in
                             Circle()
                                 .fill(index == currentIndex ? Color.white : Color.gray.opacity(0.5))
                                 .frame(width: 8, height: 8)
@@ -255,9 +255,9 @@ struct ProgramCard: View {
             )
             // subtle dark overlay to keep the card moody and readable
             .overlay(
-                LinearGradient(gradient: Gradient(colors: [Color.black.opacity(0.48), Color.clear]), startPoint: .bottomTrailing, endPoint: .topLeading)
+                LinearGradient(gradient: Gradient(colors: [Color.black.opacity(0.60), Color.clear]), startPoint: .bottomTrailing, endPoint: .topLeading)
             )
-            .overlay(Color.black.opacity(0.08))
+            .overlay(Color.black.opacity(0.66))
             
             // Neon glow effect (bottom-right corner) using gradient primary color (dimmed)
             Circle()
@@ -269,10 +269,11 @@ struct ProgramCard: View {
             // Content
             VStack(alignment: .leading, spacing: 8 * scaleFactor) {
                 Text(program.name)
-                    .font(.system(size: 16 * scaleFactor, weight: .semibold))
+                    .font(.system(size: 14 * scaleFactor, weight: .semibold))
                     .foregroundColor(.white)
                     .lineLimit(3)
                     .multilineTextAlignment(.leading)
+                    .minimumScaleFactor(0.8)
                     .fixedSize(horizontal: false, vertical: true)
                 
                 Spacer()

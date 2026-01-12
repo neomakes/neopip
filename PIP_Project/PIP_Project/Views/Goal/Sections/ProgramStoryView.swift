@@ -92,6 +92,30 @@ struct ProgramStoryView: View {
                     Spacer()
                 }.ignoresSafeArea()
 
+                // Close button - overlaid at top-right (like OrbVizSection)
+                VStack {
+                    HStack {
+                        Spacer()
+                        Button(action: {
+                            viewModel.dismissStory()
+                        }) {
+                            ZStack {
+                                Circle()
+                                    .fill(Color.white.opacity(0.2))
+                                    .frame(width: 32, height: 32)
+                                
+                                Image(systemName: "xmark")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(.white)
+                            }
+                        }
+                        .padding(.trailing, 20)
+                        .padding(.top, 28)
+                    }
+                    Spacer()
+                }
+                .zIndex(100)
+                
                 if viewModel.isLoading {
                     ProgressView()
                 } else if let story = viewModel.programStory {
@@ -103,7 +127,7 @@ struct ProgramStoryView: View {
                             currentPageProgress: $viewModel.currentPageProgress
                         )
                         .padding(.top, 10)
-                        .padding(.horizontal, 16)
+                        .padding(.horizontal, 40)
 
                         // Story Header
                         storyHeader(story: story)
@@ -191,15 +215,6 @@ struct ProgramStoryView: View {
                     .lineLimit(1)
 
                 Spacer()
-
-                Button(action: {
-                    viewModel.dismissStory()
-                }) {
-                    Image(systemName: "xmark")
-                        .font(.title3)
-                        .foregroundColor(.white.opacity(0.8))
-                }
-                .padding(8) // Add some padding to make it easier to tap
             }
         }
     }

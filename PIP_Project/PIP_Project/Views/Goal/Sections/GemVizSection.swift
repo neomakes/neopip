@@ -16,134 +16,157 @@ struct GemVizSection: View {
     
     var body: some View {
         VStack(alignment: .center, spacing: 5) {
-            // MARK: - 3 Gems Displayed Simultaneously with Navigation Buttons and Drag Gesture
-            GeometryReader { geometry in
-                let screenWidth = geometry.size.width
-                let spacing = screenWidth / 3
-                
-                VStack(spacing: 5) {
-                    HStack(spacing: 0) {
-                        // Left navigation button
-                        Button(action: {
-                            withAnimation(.easeInOut(duration: 0.3)) {
-                                let newIndex = (viewModel.currentProgramIndex - 1 + viewModel.ongoingPrograms.count) % viewModel.ongoingPrograms.count
-                                viewModel.selectProgram(at: newIndex)
-                            }
-                        }) {
-                            Image("icon_expand_left")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 24, height: 24)
-                                .foregroundColor(.white)
-                        }
-                        .opacity(0.8)  // 항상 활성화
-                        .padding(.trailing, 16)
-                        
-                        // Gem Stack with Drag Gesture
-                        ZStack(alignment: .center) {
-                            // Left gem (unselected)
-                            if viewModel.currentProgramIndex > 0 {
-                                GemCard(
-                                    program: viewModel.ongoingPrograms[viewModel.currentProgramIndex - 1],
-                                    progress: viewModel.programProgress[viewModel.ongoingPrograms[viewModel.currentProgramIndex - 1].id.uuidString],
-                                    isSelected: false,
-                                    isAnimating: isAnimating
-                                )
-                                .offset(x: -spacing + dragOffset)
-                                .zIndex(1)
-                            }
-                            
-                            // Center gem (selected)
-                            GemCard(
-                                program: viewModel.ongoingPrograms[viewModel.currentProgramIndex],
-                                progress: viewModel.programProgress[viewModel.ongoingPrograms[viewModel.currentProgramIndex].id.uuidString],
-                                isSelected: true,
-                                isAnimating: isAnimating
-                            )
-                            .offset(x: dragOffset)
-                            .zIndex(2)
-                            
-                            // Right gem (unselected)
-                            if viewModel.currentProgramIndex < viewModel.ongoingPrograms.count - 1 {
-                                GemCard(
-                                    program: viewModel.ongoingPrograms[viewModel.currentProgramIndex + 1],
-                                    progress: viewModel.programProgress[viewModel.ongoingPrograms[viewModel.currentProgramIndex + 1].id.uuidString],
-                                    isSelected: false,
-                                    isAnimating: isAnimating
-                                )
-                                .offset(x: spacing + dragOffset)
-                                .zIndex(1)
-                            }
-                        }
-                        .frame(width: geometry.size.width - 80, height: 170) // 높이 줄임
-                        .gesture(
-                            DragGesture()
-                                .onChanged { value in
-                                    dragOffset = value.translation.width
-                                }
-                                .onEnded { value in
-                                    let threshold = screenWidth / 6
-                                    let velocity = value.predictedEndLocation.x - value.location.x
-                                    
-                                    // Snapping considering threshold and velocity (circular)
-                                    if value.translation.width > threshold || velocity > 50 {
-                                        // Swipe right - previous program (circular)
-                                        withAnimation(.easeInOut(duration: 0.3)) {
-                                            let newIndex = (viewModel.currentProgramIndex - 1 + viewModel.ongoingPrograms.count) % viewModel.ongoingPrograms.count
-                                            viewModel.selectProgram(at: newIndex)
-                                            dragOffset = 0
-                                        }
-                                    } else if value.translation.width < -threshold || velocity < -50 {
-                                        // Swipe left - next program (circular)
-                                        withAnimation(.easeInOut(duration: 0.3)) {
-                                            let newIndex = (viewModel.currentProgramIndex + 1) % viewModel.ongoingPrograms.count
-                                            viewModel.selectProgram(at: newIndex)
-                                            dragOffset = 0
-                                        }
-                                    } else {
-                                        // Snap back
-                                        withAnimation(.easeInOut(duration: 0.2)) {
-                                            dragOffset = 0
-                                        }
-                                    }
-                                }
-                        )
-                        
-                        // Right navigation button
-                        Button(action: {
-                            withAnimation(.easeInOut(duration: 0.3)) {
-                                let newIndex = (viewModel.currentProgramIndex + 1) % viewModel.ongoingPrograms.count
-                                viewModel.selectProgram(at: newIndex)
-                            }
-                        }) {
-                            Image("icon_expand_right")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 24, height: 24)
-                                .foregroundColor(.white)
-                        }
-                        .opacity(0.8)  // 항상 활성화
-                        .padding(.leading, 16)
-                    }
+            // MARK: - Empty State Check
+            if viewModel.ongoingPrograms.isEmpty {
+                // Show fallback when no programs are enrolled
+                VStack(spacing: 16) {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 48))
+                        .foregroundColor(.gray.opacity(0.5))
                     
-                    // MARK: - List Indicator (Navigation Dots)
-                    HStack(spacing: 8) {
-                        Spacer()
-                        ForEach(0..<viewModel.ongoingPrograms.count, id: \.self) { index in
-                            Circle()
-                                .fill(index == viewModel.currentProgramIndex ? Color.white : Color.white.opacity(0.3))
-                                .frame(width: 8, height: 8)
-                                .onTapGesture {
-                                    withAnimation(.easeInOut(duration: 0.3)) {
-                                        viewModel.selectProgram(at: index)
-                                    }
-                                }
-                        }
-                        Spacer()
+                    VStack(spacing: 8) {
+                        Text("No Active Programs")
+                            .font(.pip.title2)
+                            .foregroundColor(.white)
+                        
+                        Text("Select a program below to get started")
+                            .font(.pip.body)
+                            .foregroundColor(.gray)
+                            .multilineTextAlignment(.center)
                     }
                 }
+                .frame(height: 200)
+                .frame(maxWidth: .infinity)
+            } else {
+                // MARK: - 3 Gems Displayed Simultaneously with Navigation Buttons and Drag Gesture
+                GeometryReader { geometry in
+                    let screenWidth = geometry.size.width
+                    let spacing = screenWidth / 3
+                    
+                    VStack(spacing: 5) {
+                        HStack(spacing: 0) {
+                            // Left navigation button
+                            Button(action: {
+                                withAnimation(.easeInOut(duration: 0.3)) {
+                                    let newIndex = (viewModel.currentProgramIndex - 1 + viewModel.ongoingPrograms.count) % viewModel.ongoingPrograms.count
+                                    viewModel.selectProgram(at: newIndex)
+                                }
+                            }) {
+                                Image("icon_expand_left")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 24, height: 24)
+                                    .foregroundColor(.white)
+                            }
+                            .opacity(0.8)  // 항상 활성화
+                            .padding(.trailing, 16)
+                            
+                            // Gem Stack with Drag Gesture
+                            ZStack(alignment: .center) {
+                                // Left gem (unselected)
+                                if viewModel.currentProgramIndex > 0 {
+                                    GemCard(
+                                        program: viewModel.ongoingPrograms[viewModel.currentProgramIndex - 1],
+                                        progress: viewModel.programProgress[viewModel.ongoingPrograms[viewModel.currentProgramIndex - 1].id.uuidString],
+                                        isSelected: false,
+                                        isAnimating: isAnimating
+                                    )
+                                    .offset(x: -spacing + dragOffset)
+                                    .zIndex(1)
+                                }
+                                
+                                // Center gem (selected)
+                                GemCard(
+                                    program: viewModel.ongoingPrograms[viewModel.currentProgramIndex],
+                                    progress: viewModel.programProgress[viewModel.ongoingPrograms[viewModel.currentProgramIndex].id.uuidString],
+                                    isSelected: true,
+                                    isAnimating: isAnimating
+                                )
+                                .offset(x: dragOffset)
+                                .zIndex(2)
+                                
+                                // Right gem (unselected)
+                                if viewModel.currentProgramIndex < viewModel.ongoingPrograms.count - 1 {
+                                    GemCard(
+                                        program: viewModel.ongoingPrograms[viewModel.currentProgramIndex + 1],
+                                        progress: viewModel.programProgress[viewModel.ongoingPrograms[viewModel.currentProgramIndex + 1].id.uuidString],
+                                        isSelected: false,
+                                        isAnimating: isAnimating
+                                    )
+                                    .offset(x: spacing + dragOffset)
+                                    .zIndex(1)
+                                }
+                            }
+                            .frame(width: geometry.size.width - 80, height: 170) // 높이 줄임
+                            .gesture(
+                                DragGesture()
+                                    .onChanged { value in
+                                        dragOffset = value.translation.width
+                                    }
+                                    .onEnded { value in
+                                        let threshold = screenWidth / 6
+                                        let velocity = value.predictedEndLocation.x - value.location.x
+                                        
+                                        // Snapping considering threshold and velocity (circular)
+                                        if value.translation.width > threshold || velocity > 50 {
+                                            // Swipe right - previous program (circular)
+                                            withAnimation(.easeInOut(duration: 0.3)) {
+                                                let newIndex = (viewModel.currentProgramIndex - 1 + viewModel.ongoingPrograms.count) % viewModel.ongoingPrograms.count
+                                                viewModel.selectProgram(at: newIndex)
+                                                dragOffset = 0
+                                            }
+                                        } else if value.translation.width < -threshold || velocity < -50 {
+                                            // Swipe left - next program (circular)
+                                            withAnimation(.easeInOut(duration: 0.3)) {
+                                                let newIndex = (viewModel.currentProgramIndex + 1) % viewModel.ongoingPrograms.count
+                                                viewModel.selectProgram(at: newIndex)
+                                                dragOffset = 0
+                                            }
+                                        } else {
+                                            // Snap back
+                                            withAnimation(.easeInOut(duration: 0.2)) {
+                                                dragOffset = 0
+                                            }
+                                        }
+                                    }
+                            )
+                            
+                            // Right navigation button
+                            Button(action: {
+                                withAnimation(.easeInOut(duration: 0.3)) {
+                                    let newIndex = (viewModel.currentProgramIndex + 1) % viewModel.ongoingPrograms.count
+                                    viewModel.selectProgram(at: newIndex)
+                                }
+                            }) {
+                                Image("icon_expand_right")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 24, height: 24)
+                                    .foregroundColor(.white)
+                            }
+                            .opacity(0.8)  // 항상 활성화
+                            .padding(.leading, 16)
+                        }
+                        
+                        // MARK: - List Indicator (Navigation Dots)
+                        HStack(spacing: 8) {
+                            Spacer()
+                            ForEach(0..<viewModel.ongoingPrograms.count, id: \.self) { index in
+                                Circle()
+                                    .fill(index == viewModel.currentProgramIndex ? Color.white : Color.white.opacity(0.3))
+                                    .frame(width: 8, height: 8)
+                                    .onTapGesture {
+                                        withAnimation(.easeInOut(duration: 0.3)) {
+                                            viewModel.selectProgram(at: index)
+                                        }
+                                    }
+                            }
+                            Spacer()
+                        }
+                    }
+                }
+                .frame(height: 200)
             }
-            .frame(height: 200)
         }
         .frame(maxWidth: .infinity)
         .onAppear {
