@@ -209,8 +209,48 @@ class GoalViewModel: ObservableObject {
             activeEnrollments.contains { $0.programId == program.id }
         }
         
+        // Fetch missions for these programs if needed
+        fetchMissionsForOngoingPrograms()
+        
         // Generate progress objects for enrolled programs
         generateProgramProgressData()
+    }
+    
+    private func fetchMissionsForOngoingPrograms() {
+        for program in ongoingPrograms {
+            // Only fetch if missions are missing
+            if program.missions == nil || program.missions!.isEmpty {
+                print("📥 [GoalViewModel] Fetching missions for enrolled program: \(program.name)")
+                dataService.fetchProgramMissions(for: program.id)
+                    .receive(on: DispatchQueue.main)
+                    .sink(
+                        receiveCompletion: { completion in
+                            if case .failure(let error) = completion {
+                                print("❌ [GoalViewModel] Error fetching missions for \(program.name): \(error)")
+                            }
+                        },
+                        receiveValue: { [weak self] missions in
+                            print("✅ [GoalViewModel] Fetched \(missions.count) missions for \(program.name)")
+                            
+                            // Update availablePrograms with new missions
+                            if let index = self?.availablePrograms.firstIndex(where: { $0.id == program.id }) {
+                                var updatedProgram = self?.availablePrograms[index]
+                                updatedProgram?.missions = missions
+                                self?.availablePrograms[index] = updatedProgram!
+                                
+                                // Refresh ongoingPrograms
+                                self?.ongoingPrograms = self?.availablePrograms.filter { p in
+                                    self?.activeEnrollments.contains { $0.programId == p.id } ?? false
+                                } ?? []
+                                
+                                // Ensure UI updates
+                                self?.objectWillChange.send()
+                            }
+                        }
+                    )
+                    .store(in: &cancellables)
+            }
+        }
     }
     
     private func generateProgramProgressData() {

@@ -373,12 +373,12 @@ extension FirebaseDataService {
                         .document(accountId)
                         .collection("program_enrollments")
                         .whereField("status", isEqualTo: "active")
-                        .order(by: "startDate", descending: true)
+                        // .order(by: "startDate", descending: true) // Removed to avoid Composite Index requirement
                         .getDocuments()
 
                     let enrollments = try snapshot.documents.compactMap { doc in
                         try doc.data(as: ProgramEnrollment.self)
-                    }
+                    }.sorted { $0.startDate > $1.startDate } // Sort client-side instead
 
                     print("✅ [Firebase] Fetched \(enrollments.count) program enrollments")
                     promise(.success(enrollments))

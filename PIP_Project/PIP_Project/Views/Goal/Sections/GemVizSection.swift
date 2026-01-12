@@ -13,6 +13,9 @@ struct GemVizSection: View {
     @ObservedObject var viewModel: GoalViewModel
     @State private var isAnimating = false
     @State private var dragOffset: CGFloat = 0
+    @State private var activeValues: [Bool] = Array(repeating: false, count: 20)
+    @State private var showProgramStory = false
+    @State private var showInfo = false
     
     var body: some View {
         VStack(alignment: .center, spacing: 5) {
@@ -39,7 +42,8 @@ struct GemVizSection: View {
                 .frame(maxWidth: .infinity)
             } else {
                 // MARK: - 3 Gems Displayed Simultaneously with Navigation Buttons and Drag Gesture
-                GeometryReader { geometry in
+                ZStack(alignment: .topTrailing) {
+                    GeometryReader { geometry in
                     let screenWidth = geometry.size.width
                     let spacing = screenWidth / 3
                     
@@ -63,27 +67,36 @@ struct GemVizSection: View {
                             
                             // Gem Stack with Drag Gesture
                             ZStack(alignment: .center) {
+                                let availableHeight = min(geometry.size.height, 170)
+                                let selectedSize = availableHeight * 0.95 // 95% of available height
+                                let unselectedSize = selectedSize * 0.45 // Proportional
+                                
                                 // Left gem (unselected)
                                 if viewModel.currentProgramIndex > 0 {
                                     GemCard(
                                         program: viewModel.ongoingPrograms[viewModel.currentProgramIndex - 1],
                                         progress: viewModel.programProgress[viewModel.ongoingPrograms[viewModel.currentProgramIndex - 1].id.uuidString],
                                         isSelected: false,
-                                        isAnimating: isAnimating
+                                        isAnimating: isAnimating,
+                                        size: unselectedSize
                                     )
                                     .offset(x: -spacing + dragOffset)
                                     .zIndex(1)
                                 }
                                 
-                                // Center gem (selected)
+                            // Center gem (selected)
                                 GemCard(
                                     program: viewModel.ongoingPrograms[viewModel.currentProgramIndex],
                                     progress: viewModel.programProgress[viewModel.ongoingPrograms[viewModel.currentProgramIndex].id.uuidString],
                                     isSelected: true,
-                                    isAnimating: isAnimating
+                                    isAnimating: isAnimating,
+                                    size: selectedSize
                                 )
                                 .offset(x: dragOffset)
                                 .zIndex(2)
+                                .onTapGesture {
+                                    showProgramStory = true
+                                }
                                 
                                 // Right gem (unselected)
                                 if viewModel.currentProgramIndex < viewModel.ongoingPrograms.count - 1 {
@@ -91,13 +104,14 @@ struct GemVizSection: View {
                                         program: viewModel.ongoingPrograms[viewModel.currentProgramIndex + 1],
                                         progress: viewModel.programProgress[viewModel.ongoingPrograms[viewModel.currentProgramIndex + 1].id.uuidString],
                                         isSelected: false,
-                                        isAnimating: isAnimating
+                                        isAnimating: isAnimating,
+                                        size: unselectedSize
                                     )
                                     .offset(x: spacing + dragOffset)
                                     .zIndex(1)
                                 }
                             }
-                            .frame(width: geometry.size.width - 80, height: 170) // 높이 줄임
+                            .frame(width: geometry.size.width - 80, height: 170) // Match height
                             .gesture(
                                 DragGesture()
                                     .onChanged { value in
@@ -165,10 +179,40 @@ struct GemVizSection: View {
                         }
                     }
                 }
-                .frame(height: 200)
+                .frame(height: 170)
+                
+                // Info button - overlaid at top-right
+                Button(action: {
+                    showInfo = true
+                }) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.white.opacity(0.1))
+                            .frame(width: 28, height: 28)
+                        
+                        Image(systemName: "questionmark")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(.white)
+                    }
+                }
+                .padding(.trailing, 4)
+                .padding(.top, 0)
+            }
             }
         }
         .frame(maxWidth: .infinity)
+        .sheet(isPresented: $showProgramStory) {
+            if !viewModel.ongoingPrograms.isEmpty {
+                ProgramStoryView(
+                    program: viewModel.ongoingPrograms[viewModel.currentProgramIndex],
+                    progress: viewModel.programProgress[viewModel.ongoingPrograms[viewModel.currentProgramIndex].id.uuidString],
+                    mode: .overview
+                )
+            }
+        }
+        .sheet(isPresented: $showInfo) {
+            GemInfoSheet()
+        }
         .onAppear {
             withAnimation(Animation.easeInOut(duration: 2.5).repeatForever(autoreverses: true)) {
                 isAnimating = true
@@ -183,9 +227,10 @@ struct GemCard: View {
     let progress: ProgramProgress?
     let isSelected: Bool
     let isAnimating: Bool
+    let size: CGFloat // Dynamic size passed from parent
     
     var body: some View {
-        let gemSize: CGFloat = isSelected ? 162 : 72  // 10% 줄임
+        let gemSize: CGFloat = size
         
         VStack(spacing: isSelected ? 16 : 0) {
             // Gem 3D 시각화
@@ -200,11 +245,11 @@ struct GemCard: View {
                             ]),
                             center: .center,
                             startRadius: 0,
-                            endRadius: 100
+                            endRadius: gemSize * 0.6 // Scale shadow radius
                         )
                     )
-                    .frame(width: isSelected ? 108 : 72, height: isSelected ? 36 : 22)  // 10% 줄임
-                    .offset(y: isSelected ? 108 : 59)  // 10% 줄임
+                    .frame(width: gemSize * 0.66, height: gemSize * 0.22) // Scale shadow
+                    .offset(y: gemSize * 0.66) // Scale offset
                     .opacity(isSelected ? 1.0 : 0.6)  // 선택되지 않은 경우 투명도 조정
                 
                 VStack(spacing: 0) {
@@ -234,9 +279,9 @@ struct GemCard: View {
                             ]),
                             center: .center,
                             startRadius: 0,
-                            endRadius: isSelected ? 81 : 54
+                            endRadius: gemSize * 0.5 // Scale gradient
                         )
-                        .opacity(improvementRate * 0.8 + 0.2) // improvementRate에 따라 밝기 조절 (0.2 ~ 1.0)
+                        .opacity(improvementRate * 0.5 + 0.5) // improvementRate에 따라 밝기 조절 (0.5 ~ 1.0)
                         .mask(
                             Group {
                                 if let imageName = getShapeImageName(for: program) {
@@ -245,8 +290,8 @@ struct GemCard: View {
                                         .scaledToFit()
                                 } else {
                                     Image(systemName: "cube.fill")
-                                        .resizable()
-                                        .scaledToFit()
+                                    .resizable()
+                                    .scaledToFit()
                                 }
                             }
                         )
@@ -257,7 +302,7 @@ struct GemCard: View {
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
-                        .opacity(improvementRate * 0.6 + 0.2) // improvementRate에 따라 전체 opacity 조절
+                        .opacity(improvementRate * 0.4 + 0.3) // improvementRate에 따라 전체 opacity 조절 (0.3 ~ 0.7)
                         .mask(
                             Group {
                                 if let imageName = getShapeImageName(for: program) {
@@ -274,21 +319,13 @@ struct GemCard: View {
                     }
                     .frame(width: gemSize, height: gemSize)
                     .scaleEffect(isSelected && isAnimating ? 1.05 : 0.95)
-                    .offset(y: isSelected && isAnimating ? -12 : 0)
+                    .offset(y: isSelected && isAnimating ? -gemSize * 0.07 : 0) // Scale animation offset
                 }
             }
             
-            // Program name (only for selected gem)
-            // if isSelected {
-            //     Text(program.name)
-            //         .font(.pip.body)
-            //         .foregroundColor(.white)
-            //         .lineLimit(2)
-            //         .multilineTextAlignment(.center)
-            //         .padding(.horizontal, 16)
-            // }
         }
         .opacity(isSelected ? 1.0 : 0.6)
+        .contentShape(Rectangle()) // Ensure tap target
     }
     
     /// Get 3D shape image name from Assets

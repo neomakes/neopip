@@ -69,10 +69,20 @@ struct ProgramsSection: View {
                                 ForEach(repeatedPrograms.indices, id: \.self) { index in
                                     let actualIndex = index % viewModel.availablePrograms.count
                                     let program = viewModel.availablePrograms[actualIndex]
+                                    
+                                    // Find enrollment and mission
+                                    let enrollment = viewModel.activeEnrollments.first(where: { $0.programId == program.id })
+                                    let isEnrolled = enrollment != nil
+                                    let currentDay = enrollment?.currentDay ?? 1
+                                    let activeMission = program.missions?.first(where: { $0.day == currentDay })
+                                    
                                     ProgramCard(
                                         program: program,
                                         size: cardSize(for: actualIndex, currentIndex: currentIndex),
-                                        opacity: cardOpacity(for: actualIndex, currentIndex: currentIndex)
+                                        opacity: cardOpacity(for: actualIndex, currentIndex: currentIndex),
+                                        activeMission: activeMission,
+                                        isEnrolled: isEnrolled,
+                                        currentDay: currentDay
                                     )
                                     .onTapGesture {
                                         self.selectedProgram = program
@@ -138,7 +148,11 @@ struct ProgramsSection: View {
         }
         .sheet(isPresented: $showProgramStory) {
             if let program = selectedProgram {
-                ProgramStoryView(program: program, progress: viewModel.programProgress[program.id.uuidString])
+                ProgramStoryView(
+                    program: program,
+                    progress: viewModel.programProgress[program.id.uuidString],
+                    mode: .overview
+                )
             }
         }
         .onChange(of: showProgramStory) { newValue in
@@ -189,6 +203,10 @@ struct ProgramCard: View {
     let program: Program
     let size: CGFloat
     let opacity: Double
+    // New properties for mission display
+    var activeMission: ProgramMission? = nil
+    var isEnrolled: Bool = false
+    var currentDay: Int = 1
     
     private var scaleFactor: CGFloat {
         size / 120 // 120을 기준으로 스케일 계산
@@ -268,19 +286,22 @@ struct ProgramCard: View {
 
             // Content
             VStack(alignment: .leading, spacing: 8 * scaleFactor) {
+                // Always show Program Name and Description
+                // Program Name (Auto-scaling to fit)
                 Text(program.name)
-                    .font(.system(size: 14 * scaleFactor, weight: .semibold))
+                    .font(.system(size: 16 * scaleFactor, weight: .bold)) // Increased base size slightly
                     .foregroundColor(.white)
-                    .lineLimit(3)
+                    .lineLimit(4) // Allow multiple lines
                     .multilineTextAlignment(.leading)
-                    .minimumScaleFactor(0.8)
+                    .minimumScaleFactor(0.4) // Allow significant shrinking
                     .fixedSize(horizontal: false, vertical: true)
                 
                 Spacer()
                 
                 // Program info badge
                 HStack {
-                    Text("\(program.duration) days")
+                    // Badge: Day X if enrolled, Duration if not
+                    Text("\(program.duration) Days")
                         .font(.system(size: 10 * scaleFactor, weight: .semibold))
                         .foregroundColor(.white)
                         .padding(.horizontal, 8 * scaleFactor)

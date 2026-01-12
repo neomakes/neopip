@@ -3,6 +3,11 @@ import Combine
 
 @MainActor
 class ProgramStoryViewModel: ObservableObject {
+    enum StoryMode {
+        case overview
+        case mission
+    }
+    
     @Published var programStory: ProgramStory?
     @Published var currentPageIndex: Int = 0
     @Published var currentPageProgress: Double = 0.0
@@ -14,13 +19,15 @@ class ProgramStoryViewModel: ObservableObject {
 
     private let program: Program
     private let progress: ProgramProgress?
+    private let mode: StoryMode
     private var cancellables = Set<AnyCancellable>()
     private var storyTimer: Timer?
     private let storyDuration: TimeInterval = 5.0 // 한 페이지당 지속시간
 
-    init(program: Program, progress: ProgramProgress?) {
+    init(program: Program, progress: ProgramProgress?, mode: StoryMode = .mission) {
         self.program = program
         self.progress = progress
+        self.mode = mode
         // original behavior: load story immediately (may run in app runtime contexts)
         loadStory()
     }
@@ -30,30 +37,54 @@ class ProgramStoryViewModel: ObservableObject {
         isLoading = true
         
         print("DEBUG: Loading story for program: \(program.name)")
-        print("DEBUG: Program ID: \(program.id)")
         
-        // Load story from MockDataService
-        let ongoingStories = MockDataService.shared.loadOngoingProgramStories()
-        print("DEBUG: Found \(ongoingStories.count) ongoing stories")
-        
-        for story in ongoingStories {
-            print("DEBUG: Story programId: \(story.programId)")
-        }
-        
-        if let story = ongoingStories.first(where: { $0.programId == program.id }) {
-            print("DEBUG: Found story in ongoing_programs")
-            self.programStory = story
-            self.isLiked = story.isLiked
-            self.isLoading = false
-            self.startStoryTimer()
-        } else {
-            print("DEBUG: Story not found for this program — generating default story")
-            // Fallback: generate a default ProgramStory based on Program metadata so UI can present something
+        // 0. Check Mode
+        if mode == .overview {
             let defaultStory = createDefaultStoryFromProgram(program: program)
             self.programStory = defaultStory
             self.isLiked = defaultStory.isLiked
             self.isLoading = false
             self.startStoryTimer()
+            return
+        }
+        
+        // 1. Calculate Current Day
+        let currentDay: Int
+        if let progress = progress {
+            let calendar = Calendar.current
+            let components = calendar.dateComponents([.day], from: progress.createdAt, to: Date())
+            currentDay = max(1, (components.day ?? 0) + 1)
+        } else {
+            currentDay = 1
+        }
+        
+        // 2. Try to find mission for Current Day
+        if let missions = program.missions, let activeMission = missions.first(where: { $0.day == currentDay }) {
+            print("DEBUG: Found active mission for Day \(currentDay): \(activeMission.title)")
+            let missionStory = createStoryFromMission(activeMission)
+            self.programStory = missionStory
+            self.isLiked = false // Default or load from somewhere else
+            self.isLoading = false
+            self.startStoryTimer()
+        } else {
+            // 3. Fallback: Check for any existing story (legacy) or create default
+            // Load story from MockDataService (Legacy check)
+            let ongoingStories = MockDataService.shared.loadOngoingProgramStories()
+            
+            if let story = ongoingStories.first(where: { $0.programId == program.id }) {
+                print("DEBUG: Found story in ongoing_programs (Mock)")
+                self.programStory = story
+                self.isLiked = story.isLiked
+                self.isLoading = false
+                self.startStoryTimer()
+            } else {
+                print("DEBUG: Story/Mission not found - generating default story")
+                let defaultStory = createDefaultStoryFromProgram(program: program)
+                self.programStory = defaultStory
+                self.isLiked = defaultStory.isLiked
+                self.isLoading = false
+                self.startStoryTimer()
+            }
         }
     }
 
@@ -147,6 +178,21 @@ class ProgramStoryViewModel: ObservableObject {
         shouldDismiss = true
     }
 
+    private func createStoryFromMission(_ mission: ProgramMission) -> ProgramStory {
+        return ProgramStory(
+            id: UUID(),
+            programId: program.id,
+            title: mission.title,
+            subtitle: mission.description,
+            pages: mission.contentPages,
+            colorTheme: program.gemVisualization.colorTheme,
+            gradientColors: program.gemVisualization.gradientColors?.compactMap { ColorThemeForGoal(rawValue: $0) },
+            isViewed: mission.isCompleted,
+            createdAt: Date(),
+            isGenerated: true
+        )
+    }
+    
     // MARK: - Fallback story generation
     private func createDefaultStoryFromProgram(program: Program) -> ProgramStory {
         let page1 = ProgramStoryPage(
