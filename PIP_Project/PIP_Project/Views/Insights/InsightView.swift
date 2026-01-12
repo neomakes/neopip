@@ -32,6 +32,7 @@ struct InsightView: View {
             viewModel.loadInitialData()
         }
     }
+
 }
 
 #Preview {

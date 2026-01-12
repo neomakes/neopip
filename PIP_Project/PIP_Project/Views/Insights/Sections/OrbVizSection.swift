@@ -18,104 +18,129 @@ import SwiftUI
 struct OrbVizSection: View {
     @ObservedObject var viewModel: InsightViewModel
     @State private var isAnimating = false
+    @State private var showOrbInfo = false
     
     var body: some View {
-        Group {
-            if let orbViz = viewModel.orbVisualization {
-                // ZStack: 그림자가 뒤에, Orb가 위에 오도록 배치
-                ZStack(alignment: .top) {
-                    // 그림자 효과 (타원) - RailroadView의 Gem 그림자와 동일 방식
-                    Ellipse()
-                        .fill(
-                            RadialGradient(
-                                gradient: Gradient(colors: [
-                                    Color("railroad_front").opacity(0.6),
-                                    Color.black.opacity(0.8)
-                                ]),
-                                center: .center,
-                                startRadius: 0,
-                                endRadius: 70
+        ZStack(alignment: .topTrailing) {
+            // Main content - centered Orb
+            Group {
+                if let orbViz = viewModel.orbVisualization {
+                    // ZStack: 그림자가 뒤에, Orb가 위에 오도록 배치
+                    ZStack(alignment: .top) {
+                        // 그림자 효과 (타원) - RailroadView의 Gem 그림자와 동일 방식
+                        Ellipse()
+                            .fill(
+                                RadialGradient(
+                                    gradient: Gradient(colors: [
+                                        Color("railroad_front").opacity(0.6),
+                                        Color.black.opacity(0.8)
+                                    ]),
+                                    center: .center,
+                                    startRadius: 0,
+                                    endRadius: 70
+                                )
                             )
-                        )
-                        .frame(width: 106, height: 42)
-                        .offset(y: 120)  // Orb 아래에 배치
-                    
-                    VStack(spacing: 0) {
-                        // Orb 이미지
-                        ZStack {
-                            // 1. 기본 이미지 (liquid_orb)
-                            Image("liquid_orb")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 170, height: 170)
-                            
-                            // 2. 방사형 그라데이션 오버레이 (brightness 기반)
-                            // 중심: 연한 회색(밝음) → 가장자리: 검은색(어두움)
-                            // mask: 이미지 범위 내에서만 표시
-                            RadialGradient(
-                                gradient: Gradient(colors: [
-                                    Color.white.opacity(0.7),  // 중심: 연한 회색
-                                    Color.black         // 가장자리: 검은색
-                                ]),
-                                center: .center,
-                                startRadius: 0,
-                                endRadius: 85
-                            )
-                            .opacity(orbViz.brightness * (isAnimating ? 0.7 : 1.0))  // 스케일이 커질 때 투명도 감소
-                            .mask(
+                            .frame(width: 106, height: 42)
+                            .offset(y: 120)  // Orb 아래에 배치
+                        
+                        VStack(spacing: 0) {
+                            // Orb 이미지
+                            ZStack {
+                                // 1. 기본 이미지 (liquid_orb)
                                 Image("liquid_orb")
                                     .resizable()
                                     .scaledToFit()
-                            )
-                            
-                            // 3. 선형 그라데이션 오버레이 (colorGradient 기반)
-                            // 3개 색상으로 선형 그라데이션
-                            // mask: 이미지 범위 내에서만 표시
-                            LinearGradient(
-                                gradient: Gradient(colors: [
-                                    colorFromHex(orbViz.colorGradient[0]),
-                                    colorFromHex(orbViz.colorGradient[1]),
-                                    colorFromHex(orbViz.colorGradient[2])
-                                ]),
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                            .opacity(0.25 * (isAnimating ? 0.7 : 1.0))  // 스케일이 커질 때 투명도 감소
-                            .mask(
-                                Image("liquid_orb")
-                                    .resizable()
-                                    .scaledToFit()
-                            )
+                                    .frame(width: 170, height: 170)
+                                
+                                // 2. 방사형 그라데이션 오버레이 (brightness 기반)
+                                // 중심: 연한 회색(밝음) → 가장자리: 검은색(어두움)
+                                // mask: 이미지 범위 내에서만 표시
+                                RadialGradient(
+                                    gradient: Gradient(colors: [
+                                        Color.white.opacity(0.7),  // 중심: 연한 회색
+                                        Color.black         // 가장자리: 검은색
+                                    ]),
+                                    center: .center,
+                                    startRadius: 0,
+                                    endRadius: 85
+                                )
+                                .opacity(orbViz.brightness * (isAnimating ? 0.7 : 1.0))  // 스케일이 커질 때 투명도 감소
+                                .mask(
+                                    Image("liquid_orb")
+                                        .resizable()
+                                        .scaledToFit()
+                                )
+                                
+                                // 3. 선형 그라데이션 오버레이 (colorGradient 기반)
+                                // 3개 색상으로 선형 그라데이션
+                                // mask: 이미지 범위 내에서만 표시
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        colorFromHex(orbViz.colorGradient[0]),
+                                        colorFromHex(orbViz.colorGradient[1]),
+                                        colorFromHex(orbViz.colorGradient[2])
+                                    ]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                                .opacity(0.25 * (isAnimating ? 0.7 : 1.0))  // 스케일이 커질 때 투명도 감소
+                                .mask(
+                                    Image("liquid_orb")
+                                        .resizable()
+                                        .scaledToFit()
+                                )
+                            }
+                            .frame(width: 170, height: 170)
+                            .scaleEffect(isAnimating ? 1.05 : 0.95)  // 일렁이는 애니메이션
+                            .offset(y: isAnimating ? -10 : 0)  // 스케일이 커질 때 위로 이동 (15 -> 10으로 감소)
                         }
-                        .frame(width: 170, height: 170)
-                        .scaleEffect(isAnimating ? 1.05 : 0.95)  // 일렁이는 애니메이션
-                        .offset(y: isAnimating ? -10 : 0)  // 스케일이 커질 때 위로 이동 (15 -> 10으로 감소)
                     }
-                }
-                .onAppear {
-                    withAnimation(Animation.easeInOut(duration: 2.5).repeatForever(autoreverses: true)) {
-                        isAnimating = true
+                    .onAppear {
+                        withAnimation(Animation.easeInOut(duration: 2.5).repeatForever(autoreverses: true)) {
+                            isAnimating = true
+                        }
                     }
-                }
-                
-            } else {
-                // Empty state - Orb is being prepared
-                VStack(alignment: .center, spacing: 12) {
-                    ProgressView()
-                        .tint(.white)
                     
-                    Text("Your Orb is being prepared")
-                        .font(.system(size: 14, weight: .regular))
-                        .foregroundColor(.gray)
-                    
-                    Text("Record your first data to generate your unique visualization")
-                        .font(.system(size: 12, weight: .regular))
-                        .foregroundColor(.gray.opacity(0.7))
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 40)
+                } else {
+                    // Empty state - Orb is being prepared
+                    VStack(alignment: .center, spacing: 12) {
+                        ProgressView()
+                            .tint(.white)
+                        
+                        Text("Your Orb is being prepared")
+                            .font(.system(size: 14, weight: .regular))
+                            .foregroundColor(.gray)
+                        
+                        Text("Record your first data to generate your unique visualization")
+                            .font(.system(size: 12, weight: .regular))
+                            .foregroundColor(.gray.opacity(0.7))
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 40)
+                    }
+                    .frame(width: 170, height: 170)
                 }
-                .frame(width: 170, height: 170)
             }
+            .frame(maxWidth: .infinity) // Ensure Orb stays centered
+            
+            // Info button - overlaid at top-right
+            Button(action: {
+                showOrbInfo = true
+            }) {
+                ZStack {
+                    Circle()
+                        .fill(Color.white.opacity(0.2))
+                        .frame(width: 32, height: 32)
+                    
+                    Image(systemName: "exclamationmark")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.white)
+                }
+            }
+            .padding(.trailing, 20)
+            .padding(.top, 8)
+        }
+        .sheet(isPresented: $showOrbInfo) {
+            OrbInfoSheet()
         }
     }
     
