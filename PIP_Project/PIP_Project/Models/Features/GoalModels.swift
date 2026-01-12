@@ -632,15 +632,23 @@ struct GoalRecommendationInput: Codable {
 struct ProgramEnrollment: Identifiable, Codable {
     let id: UUID
     var accountId: String              // Firebase Auth UID
-    var anonymousUserId: UUID?         // Anonymous User ID (나중에 설정)
+    var anonymousUserId: UUID?         // Anonymous User ID from IdentityMappingService
     var programId: UUID
+    
     var status: ProgramEnrollmentStatus
+    
+    // Progress tracking
+    var currentDay: Int                // Current day in program (1-based)
+    var completedDays: Set<Int>        // Set of completed day numbers
+    
+    // Dates
     var startDate: Date
-    var targetCompletionDate: Date?
-    var actualCompletionDate: Date?
-    var initialMetrics: [String: Double]?  // 프로그램 시작 시 초기값
-    var successProgress: Double        // 0.0 ~ 1.0 (진행률)
-    var successRate: Double?           // 0.0 ~ 1.0 (완료 후 계산)
+    var lastActivityDate: Date
+    var completedDate: Date?           // When status becomes .completed
+    
+    // Metrics
+    var initialMetrics: [String: Double]?  // Baseline metrics at start
+    
     var createdAt: Date
     var updatedAt: Date
     
@@ -651,11 +659,17 @@ struct ProgramEnrollment: Identifiable, Codable {
     var programIdString: String {
         programId.uuidString
     }
+    
+    // Helper to calculate progress (0.0 - 1.0) based on mission count
+    func progress(totalMissions: Int) -> Double {
+        guard totalMissions > 0 else { return 0.0 }
+        return Double(completedDays.count) / Double(totalMissions)
+    }
 }
 
 enum ProgramEnrollmentStatus: String, Codable {
-    case active       // 진행 중
-    case completed    // 완료
-    case paused       // 일시 정지
-    case abandoned    // 포기
+    case active       // In progress
+    case completed    // Finished
+    case paused       // Temporarily stopped
+    case abandoned    // Stopped without finishing
 }

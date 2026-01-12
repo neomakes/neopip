@@ -19,11 +19,12 @@ class GoalViewModel: ObservableObject {
     
     // Newly added properties
     @Published var selectedGoal: Goal?
-    @Published var ongoingPrograms: [Program] = []              // 최대 3개
+    @Published var activeEnrollments: [ProgramEnrollment] = []   // Active enrollments from DB
+    @Published var ongoingPrograms: [Program] = []              // Programs corresponding to active enrollments
     @Published var currentProgramIndex: Int = 0
     @Published var programProgress: [String: ProgramProgress] = [:]  // programId -> ProgramProgress
     @Published var selectedProgram: Program?                    // For Sheet display
-    @Published var newPrograms: [Program] = []                  // 새로운 추천 프로그램들
+    @Published var newPrograms: [Program] = []                  // New/Recommended programs
     
     // MARK: - Dependencies
     private let dataService: DataServiceProtocol
@@ -34,8 +35,8 @@ class GoalViewModel: ObservableObject {
         if let service = dataService {
             self.dataService = service
         } else {
-            // Use MockDataService as fallback
-            self.dataService = MockDataService.shared
+            // Use active DataService by default (consistent with Onboarding)
+            self.dataService = DataServiceManager.shared.currentService
         }
         loadInitialData()
     }
@@ -95,7 +96,25 @@ class GoalViewModel: ObservableObject {
                         self?.createMockPrograms()
                         self?.createMockNewPrograms()
                     }
-                    self?.createMockProgramProgress()
+                    // self?.createMockProgramProgress() // Removed mock progress generation, now driven by enrollments
+                    self?.updateOngoingPrograms() // Update again in case programs loaded after enrollments
+                }
+            )
+            .store(in: &cancellables)
+            
+        // Fetch Active Program Enrollments
+        dataService.fetchProgramEnrollments()
+            .receive(on: DispatchQueue.main)
+            .sink(
+                receiveCompletion: { [weak self] completion in
+                    if case .failure(let error) = completion {
+                        print("❌ [GoalViewModel] Error fetching enrollments: \(error)")
+                    }
+                },
+                receiveValue: { [weak self] enrollments in
+                    print("✅ [GoalViewModel] Fetched \(enrollments.count) enrollments")
+                    self?.activeEnrollments = enrollments
+                    self?.updateOngoingPrograms()
                 }
             )
             .store(in: &cancellables)
@@ -173,13 +192,75 @@ class GoalViewModel: ObservableObject {
     func selectFirstGoal() {
         if let firstGoal = activeGoals.first {
             selectedGoal = firstGoal
-            // Filter ongoing programs for the goal (max 3)
-            ongoingPrograms = availablePrograms
-                .filter { $0.category == firstGoal.category }
-                .prefix(3)
-                .map { $0 }
+            selectedGoal = firstGoal
+            // Note: ongoingPrograms is now driven by activeEnrollments, not Goal category
+            // If we wanted to filter enrolled programs by the selected Goal, we could do it here
+            // But per new design, Programs are independent.
+            // keeping ongoingPrograms as is (all active enrollments)
+            
+            // If ongoingPrograms is empty, UI handles fallback.
             currentProgramIndex = 0
         }
+    }
+    
+    /// Update ongoingPrograms based on activeEnrollments and availablePrograms
+    private func updateOngoingPrograms() {
+        ongoingPrograms = availablePrograms.filter { program in
+            activeEnrollments.contains { $0.programId == program.id }
+        }
+        
+        // Generate progress objects for enrolled programs
+        generateProgramProgressData()
+    }
+    
+    private func generateProgramProgressData() {
+        var newProgress: [String: ProgramProgress] = [:]
+        
+        for enrollment in activeEnrollments {
+            guard let program = availablePrograms.first(where: { $0.id == enrollment.programId }) else { continue }
+            
+            // Generate ProgramProgress from Enrollment
+            // Using logic similar to createMockProgramProgress but based on real enrollment data
+            
+            let beforeMetrics = enrollment.initialMetrics ?? [:]
+            // Current metrics: in real app, fetch latest. For now, assume same or simulate change?
+            // Let's just use beforeMetrics for now to avoid showing broken data
+            let currentMetrics = beforeMetrics 
+            
+            let improvementRate = 0.0 // Calculate if we had current metrics
+            
+            // Progress History from completedDays
+            // We can map completed days to ProgressPoints
+            var progressHistory: [ProgressPoint] = []
+            // This is a simplification; ideally we store dates of completion.
+            // Enrollment has completedDays (Set<Int>).
+            
+            let radarData: [RadarDataPoint] = beforeMetrics.map { key, value in
+                RadarDataPoint(label: key.capitalized, beforeValue: value, afterValue: value) // No change shown yet
+            }
+            
+            // Stories - reusing program stories if available
+            let stories = program.stories ?? []
+            
+            let progress = ProgramProgress(
+                id: UUID(), // ephemeral ID for view model
+                programId: program.id,
+                goalId: UUID(), // Legacy: Goal ID. Programs are independent now. Use dummy or first goal.
+                accountId: enrollment.accountId,
+                beforeMetrics: beforeMetrics,
+                currentMetrics: currentMetrics,
+                improvementRate: improvementRate,
+                progressHistory: progressHistory,
+                stories: stories,
+                radarChartData: radarData,
+                createdAt: enrollment.createdAt,
+                updatedAt: enrollment.updatedAt
+            )
+            
+            newProgress[program.id.uuidString] = progress
+        }
+        
+        self.programProgress = newProgress
     }
     
     /// Select program (tab navigation)

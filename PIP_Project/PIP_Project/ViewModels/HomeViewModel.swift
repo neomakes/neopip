@@ -201,8 +201,9 @@ class HomeViewModel: ObservableObject {
                     if case .failure(let error) = completion {
                         self?.errorMessage = error.localizedDescription
                     } else {
-                        // 저장 성공 시 데이터 새로고침
+                        // 저장 성공 시 데이터 새로고침 및 노티피케이션 발송
                         self?.loadInitialData()
+                        NotificationCenter.default.post(name: .didSaveCardData, object: nil)
                     }
                 },
                 receiveValue: { _ in }

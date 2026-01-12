@@ -137,6 +137,22 @@ class FirebaseDataService: DataServiceProtocol {
                         .setData(from: updatedDataPoint)
 
                     print("✅ [Firebase] Saved data point successfully")
+                    
+                    // Increment User Stats (Client-side aggregation for Solopreneur mode)
+                    if let currentUser = Auth.auth().currentUser {
+                         let accountId = currentUser.uid
+                         let statsRef = self.db.collection("users").document(accountId).collection("stats").document("summary")
+                         
+                         // Atomically increment totalDataPoints
+                         // We use set(merge: true) to ensure it works even if the document doesn't exist yet (though unlikely if fetchUserStats runs first)
+                         try await statsRef.setData([
+                             "totalDataPoints": FieldValue.increment(Int64(1)),
+                             "updatedAt": Date()
+                         ], merge: true)
+                         
+                         print("✅ [Firebase] Incremented user stats totalDataPoints")
+                    }
+                    
                     promise(.success(updatedDataPoint))
                 } catch {
                     print("❌ [Firebase] Error saving data point: \(error)")
@@ -174,6 +190,20 @@ class FirebaseDataService: DataServiceProtocol {
                 .document(updatedDataPoint.id.uuidString)
                 .setData(from: updatedDataPoint)
             print("✅ [Firebase] Saved data for category \(category) successfully")
+            
+            // Increment User Stats (Client-side aggregation)
+            if let currentUser = Auth.auth().currentUser {
+                 let accountId = currentUser.uid
+                 let statsRef = db.collection("users").document(accountId).collection("stats").document("summary")
+                 
+                 // Atomically increment totalDataPoints
+                 try await statsRef.setData([
+                     "totalDataPoints": FieldValue.increment(Int64(1)),
+                     "updatedAt": Date()
+                 ], merge: true)
+                 
+                 print("✅ [Firebase] Incremented user stats totalDataPoints in saveData")
+            }
         } catch {
             print("❌ [Firebase] Firestore Write Failed: \(error)")
             throw error

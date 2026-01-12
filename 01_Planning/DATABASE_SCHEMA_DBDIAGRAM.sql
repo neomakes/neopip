@@ -331,12 +331,13 @@ Table user_program_enrollments {
   
   enrollment_status string [not null, note: "active|completed|paused|abandoned"]
   start_date date [not null]
-  target_completion_date date [null]
-  actual_completion_date date [null]
   
-  initial_metrics string [not null, note: "JSON: 프로그램 시작 시 초기값"]
-  success_progress double [not null, note: "0.0 ~ 1.0 - Cloud Functions 계산"]
-  success_rate double [null, note: "0.0 ~ 1.0 - 완료 후 계산"]
+  current_day integer [not null, default: 1]
+  completed_days string [not null, note: "JSON array: [1, 2, ...]"]
+  last_activity_date date [not null]
+  completed_date date [null]
+  
+  initial_metrics string [null, note: "JSON: 프로그램 시작 시 초기값"]
   
   created_at timestamp [not null]
   updated_at timestamp [not null]

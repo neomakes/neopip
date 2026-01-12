@@ -836,10 +836,11 @@ class WriteViewModel: ObservableObject {
                     receiveValue: { [weak self] stats in
                         var updatedStats = stats
                         
-                        // 1️⃣ totalDataPoints 증가 (새로운 데이터일 때만)
+                        // 1️⃣ totalDataPoints Increment
+                        // Handled atomically in FirebaseDataService.saveData/saveDataPoint
+                        // We do NOT increment here to avoid double-counting or overwriting with old values.
                         if !isUpdate {
-                            updatedStats.totalDataPoints += 1
-                            print("   📊 totalDataPoints: \(stats.totalDataPoints) → \(updatedStats.totalDataPoints)")
+                            print("   📊 totalDataPoints increment handled by DataService")
                         } else {
                             print("   📊 DataPoint update only, skipping count increment")
                         }

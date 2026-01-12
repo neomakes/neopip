@@ -250,43 +250,43 @@ class OnboardingViewModel: ObservableObject {
             // Ensure Identity Mapping exists
             print("🔑 [Onboarding] Ensuring identity mapping exists...")
             do {
-                let mappingId = try await IdentityMappingService.shared.getAnonymousUserId()
-                print("✅ [Onboarding] Identity mapping verified: \(mappingId)")
+                let anonymousId = try await IdentityMappingService.shared.getAnonymousUserId()
+                print("✅ [Onboarding] Identity mapping verified: \(anonymousId)")
+                
+                // Save profile to Firebase
+                print("💾 [Onboarding] Saving user profile to Firebase...")
+                await saveUserProfile(userProfile)
+
+                // Create initial UserStats
+                let initialStats = UserStats(
+                    accountId: authService.currentUser?.uid ?? "",
+                    totalDataPoints: 0,
+                    totalGems: 0,
+                    streakDays: 0,
+                    lastRecordedAt: nil,
+                    updatedAt: Date()
+                )
+
+                // Save initial stats to Firebase
+                print("💾 [Onboarding] Saving initial user stats to Firebase...")
+                await saveUserStats(initialStats)
+
+                // Create Goal documents for each selected goal
+                print("💾 [Onboarding] Creating Goal documents...")
+                for goalCategory in selectedGoals {
+                    await createGoal(for: goalCategory)
+                }
+    
+                // Create ProgramEnrollment documents for each selected program
+                print("💾 [Onboarding] Creating ProgramEnrollment documents...")
+                for programId in selectedPrograms {
+                    await createProgramEnrollment(for: programId, anonymousUserId: anonymousId)
+                }
             } catch {
                 print("❌ [Onboarding] Failed to create/verify identity mapping: \(error)")
                 self.errorMessage = "Failed to setup identity. Please try again."
                 isLoading = false
                 return
-            }
-
-            // Save profile to Firebase
-            print("💾 [Onboarding] Saving user profile to Firebase...")
-            await saveUserProfile(userProfile)
-
-            // Create initial UserStats
-            let initialStats = UserStats(
-                accountId: authService.currentUser?.uid ?? "",
-                totalDataPoints: 0,
-                totalGems: 0,
-                streakDays: 0,
-                lastRecordedAt: nil,
-                updatedAt: Date()
-            )
-
-            // Save initial stats to Firebase
-            print("💾 [Onboarding] Saving initial user stats to Firebase...")
-            await saveUserStats(initialStats)
-
-            // Create Goal documents for each selected goal
-            print("💾 [Onboarding] Creating Goal documents...")
-            for goalCategory in selectedGoals {
-                await createGoal(for: goalCategory)
-            }
-
-            // Create ProgramEnrollment documents for each selected program
-            print("💾 [Onboarding] Creating ProgramEnrollment documents...")
-            for programId in selectedPrograms {
-                await createProgramEnrollment(for: programId)
             }
         }
 
@@ -347,19 +347,19 @@ class OnboardingViewModel: ObservableObject {
     }
 
     /// Create a ProgramEnrollment document for a selected program
-    private func createProgramEnrollment(for programId: UUID) async {
+    private func createProgramEnrollment(for programId: UUID, anonymousUserId: UUID) async {
         let enrollment = ProgramEnrollment(
             id: UUID(),
             accountId: authService.currentUser?.uid ?? "",
-            anonymousUserId: nil, // Will be set later by backend
+            anonymousUserId: anonymousUserId,
             programId: programId,
             status: .active,
+            currentDay: 1,
+            completedDays: [],
             startDate: Date(),
-            targetCompletionDate: Calendar.current.date(byAdding: .day, value: 21, to: Date()),
-            actualCompletionDate: nil,
+            lastActivityDate: Date(),
+            completedDate: nil,
             initialMetrics: [:],
-            successProgress: 0.0,
-            successRate: nil,
             createdAt: Date(),
             updatedAt: Date()
         )
