@@ -73,7 +73,13 @@ struct DataConsentView: View {
                     }) {
                         Text("Allow All")
                             .font(.pip.caption)
-                            .foregroundColor(Color.pip.home.buttonAddGrad1)
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [Color.pip.home.buttonAddGrad1, Color.pip.home.buttonAddGrad2],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
                     }
                     .padding(.bottom, 8)
                 }
@@ -177,7 +183,13 @@ struct DataConsentRow: View {
                 if isRequired {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 20))
-                        .foregroundColor(Color.pip.home.buttonAddGrad1)
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [Color.pip.home.buttonAddGrad1, Color.pip.home.buttonAddGrad2],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
                 } else {
                     Toggle("", isOn: Binding(
                         get: { isConsented },

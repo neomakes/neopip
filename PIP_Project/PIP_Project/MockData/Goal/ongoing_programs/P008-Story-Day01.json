@@ -1,0 +1,42 @@
+{
+    "id": "STORY-P008-DAY01",
+    "programId": "P008-UUID-0008-0008",
+    "title": "Day 1: Circle of Support",
+    "subtitle": "Mapping your connections",
+    "colorTheme": "blue",
+    "gradientColors": [
+        "blue",
+        "purple"
+    ],
+    "pages": [
+        {
+            "id": "PAGE-P008-01-01",
+            "pageNumber": 1,
+            "contentType": "text",
+            "content": {
+                "headline": "Connection Matters",
+                "body": "Humans are social creatures. Our relationships are the strongest predictor of happiness. Let's look at who is in your corner.",
+                "mantra": "We are stronger together"
+            },
+            "visualizations": null
+        }
+    ],
+    "isViewed": false,
+    "isLiked": false,
+    "viewedAt": null,
+    "createdAt": "2024-01-02T10:00:00Z",
+    "missions": [
+        {
+            "id": "MISSION-P008-01-01",
+            "title": "Text a friend",
+            "description": "Just say hi or send a meme.",
+            "isCompleted": false
+        },
+        {
+            "id": "MISSION-P008-01-02",
+            "title": "List 3 supportive people",
+            "description": "Who can you rely on?",
+            "isCompleted": false
+        }
+    ]
+}

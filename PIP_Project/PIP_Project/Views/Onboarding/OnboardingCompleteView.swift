@@ -54,7 +54,13 @@ struct OnboardingCompleteView: View {
 
                 Text("Ready to unlock your insights")
                     .font(.pip.title1)
-                    .foregroundColor(Color.pip.home.buttonAddGrad1)
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [Color.pip.home.buttonAddGrad1, Color.pip.home.buttonAddGrad2],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
                     .multilineTextAlignment(.center)
             }
 

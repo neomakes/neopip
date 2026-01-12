@@ -71,7 +71,13 @@ struct OnboardingProgressView: View {
             ForEach(1...totalSteps, id: \.self) { step in
                 if step <= currentStep {
                     Circle()
-                        .fill(Color.pip.home.buttonAddGrad1)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.pip.home.buttonAddGrad1, Color.pip.home.buttonAddGrad2],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
                         .frame(width: 8, height: 8)
                 } else {
                     Circle()

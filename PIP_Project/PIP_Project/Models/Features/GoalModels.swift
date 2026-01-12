@@ -150,7 +150,8 @@ struct Program: Identifiable, Codable {
     var userCount: Int             // 사용자 수
     
     // 프로그램 상세
-    var steps: [ProgramStep]
+    // var steps: [ProgramStep] // Removed in favor of sub-collection
+    var missionCount: Int          // Total number of missions/days
     var prerequisites: [String]?
     var tags: [String]
     var expectedEffects: [String]   // 기대 효과 목록
@@ -160,7 +161,13 @@ struct Program: Identifiable, Codable {
     var userReviews: [ProgramReview]?  // 최근 리뷰들
     
     var isRecommended: Bool        // AI 추천 여부
+
     var createdAt: Date
+    
+    // Linked Data (fetched separately)
+    var stories: [ProgramStory]? = nil
+    var missions: [ProgramMission]? = nil // Fetched from sub-collection
+    var successMetrics: [ProgramSuccessMetric]? = nil // Metric definitions
     
     var programIdString: String {
         id.uuidString
@@ -183,7 +190,7 @@ struct Program: Identifiable, Codable {
 
     // Custom Decoding: allow string IDs that are not standard UUIDs (legacy/mock data)
     enum CodingKeys: String, CodingKey {
-        case id, name, description, category, duration, difficulty, gemVisualization, illustration3D, popularity, rating, reviewCount, userCount, steps, prerequisites, tags, expectedEffects, requiredDataTypes, userReviews, isRecommended, createdAt
+        case id, name, description, category, duration, difficulty, gemVisualization, illustration3D, popularity, rating, reviewCount, userCount, missionCount, prerequisites, tags, expectedEffects, requiredDataTypes, userReviews, isRecommended, createdAt
     }
 
     init(from decoder: Decoder) throws {
@@ -206,7 +213,7 @@ struct Program: Identifiable, Codable {
         rating = try container.decodeIfPresent(Double.self, forKey: .rating)
         reviewCount = try container.decode(Int.self, forKey: .reviewCount)
         userCount = try container.decode(Int.self, forKey: .userCount)
-        steps = try container.decodeIfPresent([ProgramStep].self, forKey: .steps) ?? []
+        missionCount = try container.decodeIfPresent(Int.self, forKey: .missionCount) ?? 0 // Default to 0 if missing
         prerequisites = try container.decodeIfPresent([String].self, forKey: .prerequisites)
         tags = try container.decodeIfPresent([String].self, forKey: .tags) ?? []
         expectedEffects = try container.decodeIfPresent([String].self, forKey: .expectedEffects) ?? []
@@ -231,7 +238,7 @@ struct Program: Identifiable, Codable {
         try container.encodeIfPresent(rating, forKey: .rating)
         try container.encode(reviewCount, forKey: .reviewCount)
         try container.encode(userCount, forKey: .userCount)
-        try container.encode(steps, forKey: .steps)
+        try container.encode(missionCount, forKey: .missionCount)
         try container.encodeIfPresent(prerequisites, forKey: .prerequisites)
         try container.encode(tags, forKey: .tags)
         try container.encode(expectedEffects, forKey: .expectedEffects)
@@ -255,7 +262,7 @@ struct Program: Identifiable, Codable {
         rating: Double?,
         reviewCount: Int,
         userCount: Int,
-        steps: [ProgramStep],
+        missionCount: Int,
         prerequisites: [String]?,
         tags: [String],
         expectedEffects: [String],
@@ -276,7 +283,7 @@ struct Program: Identifiable, Codable {
         self.rating = rating
         self.reviewCount = reviewCount
         self.userCount = userCount
-        self.steps = steps
+        self.missionCount = missionCount
         self.prerequisites = prerequisites
         self.tags = tags
         self.expectedEffects = expectedEffects
@@ -309,17 +316,26 @@ enum DifficultyLevel: String, Codable {
     case advanced
 }
 
-struct ProgramStep: Identifiable, Codable {
+// MARK: - Program Mission (Sub-collection Item)
+/// Program Mission - Represents a single day or unit of a program.
+/// Stored in Firestore at `programs/{programId}/missions/{missionId}`
+struct ProgramMission: Identifiable, Codable {
     let id: UUID
-    var order: Int
+    var programId: UUID
+    var day: Int                   // Day number (e.g., 1, 2, 3)
     var title: String
     var description: String
-    var duration: Int?             // 분 단위
-    var isCompleted: Bool
-    var completedDate: Date?
+    var estimatedDuration: Int?    // Minutes
+    var contentPages: [ProgramStoryPage] // Rich content pages for this mission
+    
+    var isCompleted: Bool = false  // Client-side state (not stored in program definition)
+    var completedDate: Date?       // Client-side state
 
     enum CodingKeys: String, CodingKey {
-        case id, order, title, description, duration, isCompleted, completedDate, day
+        case id, programId, day, title, description, estimatedDuration, contentPages
+        // isCompleted/completedDate are usually stored in UserProgramEnrollment, not here.
+        // But for UI convenience we might track them locally or map them.
+        // For schema definition, they are NOT part of the static mission data.
     }
 
     init(from decoder: Decoder) throws {
@@ -330,23 +346,47 @@ struct ProgramStep: Identifiable, Codable {
         } else {
             id = UUID.deterministicUUID(from: idString)
         }
-        order = (try? container.decode(Int.self, forKey: .order)) ?? (try? container.decode(Int.self, forKey: .day)) ?? 0
+        
+        // Handle potentially missing programId if we're decoding from a context where it's implied?
+        // But for strict codable, we expect it.
+        // If legacy data doesn't have it, we might need a workaround, but let's assume valid data for now.
+        let programIdString = try? container.decode(String.self, forKey: .programId)
+        if let pidStr = programIdString, let pidUUID = UUID(uuidString: pidStr) {
+            programId = pidUUID
+        } else if let pidStr = programIdString {
+             programId = UUID.deterministicUUID(from: pidStr)
+        } else {
+            // Fallback or error? Let's generic uuid for now if missing in legacy
+            programId = UUID()
+        }
+        
+        day = try container.decode(Int.self, forKey: .day)
         title = try container.decode(String.self, forKey: .title)
         description = try container.decode(String.self, forKey: .description)
-        duration = try container.decodeIfPresent(Int.self, forKey: .duration)
-        isCompleted = try container.decodeIfPresent(Bool.self, forKey: .isCompleted) ?? false
-        completedDate = try container.decodeIfPresent(Date.self, forKey: .completedDate)
+        estimatedDuration = try container.decodeIfPresent(Int.self, forKey: .estimatedDuration)
+        contentPages = try container.decodeIfPresent([ProgramStoryPage].self, forKey: .contentPages) ?? []
     }
 
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id.uuidString, forKey: .id)
-        try container.encode(order, forKey: .order)
+        try container.encode(programId.uuidString, forKey: .programId)
+        try container.encode(day, forKey: .day)
         try container.encode(title, forKey: .title)
         try container.encode(description, forKey: .description)
-        try container.encodeIfPresent(duration, forKey: .duration)
-        try container.encode(isCompleted, forKey: .isCompleted)
-        try container.encodeIfPresent(completedDate, forKey: .completedDate)
+        try container.encodeIfPresent(estimatedDuration, forKey: .estimatedDuration)
+        try container.encode(contentPages, forKey: .contentPages)
+    }
+    
+    // Initializer
+    init(id: UUID = UUID(), programId: UUID, day: Int, title: String, description: String, estimatedDuration: Int? = nil, contentPages: [ProgramStoryPage] = []) {
+        self.id = id
+        self.programId = programId
+        self.day = day
+        self.title = title
+        self.description = description
+        self.estimatedDuration = estimatedDuration
+        self.contentPages = contentPages
     }
 } 
 
@@ -459,9 +499,10 @@ struct ProgramStory: Identifiable, Codable {
     var viewedAt: Date?
     var createdAt: Date
     var isGenerated: Bool = false
+    var missions: [ProgramMission]? // Daily missions for this story/session
     
     enum CodingKeys: String, CodingKey {
-        case id, programId, title, subtitle, pages, colorTheme, gradientColors, isViewed, isLiked, viewedAt, createdAt, isGenerated
+        case id, programId, title, subtitle, pages, colorTheme, gradientColors, isViewed, isLiked, viewedAt, createdAt, isGenerated, missions
     }
     
     var programIdString: String {
@@ -469,7 +510,7 @@ struct ProgramStory: Identifiable, Codable {
     }
     
     // Default initializer
-    init(id: UUID, programId: UUID, title: String, subtitle: String?, pages: [ProgramStoryPage], colorTheme: ColorThemeForGoal? = nil, gradientColors: [ColorThemeForGoal]? = nil, isViewed: Bool = false, isLiked: Bool = false, viewedAt: Date? = nil, createdAt: Date, isGenerated: Bool = false) {
+    init(id: UUID, programId: UUID, title: String, subtitle: String?, pages: [ProgramStoryPage], colorTheme: ColorThemeForGoal? = nil, gradientColors: [ColorThemeForGoal]? = nil, isViewed: Bool = false, isLiked: Bool = false, viewedAt: Date? = nil, createdAt: Date, isGenerated: Bool = false, missions: [ProgramMission]? = nil) {
         self.id = id
         self.programId = programId
         self.title = title
@@ -482,6 +523,7 @@ struct ProgramStory: Identifiable, Codable {
         self.viewedAt = viewedAt
         self.createdAt = createdAt
         self.isGenerated = isGenerated
+        self.missions = missions
     }
     
     // Custom decoder for ISO 8601 date strings
@@ -508,6 +550,30 @@ struct ProgramStory: Identifiable, Codable {
         } else {
             throw DecodingError.dataCorruptedError(forKey: .createdAt, in: container, debugDescription: "Date string does not match expected format")
         }
+        
+        missions = try container.decodeIfPresent([ProgramMission].self, forKey: .missions)
+    }
+}
+
+// MARK: - Program Mission
+// MARK: - Program Success Metric
+/// Defines what success looks like for a program
+/// Stored in Firestore at `programs/{programId}/metrics/{metricId}` or fetched with program
+struct ProgramSuccessMetric: Identifiable, Codable {
+    let id: UUID
+    var programId: UUID
+    var metricName: String         // e.g., "Sleep Quality", "Stress Level"
+    var targetValue: Double        // Target to reach or maintain
+    var metricType: MetricType     // improvement (increase) vs threshold (maintain/below)
+    var weight: Double             // Importance (0.0 - 1.0)
+    var description: String
+    var createdAt: Date
+    
+    enum MetricType: String, Codable {
+        case improvement    // Value should increase (e.g. Sleep Score)
+        case reduction      // Value should decrease (e.g. Stress)
+        case maintenance    // Value should stay within range
+        case completion     // Binary completion
     }
 }
 

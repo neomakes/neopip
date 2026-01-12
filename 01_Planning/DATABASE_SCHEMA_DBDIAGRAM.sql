@@ -302,6 +302,27 @@ Table programs {
   Note: "글로벌 영역 - GoalView + HomeView에서 프로그램 선택"
 }
 
+Table program_missions {
+  id uuid [pk, note: "Firestore Doc ID"]
+  program_id uuid [not null, ref: > programs.id]
+  
+  day integer [not null]
+  title string [not null] 
+  description string [not null]
+  estimated_duration integer [null, note: "minutes"]
+  type string [null, note: "mindfulness|journaling|physical|mixed"]
+  
+  content_pages string [not null, note: "JSON array: Rich content pages (ProgramStoryPage format)"]
+  
+  created_at timestamp [not null]
+  
+  Indexes {
+    (program_id, day) [type: composite]
+  }
+  
+  Note: "글로벌 영역 - programs/{programId}/missions/* (Sub-collection)"
+}
+
 Table user_program_enrollments {
   id uuid [pk, note: "Firestore Doc ID"]
   account_id uuid [not null, ref: > user_accounts.id]

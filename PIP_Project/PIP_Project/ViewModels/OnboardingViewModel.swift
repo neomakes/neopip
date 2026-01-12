@@ -19,7 +19,10 @@ class OnboardingViewModel: ObservableObject {
     @Published var currentStep: OnboardingStep = .welcome
     @Published var selectedGoals: [GoalCategory] = []
     @Published var selectedPrograms: [UUID] = []
+    @Published var consentingDataTypes: [String] = [] // This seems redundant or I should use existing one. Wait, existing is `consentedDataTypes`.
+    // Correcting target to only add availablePrograms
     @Published var consentedDataTypes: [String] = []
+    @Published var availablePrograms: [Program] = []
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
 
@@ -39,6 +42,7 @@ class OnboardingViewModel: ObservableObject {
             // This ensures onboarding writes go to the real backend instead of the mock store.
             self.dataService = DataServiceManager.shared.currentService
         }
+        fetchPrograms()
     }
 
     // MARK: - Onboarding Steps
@@ -141,6 +145,20 @@ class OnboardingViewModel: ObservableObject {
     }
 
     // MARK: - Program Selection
+
+    /// Fetch available programs
+    func fetchPrograms() {
+        dataService.fetchPrograms()
+            .receive(on: DispatchQueue.main)
+            .sink { completion in
+                if case .failure(let error) = completion {
+                    print("❌ Failed to fetch programs: \(error)")
+                }
+            } receiveValue: { [weak self] programs in
+                self?.availablePrograms = programs
+            }
+            .store(in: &cancellables)
+    }
 
     /// Toggle program selection
     func toggleProgram(_ programId: UUID) {

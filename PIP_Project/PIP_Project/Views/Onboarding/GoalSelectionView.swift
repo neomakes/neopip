@@ -12,7 +12,7 @@ struct GoalSelectionView: View {
     @ObservedObject var viewModel: OnboardingViewModel
 
     let goals: [(category: GoalCategory, icon: String, title: String, description: String)] = [
-        (.physical, "🏃", "Physical Health", "Build a stronger body"),
+        (.physical, "🏃", "Physical Health", "Optimize energy & vitality"),
         (.wellness, "🧘", "Wellness & Peace", "Find inner calm and balance"),
         (.productivity, "💪", "Productivity", "Achieve more with less stress"),
         (.emotional, "😊", "Emotional Control", "Master your emotions"),
@@ -157,7 +157,13 @@ struct GoalCard: View {
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 24))
-                        .foregroundColor(Color.pip.home.buttonAddGrad1)
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [Color.pip.home.buttonAddGrad1, Color.pip.home.buttonAddGrad2],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
                 } else {
                     Image(systemName: "circle")
                         .font(.system(size: 24))
@@ -171,7 +177,11 @@ struct GoalCard: View {
                     .overlay(
                         RoundedRectangle(cornerRadius: 16)
                             .stroke(
-                                isSelected ? Color.pip.home.buttonAddGrad1 : Color.clear,
+                                LinearGradient(
+                                    colors: isSelected ? [Color.pip.home.buttonAddGrad1, Color.pip.home.buttonAddGrad2] : [.clear, .clear],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
                                 lineWidth: 2
                             )
                     )

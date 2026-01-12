@@ -275,7 +275,7 @@ class GoalViewModel: ObservableObject {
                 rating: 4.5,
                 reviewCount: 234,
                 userCount: 1234,
-                steps: [],
+                missionCount: 21,
                 prerequisites: nil,
                 tags: ["emotion", "journal", "21-day"],
                 expectedEffects: [
@@ -313,7 +313,7 @@ class GoalViewModel: ObservableObject {
                 rating: 4.7,
                 reviewCount: 512,
                 userCount: 3456,
-                steps: [],
+                missionCount: 30,
                 prerequisites: nil,
                 tags: ["meditation", "mindfulness", "wellness"],
                 expectedEffects: [
@@ -351,7 +351,7 @@ class GoalViewModel: ObservableObject {
                 rating: 4.2,
                 reviewCount: 189,
                 userCount: 876,
-                steps: [],
+                missionCount: 70,
                 prerequisites: nil,
                 tags: ["reading", "learning", "personal-growth"],
                 expectedEffects: [

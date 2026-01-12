@@ -155,11 +155,18 @@ class ProgramStoryViewModel: ObservableObject {
             content: ProgramStoryPageContent(headline: "Welcome to \(program.name)", body: program.description, imageName: nil, mantra: nil)
         )
 
-        let stepDescriptions = program.steps.prefix(3).map { "• \($0.title)" }.joined(separator: "\n")
+        // Use missions if available (lazy fetching means they might be nil here)
+        var missionDescriptions = ""
+        if let missions = program.missions, !missions.isEmpty {
+            missionDescriptions = missions.prefix(3).map { "• \($0.title)" }.joined(separator: "\n")
+        } else {
+             missionDescriptions = "• Complete daily missions\n• Consistency is key\n• Track your progress"
+        }
+        
         let page2 = ProgramStoryPage(
             pageNumber: 2,
             contentType: .tip,
-            content: ProgramStoryPageContent(headline: "Key Steps", body: stepDescriptions.isEmpty ? "Follow the program steps to progress." : stepDescriptions, imageName: nil, mantra: "Consistency is key")
+            content: ProgramStoryPageContent(headline: "Key Steps", body: missionDescriptions, imageName: nil, mantra: "Consistency is key")
         )
 
         let page3 = ProgramStoryPage(

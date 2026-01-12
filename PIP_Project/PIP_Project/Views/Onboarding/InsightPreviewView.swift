@@ -47,7 +47,7 @@ struct InsightPreviewView: View {
                         icon: "📈",
                         title: "Smart Predictions",
                         description: "\"Based on current trends, you'll reach your wellness goal in 3 weeks.\"",
-                        gradient: [Color.blue, Color.purple]
+                        gradient: [Color.pip.home.buttonAddGrad1, Color.pip.home.buttonAddGrad2]
                     )
 
                     // Insight 3: Correlations
@@ -55,7 +55,7 @@ struct InsightPreviewView: View {
                         icon: "🔗",
                         title: "Hidden Connections",
                         description: "\"Your mood improves by 15% when you walk more than 8,000 steps.\"",
-                        gradient: [Color.green, Color.pip.home.buttonAddGrad1]
+                        gradient: [Color.pip.home.buttonAddGrad1, Color.pip.home.buttonAddGrad2]
                     )
                 }
                 .padding(.horizontal, 32)

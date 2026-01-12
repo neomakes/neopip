@@ -482,7 +482,7 @@ private struct ProgressSegment: View {
         rating: 4.5,
         reviewCount: 234,
         userCount: 1234,
-        steps: [],
+        missionCount: 21,
         prerequisites: nil,
         tags: ["test"],
         expectedEffects: ["test"],

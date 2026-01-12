@@ -1,0 +1,53 @@
+{
+    "id": "STORY-P007-DAY01",
+    "programId": "P007-UUID-0007-0007",
+    "title": "Day 1: Being Present",
+    "subtitle": "The art of now",
+    "colorTheme": "amber",
+    "gradientColors": [
+        "amber",
+        "teal"
+    ],
+    "pages": [
+        {
+            "id": "PAGE-P007-01-01",
+            "pageNumber": 1,
+            "contentType": "text",
+            "content": {
+                "headline": "What is Mindfulness?",
+                "body": "It's simply noticing what is happening right now, without judgment. Sounds simple, but it takes practice.",
+                "mantra": "Here and now"
+            },
+            "visualizations": null
+        },
+        {
+            "id": "PAGE-P007-01-02",
+            "pageNumber": 2,
+            "contentType": "tip",
+            "content": {
+                "headline": "The 5 Senses Check",
+                "body": "Pause for a moment. Name 1 thing you see, 1 thing you hear, and 1 thing you feel. This grounds you instantly.",
+                "mantra": null
+            },
+            "visualizations": null
+        }
+    ],
+    "isViewed": false,
+    "isLiked": false,
+    "viewedAt": null,
+    "createdAt": "2024-01-02T10:00:00Z",
+    "missions": [
+        {
+            "id": "MISSION-P007-01-01",
+            "title": "Do the 5 Senses Check",
+            "description": "See, hear, feel, smell, taste.",
+            "isCompleted": false
+        },
+        {
+            "id": "MISSION-P007-01-02",
+            "title": "Mindful eating",
+            "description": "Eat one meal without distractions.",
+            "isCompleted": false
+        }
+    ]
+}

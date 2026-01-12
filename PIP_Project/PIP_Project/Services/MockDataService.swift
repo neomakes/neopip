@@ -1355,10 +1355,113 @@ class MockDataService: DataServiceProtocol {
 
     // MARK: - Programs
     func fetchPrograms() -> AnyPublisher<[Program], Error> {
-        let programs: [Program] = loadJSON([Program].self, from: "Goal/programs.json") ?? []
-        return Just(programs)
+        if let programs: [Program] = loadJSON([Program].self, from: "Goal/programs.json") {
+            return Just(programs)
+                .setFailureType(to: Error.self)
+                .eraseToAnyPublisher()
+        }
+
+        // Generate default mock programs if not found
+        let defaultPrograms = generateDefaultMockPrograms()
+        saveJSON(defaultPrograms, to: "Goal/programs.json")
+        
+        return Just(defaultPrograms)
             .setFailureType(to: Error.self)
             .eraseToAnyPublisher()
+    }
+
+    private func generateDefaultMockPrograms() -> [Program] {
+        let now = Date()
+        return [
+            Program(
+                id: UUID(uuidString: "A1B2C3D4-E5F6-7890-ABCD-EF1234567890")!,
+                name: "21-Day Emotional Journal",
+                description: "Track your emotions daily to build emotional intelligence.",
+                category: .emotional,
+                duration: 21,
+                difficulty: .beginner,
+                gemVisualization: GemVisualization(gemType: .crystal, colorTheme: .blue, brightness: 0.8, size: 1.0),
+                illustration3D: ProgramIllustration3D(modelId: "journal_3d", modelURL: nil, previewImageURL: "📔", colorScheme: ["#FF5733"]),
+                popularity: 0.85,
+                rating: 4.8,
+                reviewCount: 124,
+                userCount: 1200,
+                missionCount: 21,
+                prerequisites: [],
+                tags: ["mood", "journaling"],
+                expectedEffects: ["Better emotional awareness"],
+                requiredDataTypes: ["mood"],
+                userReviews: [],
+                isRecommended: true,
+                createdAt: now
+            ),
+            Program(
+                id: UUID(uuidString: "B2C3D4E5-F6A7-8901-BCDE-F12345678901")!,
+                name: "Morning Meditation Habit",
+                description: "Start your day with calm and clarity through guided meditation.",
+                category: .wellness,
+                duration: 30,
+                difficulty: .beginner,
+                gemVisualization: GemVisualization(gemType: .sphere, colorTheme: .teal, brightness: 0.9, size: 1.0),
+                illustration3D: ProgramIllustration3D(modelId: "meditation_3d", modelURL: nil, previewImageURL: "🧘", colorScheme: ["#33FF57"]),
+                popularity: 0.92,
+                rating: 4.9,
+                reviewCount: 342,
+                userCount: 5000,
+                missionCount: 30,
+                prerequisites: [],
+                tags: ["meditation", "mindfulness"],
+                expectedEffects: ["Reduced stress"],
+                requiredDataTypes: ["stress"],
+                userReviews: [],
+                isRecommended: true,
+                createdAt: now
+            ),
+            Program(
+                id: UUID(uuidString: "C3D4E5F6-A7B8-9012-CDEF-123456789012")!,
+                name: "Weekly Reading Goal",
+                description: "Build a consistent reading habit week by week.",
+                category: .learning,
+                duration: 70, // 10 weeks
+                difficulty: .intermediate,
+                gemVisualization: GemVisualization(gemType: .prism, colorTheme: .amber, brightness: 0.7, size: 1.0),
+                illustration3D: ProgramIllustration3D(modelId: "book_3d", modelURL: nil, previewImageURL: "📚", colorScheme: ["#3357FF"]),
+                popularity: 0.75,
+                rating: 4.5,
+                reviewCount: 89,
+                userCount: 800,
+                missionCount: 10,
+                prerequisites: [],
+                tags: ["reading", "habit"],
+                expectedEffects: ["Increased knowledge"],
+                requiredDataTypes: ["productivity"],
+                userReviews: [],
+                isRecommended: false,
+                createdAt: now
+            ),
+            Program(
+                id: UUID(uuidString: "D4E5F6A7-B8C9-0123-DEF1-234567890123")!,
+                name: "Daily Gratitude Practice",
+                description: "Cultivate a positive mindset by listing 3 things you are grateful for.",
+                category: .emotional,
+                duration: 21,
+                difficulty: .beginner,
+                gemVisualization: GemVisualization(gemType: .diamond, colorTheme: .tiger, brightness: 0.85, size: 1.0),
+                illustration3D: ProgramIllustration3D(modelId: "star_3d", modelURL: nil, previewImageURL: "✨", colorScheme: ["#FF33F5"]),
+                popularity: 0.88,
+                rating: 4.7,
+                reviewCount: 205,
+                userCount: 2100,
+                missionCount: 21,
+                prerequisites: [],
+                tags: ["gratitude", "positivity"],
+                expectedEffects: ["Improved well-being"],
+                requiredDataTypes: ["mood"],
+                userReviews: [],
+                isRecommended: true,
+                createdAt: now
+            )
+        ]
     }
 
     func fetchProgram(id: UUID) -> AnyPublisher<Program?, Error> {
@@ -1381,6 +1484,106 @@ class MockDataService: DataServiceProtocol {
             .eraseToAnyPublisher()
     }
 
+    func saveProgram(_ program: Program) -> AnyPublisher<Void, Error> {
+        var programs: [Program] = loadJSON([Program].self, from: "Goal/programs.json") ?? []
+        
+        if let index = programs.firstIndex(where: { $0.id == program.id }) {
+            programs[index] = program
+        } else {
+            programs.append(program)
+        }
+        
+        saveJSON(programs, to: "Goal/programs.json")
+        
+        return Just(())
+            .setFailureType(to: Error.self)
+            .eraseToAnyPublisher()
+    }
+
+    func fetchProgramMissions(for programId: UUID) -> AnyPublisher<[ProgramMission], Error> {
+        // Generate mock missions for 21 days
+        let missions = (1...21).map { day in
+            ProgramMission(
+                id: UUID(),
+                programId: programId,
+                day: day,
+                title: "Day \(day) Mission",
+                description: "Complete your daily task for better well-being.",
+                estimatedDuration: 15,
+                contentPages: [
+                    ProgramStoryPage(
+                        id: UUID(),
+                        pageNumber: 1,
+                        contentType: .text,
+                        content: ProgramStoryPageContent(
+                            headline: "Day \(day) Challenge",
+                            body: "Today's challenge is to focus on your breath. Take 5 minutes to sit quietly and observe your thoughts.",
+                            imageName: nil,
+                            mantra: "Breathe in, breathe out."
+                        ),
+                        visualizations: nil
+                    )
+                ]
+            )
+        }
+        
+        return Just(missions)
+            .setFailureType(to: Error.self)
+            .eraseToAnyPublisher()
+    }
+
+    func fetchProgramMetrics(for programId: UUID) -> AnyPublisher<[ProgramSuccessMetric], Error> {
+        let metrics = [
+            ProgramSuccessMetric(
+                id: UUID(),
+                programId: programId,
+                metricName: "Weekly Consistency",
+                targetValue: 4.0,
+                metricType: .improvement,
+                weight: 0.5,
+                description: "Maintain consistency 4 times a week",
+                createdAt: Date()
+            ),
+            ProgramSuccessMetric(
+                id: UUID(),
+                programId: programId,
+                metricName: "Focus Time",
+                targetValue: 30.0,
+                metricType: .improvement,
+                weight: 0.5,
+                description: "Achieve 30 minutes of focus per session",
+                createdAt: Date()
+            )
+        ]
+        
+        return Just(metrics)
+            .setFailureType(to: Error.self)
+            .eraseToAnyPublisher()
+    }
+
+    func saveProgramMission(programId: UUID, mission: ProgramMission) -> AnyPublisher<Void, Error> {
+        // Mock save - do nothing
+        return Just(())
+            .setFailureType(to: Error.self)
+            .eraseToAnyPublisher()
+    }
+
+
+
+    func saveProgramStory(programId: UUID, story: InsightStory) -> AnyPublisher<Void, Error> {
+        // Mock implementation does nothing or could save to a file if needed.
+        // For migration purposes, we generally migrate FROM Mock TO Firebase, so this might not be called often in Mock mode.
+        // But for protocol conformance:
+        
+        return Just(())
+            .setFailureType(to: Error.self)
+            .eraseToAnyPublisher()
+    }
+
+    func saveProgramMetric(programId: UUID, metric: ProgramSuccessMetric) -> AnyPublisher<Void, Error> {
+        return Just(()).setFailureType(to: Error.self).eraseToAnyPublisher()
+    }
+    
     // MARK: - Program Enrollments (Mock)
     func createProgramEnrollment(_ enrollment: ProgramEnrollment) -> AnyPublisher<ProgramEnrollment, Error> {
         mockProgramEnrollments.append(enrollment)

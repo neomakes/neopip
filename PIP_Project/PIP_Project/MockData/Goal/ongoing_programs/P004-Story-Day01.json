@@ -1,0 +1,53 @@
+{
+    "id": "STORY-P004-DAY01",
+    "programId": "P004-UUID-0004-0004",
+    "title": "Day 1: Understanding Stress",
+    "subtitle": "Identifying your triggers",
+    "colorTheme": "teal",
+    "gradientColors": [
+        "teal",
+        "blue"
+    ],
+    "pages": [
+        {
+            "id": "PAGE-P004-01-01",
+            "pageNumber": 1,
+            "contentType": "text",
+            "content": {
+                "headline": "Welcome to Stress Management",
+                "body": "Stress is a natural response, but how we handle it defines our well-being. Today, we start by simply observing.",
+                "mantra": "I am aware of my feelings"
+            },
+            "visualizations": null
+        },
+        {
+            "id": "PAGE-P004-01-02",
+            "pageNumber": 2,
+            "contentType": "tip",
+            "content": {
+                "headline": "The Stress Log",
+                "body": "Keep a small note today. Whenever you feel tension, write down what happened right before. Identifying triggers is the first step.",
+                "mantra": null
+            },
+            "visualizations": null
+        }
+    ],
+    "isViewed": false,
+    "isLiked": false,
+    "viewedAt": null,
+    "createdAt": "2024-01-02T10:00:00Z",
+    "missions": [
+        {
+            "id": "MISSION-P004-01-01",
+            "title": "Log 3 stress triggers",
+            "description": "Note down what caused stress today.",
+            "isCompleted": false
+        },
+        {
+            "id": "MISSION-P004-01-02",
+            "title": "2 minutes of deep breathing",
+            "description": "Reset your nervous system.",
+            "isCompleted": false
+        }
+    ]
+}

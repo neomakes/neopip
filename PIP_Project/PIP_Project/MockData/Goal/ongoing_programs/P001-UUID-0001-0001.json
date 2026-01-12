@@ -4,7 +4,10 @@
   "title": "Day 1: Getting Started",
   "subtitle": "Your first step to transformation",
   "colorTheme": "teal",
-  "gradientColors": ["teal", "blue"],
+  "gradientColors": [
+    "teal",
+    "blue"
+  ],
   "pages": [
     {
       "id": "00000000-0000-0000-0000-000000000011",
@@ -43,5 +46,19 @@
   "isViewed": false,
   "isLiked": false,
   "viewedAt": null,
-  "createdAt": "2025-12-08T10:30:07Z"
+  "createdAt": "2025-12-08T10:30:07Z",
+  "missions": [
+    {
+      "id": "FA8DCEC0-1E4A-4A8E-8C4D-9B6F3E2A1D51",
+      "title": "Practice 5-minute deep breathing",
+      "description": "Inhale for 4 seconds, hold for 7, exhale for 8.",
+      "isCompleted": false
+    },
+    {
+      "id": "FA8DCEC0-1E4A-4A8E-8C4D-9B6F3E2A1D52",
+      "title": "Write down one goal for today",
+      "description": "Keep it simple and achievable.",
+      "isCompleted": false
+    }
+  ]
 }

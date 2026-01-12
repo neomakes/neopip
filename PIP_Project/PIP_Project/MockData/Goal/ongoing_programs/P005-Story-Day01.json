@@ -1,0 +1,53 @@
+{
+    "id": "STORY-P005-DAY01",
+    "programId": "P005-UUID-0005-0005",
+    "title": "Day 1: Sleep Sanctuary",
+    "subtitle": "Preparing your environment",
+    "colorTheme": "blue",
+    "gradientColors": [
+        "blue",
+        "teal"
+    ],
+    "pages": [
+        {
+            "id": "PAGE-P005-01-01",
+            "pageNumber": 1,
+            "contentType": "text",
+            "content": {
+                "headline": "Sleep Begins Before Bed",
+                "body": "Your sleep quality is determined by your environment. Today is about optimizing your bedroom for rest.",
+                "mantra": "My bedroom is my sanctuary"
+            },
+            "visualizations": null
+        },
+        {
+            "id": "PAGE-P005-01-02",
+            "pageNumber": 2,
+            "contentType": "tip",
+            "content": {
+                "headline": "Darkness and Coolness",
+                "body": "Ensure your room is as dark as possible. Aim for a slightly cooler temperature (around 18-20°C) for optimal sleep.",
+                "mantra": null
+            },
+            "visualizations": null
+        }
+    ],
+    "isViewed": false,
+    "isLiked": false,
+    "viewedAt": null,
+    "createdAt": "2024-01-02T10:00:00Z",
+    "missions": [
+        {
+            "id": "MISSION-P005-01-01",
+            "title": "Remove electronics",
+            "description": "Take phone and laptop out of the bedroom.",
+            "isCompleted": false
+        },
+        {
+            "id": "MISSION-P005-01-02",
+            "title": "Set room temperature",
+            "description": "Cool down the room before bed.",
+            "isCompleted": false
+        }
+    ]
+}

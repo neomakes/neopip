@@ -1,0 +1,53 @@
+{
+    "id": "STORY-P006-DAY01",
+    "programId": "P006-UUID-0006-0006",
+    "title": "Day 1: Just Move",
+    "subtitle": "Breaking the sedentary cycle",
+    "colorTheme": "tiger",
+    "gradientColors": [
+        "tiger",
+        "amber"
+    ],
+    "pages": [
+        {
+            "id": "PAGE-P006-01-01",
+            "pageNumber": 1,
+            "contentType": "text",
+            "content": {
+                "headline": "Motion is Lotion",
+                "body": "Our bodies are designed to move. You don't need a heavy workout today, just consistent gentle movement.",
+                "mantra": "I am built for movement"
+            },
+            "visualizations": null
+        },
+        {
+            "id": "PAGE-P006-01-02",
+            "pageNumber": 2,
+            "contentType": "motivation",
+            "content": {
+                "headline": null,
+                "body": null,
+                "mantra": "Small steps lead to big journeys"
+            },
+            "visualizations": null
+        }
+    ],
+    "isViewed": false,
+    "isLiked": false,
+    "viewedAt": null,
+    "createdAt": "2024-01-02T10:00:00Z",
+    "missions": [
+        {
+            "id": "MISSION-P006-01-01",
+            "title": "Take a 10 min walk",
+            "description": "Outside or around the house.",
+            "isCompleted": false
+        },
+        {
+            "id": "MISSION-P006-01-02",
+            "title": "Stand up every hour",
+            "description": "Avoid sitting for too long.",
+            "isCompleted": false
+        }
+    ]
+}

@@ -4,7 +4,11 @@
   "title": "Reading Journey Begins",
   "subtitle": "Expand your mind with books",
   "colorTheme": "tiger",
-  "gradientColors": ["tiger", "blue", "teal"],
+  "gradientColors": [
+    "tiger",
+    "blue",
+    "teal"
+  ],
   "pages": [
     {
       "id": "00000000-0000-0000-0000-000000000031",
@@ -43,5 +47,19 @@
   "isViewed": false,
   "isLiked": false,
   "viewedAt": null,
-  "createdAt": "2025-12-01T14:20:45Z"
+  "createdAt": "2025-12-01T14:20:45Z",
+  "missions": [
+    {
+      "id": "FA8DCEC0-1E4A-4A8E-8C4D-9B6F3E2A1D55",
+      "title": "Read 15 pages",
+      "description": "Any book of your choice.",
+      "isCompleted": false
+    },
+    {
+      "id": "FA8DCEC0-1E4A-4A8E-8C4D-9B6F3E2A1D56",
+      "title": "Write one sentence summary",
+      "description": "What was the main idea?",
+      "isCompleted": false
+    }
+  ]
 }
