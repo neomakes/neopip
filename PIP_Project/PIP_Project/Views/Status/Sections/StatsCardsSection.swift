@@ -14,10 +14,10 @@ struct StatsCardsSection: View {
                 valueColor: .pip.status.numWins
             )
             
-            // Records
+            // Records (totalGems = 기록한 날의 수)
             StatsCard(
                 iconName: "icon_records",
-                value: "\(viewModel.userStats?.totalDataPoints ?? 0)",
+                value: "\(viewModel.userStats?.totalGems ?? 0)",
                 valueColor: .pip.status.numRecords
             )
             

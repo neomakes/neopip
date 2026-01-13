@@ -137,22 +137,10 @@ class FirebaseDataService: DataServiceProtocol {
                         .setData(from: updatedDataPoint)
 
                     print("✅ [Firebase] Saved data point successfully")
-                    
-                    // Increment User Stats (Client-side aggregation for Solopreneur mode)
-                    if let currentUser = Auth.auth().currentUser {
-                         let accountId = currentUser.uid
-                         let statsRef = self.db.collection("users").document(accountId).collection("stats").document("summary")
-                         
-                         // Atomically increment totalDataPoints
-                         // We use set(merge: true) to ensure it works even if the document doesn't exist yet (though unlikely if fetchUserStats runs first)
-                         try await statsRef.setData([
-                             "totalDataPoints": FieldValue.increment(Int64(1)),
-                             "updatedAt": Date()
-                         ], merge: true)
-                         
-                         print("✅ [Firebase] Incremented user stats totalDataPoints")
-                    }
-                    
+
+                    // NOTE: totalDataPoints는 WriteViewModel.updateUserStats()에서 관리함
+                    // 여기서 증가시키면 중복 증가 문제 발생
+
                     promise(.success(updatedDataPoint))
                 } catch {
                     print("❌ [Firebase] Error saving data point: \(error)")
@@ -165,7 +153,7 @@ class FirebaseDataService: DataServiceProtocol {
     
     func saveData(_ dataPoint: TimeSeriesDataPoint, for category: DataCategory) async throws {
         print("💾 [Firebase] saveData called for category: \(category)")
-        
+
         let anonymousUserId: UUID
         do {
             anonymousUserId = try await getAnonymousUserId()
@@ -190,20 +178,10 @@ class FirebaseDataService: DataServiceProtocol {
                 .document(updatedDataPoint.id.uuidString)
                 .setData(from: updatedDataPoint)
             print("✅ [Firebase] Saved data for category \(category) successfully")
-            
-            // Increment User Stats (Client-side aggregation)
-            if let currentUser = Auth.auth().currentUser {
-                 let accountId = currentUser.uid
-                 let statsRef = db.collection("users").document(accountId).collection("stats").document("summary")
-                 
-                 // Atomically increment totalDataPoints
-                 try await statsRef.setData([
-                     "totalDataPoints": FieldValue.increment(Int64(1)),
-                     "updatedAt": Date()
-                 ], merge: true)
-                 
-                 print("✅ [Firebase] Incremented user stats totalDataPoints in saveData")
-            }
+
+            // NOTE: totalDataPoints는 WriteViewModel.updateUserStats()에서 관리함
+            // 여기서 증가시키면 중복 증가 문제 발생
+            // 같은 DataPoint ID로 저장(수정)해도 여기서 증가시키면 안 됨
         } catch {
             print("❌ [Firebase] Firestore Write Failed: \(error)")
             throw error

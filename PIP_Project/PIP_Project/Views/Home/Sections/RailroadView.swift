@@ -82,8 +82,8 @@ struct RailroadView: View {
                     }
                 }
                 .padding(.horizontal, 20)
-                .padding(.vertical, 16)
-                .padding(.bottom, 150)  // TabBar와 더 가까워지도록 패딩 감소
+                .padding(.top, 300)  // 상단 여백: 스크롤 시 과거 젬들이 위로 올라갈 공간 확보
+                .padding(.bottom, 200)  // 하단 여백: Today 젬 아래 공간
                 .background(
                     GeometryReader { geometry in
                         Color.clear
@@ -125,19 +125,16 @@ struct GemSlot: View {
     
     var body: some View {
         GeometryReader { geometry in
+            let screenHeight = UIScreen.main.bounds.height
             let yPosition = geometry.frame(in: .global).midY
-            let normalizedY = yPosition / max(1, scrollViewHeight)  // 0~1 사이 값
+            let normalizedY = min(1.0, max(0, yPosition / screenHeight))  // 화면 높이 기준 0~1
             // Opacity pipeline: raw -> completion factor -> top fade -> bottom fade
             let rawOpacity = gemRecord.opacity * perspectiveOpacity(for: normalizedY)
             let completionFactor = gemRecord.isCompleted ? 1.0 : 0.8
             // Fade near top when gems move away; 0..start -> 0..1 -> pow to increase steepness
-            let topFade = topFadeMultiplier(for: normalizedY, start: 0.12, exponent: 2.5)
+            let topFade = topFadeMultiplier(for: normalizedY, start: 0.05, exponent: 2.0)
             // Exponential fade near the bottom: multiplier goes from 1 -> 0 as y -> bottom
             let endFade = endFadeMultiplier(for: normalizedY, start: 0.88, exponent: 3.0)
-            // Ensure full opacity between mid-screen and before bottom fade start
-            // Move the top boundary slightly upward so the fully opaque zone starts higher
-            let midScreenStart: CGFloat = 0.30
-            let midScreenEnd: CGFloat = 0.88
             // If this is today's gem and not completed, force it to be significantly transparent
             let isTodayEmpty = (index == totalCount - 1 && !gemRecord.isCompleted)
             let finalOpacity: Double = {
@@ -145,22 +142,16 @@ struct GemSlot: View {
                 if index == totalCount - 1 && gemRecord.isCompleted {
                     return 1.0
                 }
-                
+
                 // 2. Today + Empty: Ghostly transparent
                 if isTodayEmpty {
                     // Today's empty gem should always be visible at minimum opacity
-                    // Don't apply endFade - today's gem is at the bottom and endFade would make it invisible
                     let emptyBase: Double = 0.22
                     return min(1.0, emptyBase * Double(topFade))
                 }
-                
-                // 3. Others: Standard perspective fade
-                if normalizedY >= midScreenStart && normalizedY <= midScreenEnd {
-                    // Fully opaque in the mid region (respect completion factor)
-                    return min(1.0, Double(completionFactor))
-                } else {
-                    return min(1.0, Double(rawOpacity * completionFactor * topFade * endFade))
-                }
+
+                // 3. All other gems: Pure perspective-based opacity (screen position)
+                return min(1.0, Double(rawOpacity * completionFactor * topFade * endFade))
             }()
             
             ZStack {
@@ -168,23 +159,24 @@ struct GemSlot: View {
                 ZStack {
                     Ellipse()
                         .fill(radialGradient(for: gemRecord, index: index, totalCount: totalCount))
-                        .frame(width: 90, height: 30)  // 기존 120x40에서 90x30으로 축소
+                        .frame(width: 135, height: 45)  // 90x30 → 135x45 (1.5배)
                 }
                 .scaleEffect(perspectiveScale(for: normalizedY))  // 위치에 따라 크기 변화 적용 ✨
-                .offset(y: 30)  // 기존 40에서 30으로 조정
+                .offset(y: 45)  // 30 → 45 (1.5배)
                 .opacity(finalOpacity)  // 젬의 투명도와 동일하게 적용
-                
-                VStack(spacing: 12) {
-                    // 날짜 라벨 (투명도 적용)
+
+                VStack(spacing: 18) {  // 12 → 18 (1.5배)
+                    // 날짜 라벨 (투명도 적용 - Gem과 동일하게 finalOpacity 사용)
                     Text(formatDate(gemRecord.date, isCompleted: gemRecord.isCompleted))
                         .font(.pip.body)
-                        .foregroundColor(.white.opacity(0.7 * perspectiveOpacity(for: normalizedY)))  // 투명도 적용 ✨
-                    
+                        .foregroundColor(.white.opacity(0.7))
+                        .opacity(finalOpacity) // Sync with gem opacity
+
                     // Gem 이미지 (기록 상태에 따라 시각적 표시)
                     Image("gem_\(gemIndexForAsset(gemRecord.gemIndex))")
                         .resizable()
                         .aspectRatio(contentMode: .fit)
-                        .frame(height: 70)  // 기존 100에서 70으로 축소
+                        .frame(height: 105)  // 70 → 105 (1.5배)
                         .scaleEffect(perspectiveScale(for: normalizedY))  // 크기 조절 적용 ✨
                         .opacity(finalOpacity)  // y 위치에 따라 투명도 조절
                     
@@ -216,7 +208,7 @@ struct GemSlot: View {
                 }
             }
         }
-        .frame(height: 90)  // 고정 높이 (기존 120에서 90으로 축소)
+        .frame(height: 135)  // 90 → 135 (1.5배)
     }
     
     // gem_1 ~ gem_18 순환 적용 (처음 기록된 것부터 1,2,3,...,18,1,2,... 순서)
@@ -236,7 +228,7 @@ struct GemSlot: View {
             colors: [centerColor, Color("railroad_front")],
             center: .center,
             startRadius: 0,
-            endRadius: 60
+            endRadius: 90  // 60 → 90 (1.5배)
         )
     }
     
@@ -247,9 +239,9 @@ struct GemSlot: View {
         // NaN이나 음수 값 방지
         let safeNormalizedY = max(0, min(1, normalizedY.isFinite ? normalizedY : 0))
         
-        // 도형의 닮음을 고려한 좌우 퍼짐 (간격 더 벌림)
+        // 도형의 닮음을 고려한 좌우 퍼짐
         // normalizedY가 1에 가까울수록 더 넓게 퍼짐
-        let spreadFactor = safeNormalizedY * 160  // 기존 120 → 160으로 증가 ✨
+        let spreadFactor = safeNormalizedY * 110  // 기존 160에서 110으로 축소 to keep inside track
         
         // 인덱스에 따라 좌우 번갈아 배치
         let direction: CGFloat = index % 2 == 1 ? 1 : -1  // 홀수: 오른쪽, 짝수: 왼쪽
@@ -268,8 +260,9 @@ struct GemSlot: View {
     private func perspectiveOpacity(for normalizedY: CGFloat) -> Double {
         // NaN이나 음수 값 방지
         let safeNormalizedY = max(0, min(1, normalizedY.isFinite ? normalizedY : 0))
-        // Today(하단, normalizedY≈1)에서 완전 불투명, 위쪽으로 갈수록 투명해짐
-        return Double(safeNormalizedY)
+        // Today(하단, normalizedY≈1)에서 완전 불투명, 위쪽으로 갈수록 투명해짐.
+        // Boost visibility slightly at top: pow(y, 0.8) makes 0.2 -> 0.27, 0.5 -> 0.57
+        return pow(Double(safeNormalizedY), 0.8)
     }
 }
 
@@ -293,9 +286,9 @@ private func formatDate(_ date: Date, isCompleted: Bool) -> String {
 
 /// Exponential fade multiplier applied near the bottom of the RailroadView.
 /// - `normalizedY` expects a 0..1 value (0 top, 1 bottom).
-/// - `start` is the normalized Y at which fading begins (default 0.88).
+/// - `start` is the normalized Y at which fading begins (default 0.95).
 /// - `exponent` controls how sharply it falls off (higher → steeper).
-private func endFadeMultiplier(for normalizedY: CGFloat, start: CGFloat = 0.88, exponent: Double = 3.0) -> Double {
+private func endFadeMultiplier(for normalizedY: CGFloat, start: CGFloat = 0.95, exponent: Double = 3.0) -> Double {
     let safe = max(0, min(1, normalizedY.isFinite ? normalizedY : 0))
     guard safe > start else { return 1.0 }
     let t = (safe - start) / (1 - start) // 0..1 over fade region

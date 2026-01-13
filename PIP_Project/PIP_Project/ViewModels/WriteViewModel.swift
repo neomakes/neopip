@@ -113,7 +113,9 @@ class WriteViewModel: ObservableObject {
     func checkAndSyncIfNeeded() {
         let lastSync = UserDefaults.standard.object(forKey: "lastSyncDate") as? Date ?? Date.distantPast
         if !Calendar.current.isDate(lastSync, inSameDayAs: Date()) {
-            // 날짜 바뀜, 전송
+            // 날짜 바뀜: 이전 날짜의 캐시 정리 및 동기화
+            print("📅 [WriteViewModel] Day changed. Clearing previous day's cache...")
+            clearDraftAccumulation()  // 이전 날짜 데이터 정리
             Task {
                 await syncLocalDataToServer()
                 UserDefaults.standard.set(Date(), forKey: "lastSyncDate")
@@ -166,30 +168,32 @@ class WriteViewModel: ObservableObject {
     /// Local-First Strategy: 로컬 캐시를 우선 표시하고, 백그라운드에서 서버 데이터를 병합합니다.
     func restoreTodayData() async {
         print("🔄 [WriteViewModel] Restoring today's data (Local-First Strategy)...")
-        
+
         let hasLocalDraft = !accumulatedValues.isEmpty
-        
-        // 1. 로컬 데이터가 있으면 즉시 복원 (딜레이 제거)
+
+        // 1. 로컬 데이터가 있으면 즉시 복원 (딜레이 제거, isRestoring = false 유지)
         if hasLocalDraft {
-            print("   ⚡️ Local draft exists. Restoring immediately.")
+            print("   ⚡️ Local draft exists (\(accumulatedValues.count) categories). Restoring immediately.")
             restoreInputsFromAccumulation()
-            await MainActor.run { objectWillChange.send() }
+            // 로컬 데이터가 있으면 isRestoring을 절대 true로 설정하지 않음
+            // UI가 즉시 표시되도록 함
         } else {
-            // 로컬 데이터가 없으면 로딩 표시
+            // 로컬 데이터가 없을 때만 로딩 표시
+            print("   ⏳ No local draft. Setting isRestoring = true")
             await MainActor.run { isRestoring = true }
         }
-        
+
         // 2. 백그라운드 DB 동기화 (Source of Truth 확인 및 병합)
         let today = Date()
         let dbDataPoint = await fetchDailyLogDataPoint(for: today)
-        
+
         await MainActor.run {
             if let dataPoint = dbDataPoint {
                 print("   ✅ Found saved data point in DB: \(dataPoint.id)")
-                
+
                 // Safe Merge: 로컬 데이터 우선, DB 데이터 병합
                 self.existingDataPointId = dataPoint.id
-                
+
                 if self.accumulatedValues.isEmpty {
                     // Case 1: 로컬이 비어있으면 DB 데이터로 전면 교체
                     self.accumulatedValues = dataPoint.values
@@ -199,19 +203,20 @@ class WriteViewModel: ObservableObject {
                          self.accumulatedNotes = []
                     }
                     print("   📥 Remote data applied (Local was empty).")
+                    // DB 데이터가 적용되었으므로 캐시 복원
+                    self.restoreInputsFromAccumulation()
                 } else {
                     // Case 2: 로컬이 있으면 'Safe Merge' 수행 (누락된 데이터만 채움)
                     print("   🐢 Local data exists. Performing safe merge...")
                     self.mergeServerData(serverValues: dataPoint.values)
                 }
-                
-                // 저장 및 UI 갱신
-                self.saveDraftAccumulation() // Merge된 상태 저장
-                self.restoreInputsFromAccumulation()
+
+                // 저장 (Merge된 상태 저장)
+                self.saveDraftAccumulation()
             } else {
                 print("   → No saved data in DB.")
             }
-            
+
             self.isRestoring = false
             self.objectWillChange.send()
         }
@@ -246,14 +251,25 @@ class WriteViewModel: ObservableObject {
     private func fetchDailyLogDataPoint(for date: Date) async -> TimeSeriesDataPoint? {
         let calendar = Calendar.current
         let startOfDay = calendar.startOfDay(for: date)
-        
+
         return await withCheckedContinuation { continuation in
-            // .dailyLog 카테고리는 필터링이 어려울 수 있음 (DataPoint 자체엔 category 필드가 있지만 인덱스 필요할수도)
-            // 대신 fetchDataPoints(for: date)를 쓰고 로컬 필터링 사용
+            var hasResumed = false  // 중복 resume 방지
+
             dataService.fetchDataPoints(for: startOfDay)
                 .sink(
-                    receiveCompletion: { _ in },
+                    receiveCompletion: { completion in
+                        // 에러 발생 시 또는 값을 받지 못한 경우 nil 반환
+                        if !hasResumed {
+                            hasResumed = true
+                            if case .failure(let error) = completion {
+                                print("❌ [WriteViewModel] fetchDailyLogDataPoint error: \(error)")
+                            }
+                            continuation.resume(returning: nil)
+                        }
+                    },
                     receiveValue: { points in
+                        guard !hasResumed else { return }
+                        hasResumed = true
                         // .dailyLog 카테고리이면서 가장 최신 것
                         let dailyLog = points.first { $0.category == .dailyLog }
                         continuation.resume(returning: dailyLog)
@@ -572,11 +588,12 @@ class WriteViewModel: ObservableObject {
         let isUpdate = (existingDataPointId != nil)
         await updateUserStats(for: now, savedGem: savedGem, isNewGem: isNewGem, isUpdate: isUpdate)
 
-        // 6️⃣ Reset Accumulation
-        accumulatedValues = [:]
-        accumulatedNotes = []
-        self.existingDataPointId = nil // 리셋
-        clearDraftAccumulation() // persistence 제거
+        // 6️⃣ 저장 완료 후 캐시 유지 (다음 접근 시 즉시 표시를 위해)
+        // accumulatedValues와 cachedInputs는 유지하고, existingDataPointId만 설정
+        // 이렇게 하면 다음에 WriteView를 열 때 저장된 데이터가 즉시 표시됨
+        self.existingDataPointId = dataPointId
+        saveDraftAccumulation()  // 캐시 저장 (다음 세션에서 즉시 로드)
+        print("   → Cache preserved with existingDataPointId: \(dataPointId)")
 
         // HomeViewModel 새로고침 알림
         NotificationCenter.default.post(name: .didSaveCardData, object: nil)
@@ -610,22 +627,28 @@ class WriteViewModel: ObservableObject {
         if let valuesData = UserDefaults.standard.data(forKey: "draftAccumulatedValues"),
            let loadedValues = try? JSONDecoder().decode([String: DataValue].self, from: valuesData) {
             self.accumulatedValues = loadedValues
+            print("📂 [WriteViewModel] Loaded accumulatedValues: \(loadedValues.keys.joined(separator: ", "))")
+        } else {
+            print("📂 [WriteViewModel] No accumulatedValues in UserDefaults")
         }
-        
+
         if let notesData = UserDefaults.standard.data(forKey: "draftAccumulatedNotes"),
            let loadedNotes = try? JSONDecoder().decode([String].self, from: notesData) {
             self.accumulatedNotes = loadedNotes
         }
-        
+
         if let idString = UserDefaults.standard.string(forKey: "draftExistingDataPointId"),
            let id = UUID(uuidString: idString) {
             self.existingDataPointId = id
+            print("📂 [WriteViewModel] Loaded existingDataPointId: \(id)")
         }
-        
-        print("📂 [WriteViewModel] Draft accumulation loaded: keys=\(accumulatedValues.count), notes=\(accumulatedNotes.count)")
-        
-        // Draft 로드 후 cachedInputs 복원 (UI 반영)
-        restoreInputsFromAccumulation()
+
+        print("📂 [WriteViewModel] Draft accumulation loaded: keys=\(accumulatedValues.count), notes=\(accumulatedNotes.count), existingId=\(existingDataPointId?.uuidString ?? "nil")")
+
+        // accumulatedValues가 있으면 cachedInputs 복원 (UI 반영)
+        if !accumulatedValues.isEmpty {
+            restoreInputsFromAccumulation()
+        }
     }
     
     private func clearDraftAccumulation() {
@@ -734,6 +757,22 @@ class WriteViewModel: ObservableObject {
         return generateCards().count
     }
 
+    /// accumulatedValues에 실제 데이터가 있는지 확인합니다.
+    /// WriteView에서 캐시 존재 여부를 판단할 때 사용됩니다.
+    func hasAccumulatedData() -> Bool {
+        return !accumulatedValues.isEmpty
+    }
+
+    /// accumulatedValues가 있지만 cachedInputs가 비어있는 경우 캐시를 재생성합니다.
+    /// DB에서 데이터를 복원한 후 WriteView에서 호출됩니다.
+    func refreshCachedInputsIfNeeded() {
+        // accumulatedValues가 있고 cachedInputs가 비어있으면 캐시 재생성
+        if !accumulatedValues.isEmpty && cachedInputs.isEmpty {
+            print("🔄 [WriteViewModel] Refreshing cachedInputs from accumulatedValues...")
+            restoreInputsFromAccumulation()
+        }
+    }
+
     /// 오늘 날짜에 대한 DailyGem을 생성하거나 업데이트합니다.
     /// - 반환값: (DailyGem, isNew) -> 저장된 DailyGem과 새로 생성되었는지 여부
     private func createOrUpdateDailyGem(for date: Date, dataPointId: String) async -> (DailyGem?, Bool) {
@@ -812,133 +851,139 @@ class WriteViewModel: ObservableObject {
     ///   - date: 저장 날짜
     ///   - savedGem: 저장된 DailyGem (새 gem 판별용)
     ///   - isNewGem: 새로운 Gem이 생성되었는지 여부
-    /// - 업데이트 내용:
-    ///   - totalDataPoints += 1 (항상 증가)
-    ///   - totalGemsCreated += 1 (isNewGem일 때만)
-    ///   - totalDaysActive += 1 (isNewGem일 때만)
-    ///   - currentStreak & longestStreak (로컬 데이터 기반 재계산)
-    ///   - lastUpdated = 현재 시간
     ///   - isUpdate: 기존 DataPoint 수정 여부 (true면 totalDataPoints 증가 안함)
+    /// - 업데이트 내용:
+    ///   - totalDataPoints += 1 (isNewGem이고 !isUpdate일 때만 - 새 날짜의 첫 저장)
+    ///   - totalGems += 1 (isNewGem일 때만)
+    ///   - streakDays (DB 기반 재계산)
+    ///   - updatedAt = 현재 시간
     private func updateUserStats(for date: Date, savedGem: DailyGem?, isNewGem: Bool, isUpdate: Bool) async {
-        print("🔄 [WriteViewModel] Updating UserStats...")
-        
+        print("🔄 [WriteViewModel] Updating UserStats (isNewGem: \(isNewGem), isUpdate: \(isUpdate))...")
+
+        // 1. 먼저 DB에서 최근 30일 DailyGem을 가져와 streak 계산
+        let streakDays = await calculateStreakFromDB()
+        print("🔍 [WriteViewModel] Calculated streak from DB: \(streakDays)")
+
         var cancellable: AnyCancellable?
-        
+
         await withCheckedContinuation { continuation in
+            var hasResumed = false
             cancellable = dataService.fetchUserStats()
                 .sink(
                     receiveCompletion: { completion in
                         if case .failure(let error) = completion {
                             print("❌ [WriteViewModel] Failed to fetch UserStats: \(error)")
+                            // 에러 발생 시에도 계속 진행해야 함 (continuation resume)
                         }
-                        continuation.resume()
+                        if !hasResumed {
+                             hasResumed = true
+                             continuation.resume()
+                        }
                     },
                     receiveValue: { [weak self] stats in
+                        print("📥 [WriteViewModel] Fetched current UserStats: \(stats)")
                         var updatedStats = stats
-                        
-                        // 1️⃣ totalDataPoints Increment
-                        // Handled atomically in FirebaseDataService.saveData/saveDataPoint
-                        // We do NOT increment here to avoid double-counting or overwriting with old values.
-                        if !isUpdate {
-                            print("   📊 totalDataPoints increment handled by DataService")
+
+                        // 1️⃣ totalDataPoints: 새 날짜의 첫 저장일 때만 증가
+                        // isNewGem = 오늘 처음 저장, isUpdate = 기존 DataPoint 수정
+                        // 새 Gem이고 수정이 아닐 때만 증가 (오늘 처음 저장할 때)
+                        if isNewGem && !isUpdate {
+                            updatedStats.totalDataPoints += 1
+                            print("   📊 totalDataPoints: \(stats.totalDataPoints) → \(updatedStats.totalDataPoints) (new day)")
                         } else {
-                            print("   📊 DataPoint update only, skipping count increment")
+                            print("   📊 totalDataPoints: \(stats.totalDataPoints) (unchanged - same day update)")
                         }
-                        
-                        // 2️⃣ 새로운 Gem인 경우만 카운트 증가 (기존 gem 수정 시 제외)
+
+                        // 2️⃣ 새로운 Gem인 경우만 totalGems 증가
                         if isNewGem {
                             updatedStats.totalGems += 1
                             print("   💎 totalGems: \(stats.totalGems) → \(updatedStats.totalGems)")
                         } else {
-                            print("   📝 Existing gem modified, not incrementing gem counts")
+                            print("   💎 totalGems: \(stats.totalGems) (unchanged - existing gem)")
                         }
-                        
-                        // 3️⃣ Streak 재계산 (로컬 데이터 기반)
-                        self?.calculateAndUpdateStreak(stats: &updatedStats)
+
+                        // 3️⃣ Streak 적용 (DB 기반으로 미리 계산됨)
+                        print("   🔥 Updating streakDays: \(stats.streakDays) → \(streakDays)")
+                        updatedStats.streakDays = streakDays
                         
                         // 4️⃣ updatedAt 갱신
                         updatedStats.updatedAt = Date()
-                        
+
                         // 5️⃣ Firebase에 업데이트
+                        print("🚀 [WriteViewModel] Attempting to save UserStats...")
                         var updateCancellable: AnyCancellable?
                         updateCancellable = self?.dataService.updateUserStats(updatedStats)
                             .sink(
                                 receiveCompletion: { completion in
                                     if case .failure(let error) = completion {
                                         print("❌ [WriteViewModel] Failed to update UserStats: \(error)")
+                                    } else {
+                                        print("✅ [WriteViewModel] UserStats update completion received")
                                     }
                                     _ = updateCancellable
                                 },
-                                receiveValue: { stats in
-                                    print("✅ [WriteViewModel] UserStats 저장 완료:")
-                                    print("   📊 totalDataPoints: \(stats.totalDataPoints)")
-                                    print("   💎 totalGems: \(stats.totalGems)")
-                                    print("   🔥 streakDays: \(stats.streakDays)")
+                                receiveValue: { savedStats in
+                                    print("✅ [WriteViewModel] UserStats saved successfully!")
+                                    print("   📊 Stats: \(savedStats)")
                                 }
                             )
+                        
+                        if !hasResumed {
+                             hasResumed = true
+                             continuation.resume()
+                        }
                     }
                 )
         }
         _ = cancellable
     }
 
-    /// Streak을 계산하고 UserStats에 반영합니다.
-    /// - streakDays: 어제부터 연속 기록된 일수 (오늘은 제외)
-    private func calculateAndUpdateStreak(stats: inout UserStats) {
-        print("🔥 [WriteViewModel] Calculating streak from local data...")
-        
+    /// DB에서 DailyGem 데이터를 가져와 streak을 계산합니다.
+    private func calculateStreakFromDB() async -> Int {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
-        
-        // 로컬 데이터 포인트에서 날짜 집합 구성
-        var datePresentDays = Set<Date>()
-        for dataPoint in localDataPoints {
-            let day = calendar.startOfDay(for: dataPoint.timestamp)
-            datePresentDays.insert(day)
+        guard let startDate = calendar.date(byAdding: .day, value: -30, to: today) else {
+            return 1 // 오늘 저장했으므로 최소 1
         }
-        
-        print("   📊 Data points: \(localDataPoints.count) across \(datePresentDays.count) unique days")
-        
-        // 어제부터 거슬러 올라가며 streak 계산
-        guard let yesterday = calendar.date(byAdding: .day, value: -1, to: today) else {
-            stats.streakDays = 0
-            return
+
+        // DB에서 최근 30일 DailyGem 가져오기
+        var gemDates = Set<Date>()
+
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            var fetchCancellable: AnyCancellable?
+            fetchCancellable = dataService.fetchDailyGems(from: startDate, to: today)
+                .sink(
+                    receiveCompletion: { _ in
+                        continuation.resume()
+                    },
+                    receiveValue: { gems in
+                        for gem in gems {
+                            let day = calendar.startOfDay(for: gem.date)
+                            gemDates.insert(day)
+                        }
+                        _ = fetchCancellable
+                    }
+                )
         }
-        
-        // 새로운 로직: 오늘부터 역순으로 확인
-        var currentStreak = 0
+
+        // 오늘 저장했으므로 오늘 날짜 추가
+        gemDates.insert(today)
+
+        print("🔥 [WriteViewModel] Calculating streak from DB: \(gemDates.count) days with gems")
+
+        // 오늘부터 역순으로 연속 streak 계산
+        var streak = 0
         var checkDate = today
-        
-        while datePresentDays.contains(checkDate) {
-            currentStreak += 1
+
+        while gemDates.contains(checkDate) {
+            streak += 1
             guard let prev = calendar.date(byAdding: .day, value: -1, to: checkDate) else { break }
             checkDate = prev
         }
-        
-        // 만약 오늘 기록이 없고 어제 기록이 있다면, 어제까지의 streak 유지?
-        // 보통 streak은 "현재 진행중인 연속"을 의미. 오늘 안했으면 오늘 기준으로는 끊긴 것임.
-        // 하지만 사용자 경험상 "어제까지 했으면 streak 유지"로 보이고 싶다면?
-        // -> UI에서 처리하거나, 여기서 'yesterday' 기준 streak도 계산해서 max를 취할 수도 있음.
-        // 하지만 "Current Streak"의 엄밀한 정의는 끊기면 0 또는 오늘 안했으면 어제까지의 값.
-        // 여기서는 "연속된 일수"를 오늘 포함해서 계산. 오늘 안했으면 0이 나올 수 있음 (위 로직상 today부터 체크하므로).
-        // 수정: 오늘 데이터가 없을 경우, 어제 데이터가 있으면 어제까지의 streak을 보여주는게 일반적임.
-        
-        if currentStreak == 0 {
-             // 오늘 데이터가 없음. 어제부터 체크
-            if let yesterday = calendar.date(byAdding: .day, value: -1, to: today),
-               datePresentDays.contains(yesterday) {
-                checkDate = yesterday
-                while datePresentDays.contains(checkDate) {
-                    currentStreak += 1
-                    guard let prev = calendar.date(byAdding: .day, value: -1, to: checkDate) else { break }
-                    checkDate = prev
-                }
-            }
-        }
-        
-        stats.streakDays = currentStreak
-        print("   🔥 streakDays: \(currentStreak)")
+
+        return streak
     }
+
 }
 
 // MARK: - Notification Name

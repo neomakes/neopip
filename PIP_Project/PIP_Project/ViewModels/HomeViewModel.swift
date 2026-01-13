@@ -19,6 +19,9 @@ class HomeViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var last7Days: [GemRecord] = []
     @Published var userName: String?
+    
+    // Internal state to prevent premature syncing
+    private var hasFetchedGems = false
 
     // MARK: - Computed stats (derived from `dailyGems`)
     /// Total number of unique days with gems (derived from `dailyGems`). Use set of startOfDay to avoid duplicates.
@@ -28,9 +31,36 @@ class HomeViewModel: ObservableObject {
         return days.count
     }
 
-    /// Current streak from UserStats (Server Source of Truth)
+    /// Current streak calculated from dailyGems (Local Source of Truth for immediate UI update)
+    /// UserStats.streakDays is used as fallback; local calculation takes precedence for responsiveness
     var currentStreak: Int {
+        // dailyGems가 있으면 로컬에서 직접 계산 (즉시 반영)
+        if !dailyGems.isEmpty {
+            return calculateStreakFromGems()
+        }
+        // fallback: UserStats에서 가져오기
         return userStats?.streakDays ?? 0
+    }
+
+    /// dailyGems 배열에서 오늘부터 역순으로 연속 streak 계산
+    private func calculateStreakFromGems() -> Int {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+
+        // dailyGems의 날짜들을 Set으로 변환 (빠른 조회)
+        let gemDates = Set(dailyGems.map { calendar.startOfDay(for: $0.date) })
+
+        // 오늘부터 역순으로 연속 날짜 카운트
+        var streak = 0
+        var checkDate = today
+
+        while gemDates.contains(checkDate) {
+            streak += 1
+            guard let prev = calendar.date(byAdding: .day, value: -1, to: checkDate) else { break }
+            checkDate = prev
+        }
+
+        return streak
     }    
     // MARK: - Dependencies
     let dataService: DataServiceProtocol
@@ -38,6 +68,10 @@ class HomeViewModel: ObservableObject {
     
     // Auth Listener
     private var authListenerHandle: NSObjectProtocol?
+
+    // Date state tracking
+    private var lastRefreshedDate: Date = Date()
+    private var dayCheckTimer: Timer?
 
     // MARK: - Initialization
     init(dataService: DataServiceProtocol? = nil) {
@@ -54,8 +88,8 @@ class HomeViewModel: ObservableObject {
             }
         }
  
-        // 매일 자정에 데이터 새로고침 (Streak 업데이트를 위함)
-        setupDailyRefresh()
+        // Setup robust date change detection
+        setupDateChangeObservers()
  
         // Listen for card save notifications to refresh today's gem
         NotificationCenter.default.publisher(for: .didSaveCardData)
@@ -83,33 +117,48 @@ class HomeViewModel: ObservableObject {
         if let handle = authListenerHandle {
             Auth.auth().removeStateDidChangeListener(handle)
         }
+        dayCheckTimer?.invalidate()
     }
     
     // MARK: - Public Methods
     
-    /// 자정마다 데이터 새로고침 설정
-    private func setupDailyRefresh() {
-        let calendar = Calendar.current
-        var components = calendar.dateComponents([.year, .month, .day], from: Date())
-        components.hour = 0
-        components.minute = 0
-        components.second = 1
-        
-        guard let midnightToday = calendar.date(from: components),
-              let midnightTomorrow = calendar.date(byAdding: .day, value: 1, to: midnightToday) else {
-            return
-        }
-        
-        let timeUntilMidnight = midnightTomorrow.timeIntervalSince(Date())
-        
-        // 자정 시점에 첫 번째 새로고침 실행
-        DispatchQueue.main.asyncAfter(deadline: .now() + timeUntilMidnight) { [weak self] in
-            self?.loadInitialData()
-            
-            // 이후 매일 자정마다 새로고침 (24시간 간격)
-            Timer.scheduledTimer(withTimeInterval: 86400, repeats: true) { [weak self] _ in
-                self?.loadInitialData()
+    /// Setup observers for app lifecycle and time changes
+    private func setupDateChangeObservers() {
+        // 1. App enters foreground
+        NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                print("📱 [HomeViewModel] App entered foreground, checking day change...")
+                self?.checkDayChange()
             }
+            .store(in: &cancellables)
+            
+        // 2. Significant time change (e.g. midnight, time zone change)
+        NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                print("⏰ [HomeViewModel] Significant time change detected, checking day change...")
+                self?.checkDayChange()
+            }
+            .store(in: &cancellables)
+            
+        // 3. Periodic timer (every 60s) to catch midnight while app is active
+        // invalidate existing timer if any
+        dayCheckTimer?.invalidate()
+        dayCheckTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
+            self?.checkDayChange()
+        }
+    }
+    
+    /// Check if the day has changed since the last refresh.
+    /// If so, reloads the data.
+    private func checkDayChange() {
+        let calendar = Calendar.current
+        let now = Date()
+        
+        if !calendar.isDate(now, inSameDayAs: lastRefreshedDate) {
+            print("📆 [HomeViewModel] Day changed from \(lastRefreshedDate) to \(now). Reloading data.")
+            loadInitialData(showLoading: false) // Don't show full loading screen for seamless update
         }
     }
     
@@ -132,6 +181,9 @@ class HomeViewModel: ObservableObject {
         formatter.dateFormat = "yyyy-MM-dd"
         print("📥 [HomeViewModel] Fetching daily gems from \(formatter.string(from: startDate)) to \(formatter.string(from: endDate))")
         
+        // Update lastRefreshedDate to now
+        self.lastRefreshedDate = Date()
+        
         // DailyGems 로드
         dataService.fetchDailyGems(from: startDate, to: endDate)
             .receive(on: DispatchQueue.main)
@@ -148,7 +200,9 @@ class HomeViewModel: ObservableObject {
                 receiveValue: { [weak self] gems in
                     print("✅ [HomeViewModel] Received \(gems.count) daily gems")
                     self?.dailyGems = gems
+                    self?.hasFetchedGems = true
                     self?.updateLast7Days()
+                    self?.syncStatsWithServer()
                 }
             )
             .store(in: &cancellables)
@@ -164,6 +218,10 @@ class HomeViewModel: ObservableObject {
                 },
                 receiveValue: { [weak self] stats in
                     self?.userStats = stats
+                    // Stats 로드 후, 현재 Gems 기반으로 동기화 필요 여부 확인
+                    if let self = self {
+                        self.syncStatsWithServer()
+                    }
                 }
             )
             .store(in: &cancellables)
@@ -185,6 +243,54 @@ class HomeViewModel: ObservableObject {
                 }
             )
             .store(in: &cancellables)
+    }
+    
+    /// 서버와 로컬 통계 동기화
+    /// dailyGems(로컬 계산)와 fetch된 UserStats가 다르면 업데이트
+    private func syncStatsWithServer() {
+        guard let currentStats = userStats else { return }
+        guard hasFetchedGems else {
+            print("⏳ [HomeViewModel] Skipping stats sync: Gems not yet fetched")
+            return
+        }
+        
+        let calculatedStreak = calculateStreakFromGems()
+        let calculatedTotalGems = totalGemsCreated // Computed property usage
+        
+        // 변경 사항이 있는지 확인
+        if currentStats.streakDays != calculatedStreak || currentStats.totalGems != calculatedTotalGems {
+            print("🔄 [HomeViewModel] Syncing stats with server...")
+            print("   L Streak: \(currentStats.streakDays) -> \(calculatedStreak)")
+            print("   L Total: \(currentStats.totalGems) -> \(calculatedTotalGems)")
+            
+            var newStats = currentStats
+            newStats.streakDays = calculatedStreak
+            newStats.totalGems = calculatedTotalGems
+            newStats.lastRecordedAt = Date() // 업데이트 시점 갱신
+            // updated_at은 DataService나 서버에서 처리하는게 좋지만, 여기서 명시적으로 변경 가능
+             newStats.updatedAt = Date()
+            
+            // Optimistic update
+            self.userStats = newStats
+            
+            dataService.updateUserStats(newStats)
+                .receive(on: DispatchQueue.main)
+                .sink(
+                    receiveCompletion: { completion in
+                        if case .failure(let error) = completion {
+                            print("❌ [HomeViewModel] Failed to sync stats: \(error)")
+                            // 실패 시 롤백 로직이 필요할 수 있으나, 다음 fetch에서 보정되므로 생략
+                        }
+                    },
+                    receiveValue: { updatedStats in
+                        print("✅ [HomeViewModel] Stats synced successfully")
+                        NotificationCenter.default.post(name: .didSaveCardData, object: nil)
+                    }
+                )
+                .store(in: &cancellables)
+        } else {
+            print("✅ [HomeViewModel] Stats are in sync")
+        }
     }
     
     /// 특정 날짜의 데이터 포인트 로드
@@ -332,7 +438,7 @@ class HomeViewModel: ObservableObject {
     // MARK: - Chart Data Generation
 
     func createRadarChartDataSets(for date: Date, completion: @escaping (Result<[RadarChartDataSet], Error>) -> Void) {
-        // 1. Fetch the single data point for the day
+        // 1. Fetch the data points for the day
         dataService.fetchDataPoints(for: date)
             .sink(
                 receiveCompletion: { result in
@@ -347,36 +453,50 @@ class HomeViewModel: ObservableObject {
                         return
                     }
 
-                    // 2. Get schemas from the data service
-                    // No need to cast; getSchemas is part of DataServiceProtocol now (or assuming it is added/implemented)
-                    // We directly access self.dataService
-                    
+                    print("📊 [HomeViewModel] Processing dataPoint: \(dataPoint.id)")
+                    print("   → Category: \(dataPoint.category?.rawValue ?? "nil")")
+                    print("   → Values keys: \(dataPoint.values.keys.joined(separator: ", "))")
+
                     var dataSets: [RadarChartDataSet] = []
-                    let categories: [(category: DataCategory, color: Color)] = [
-                        (.mind, .red),
-                        (.behavior, .blue),
-                        (.physical, .orange)
+                    let categories: [(category: DataCategory, categoryKey: String, color: Color)] = [
+                        (.mind, "mind", .red),
+                        (.behavior, "behavior", .blue),
+                        (.physical, "physical", .orange)
                     ]
 
-                    // 3. Process data for each category
-                    for (category, color) in categories {
+                    // 2. Process data for each category
+                    // 데이터 구조: { "mind": { "stress": 50, ... }, "behavior": { ... } }
+                    for (category, categoryKey, color) in categories {
                         let schemas = self.dataService.getSchemas(for: category)
                         var chartDataItems: [RadarChartDataItem] = []
 
+                        // 카테고리별 중첩 데이터 추출
+                        var categoryValues: [String: DataValue] = [:]
+
+                        // Case 1: 중첩 구조 (dailyLog 형식)
+                        if case .object(let nestedValues) = dataPoint.values[categoryKey] {
+                            categoryValues = nestedValues
+                            print("   → Found nested \(categoryKey) with \(nestedValues.count) values")
+                        }
+                        // Case 2: 평탄화 구조 (레거시 또는 단일 카테고리)
+                        else {
+                            categoryValues = dataPoint.values
+                        }
+
                         for schema in schemas {
-                            guard let dataValue = dataPoint.values[schema.name] else { continue }
-                            
+                            guard let dataValue = categoryValues[schema.name] else { continue }
+
                             let rawValue: Double
                             switch dataValue {
                             case .double(let v): rawValue = v
                             case .integer(let v): rawValue = Double(v)
                             default: continue
                             }
-                            
+
                             // Normalize the value (assuming max is 100)
                             let maxValue = schema.range?.max ?? 100.0
                             let normalizedValue = rawValue / maxValue
-                            
+
                             let displayValue = String(format: "%.0f", rawValue)
                             let iconName = self.iconNameFor(schema.name)
                             chartDataItems.append(
@@ -395,9 +515,11 @@ class HomeViewModel: ObservableObject {
                             dataSets.append(
                                 RadarChartDataSet(title: title, data: chartDataItems, dataColor: color)
                             )
+                            print("   ✅ Created \(title) chart with \(chartDataItems.count) items")
                         }
                     }
 
+                    print("📊 [HomeViewModel] Total dataSets created: \(dataSets.count)")
                     completion(.success(dataSets))
                 }
             )

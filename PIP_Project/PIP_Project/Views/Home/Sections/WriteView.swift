@@ -86,29 +86,59 @@ struct WriteView: View {
     
     // MARK: - Helpers
     private func setupCards() {
+        // 로컬 캐시 존재 여부: accumulatedValues에 실제 데이터가 있는지 확인
+        // cachedInputs는 기본값으로 채워질 수 있으므로, accumulatedValues를 기준으로 판단
+        let hasRealData = viewModel.hasAccumulatedData()
+
+        if hasRealData {
+            print("WriteView: Real data exists in accumulation. Proceeding immediately.")
+            performSetupCards()
+            return
+        }
+
+        // 실제 데이터가 없고 ViewModel이 복원 중이면 대기 (DB에서 가져오는 중)
+        guard !viewModel.isRestoring else {
+            print("WriteView: No real data, ViewModel is restoring from DB, waiting...")
+            Task {
+                // isRestoring이 false가 될 때까지 대기
+                while viewModel.isRestoring {
+                    try? await Task.sleep(nanoseconds: 100_000_000) // 0.1초
+                }
+                await MainActor.run {
+                    self.performSetupCards()
+                }
+            }
+            return
+        }
+
+        performSetupCards()
+    }
+
+    private func performSetupCards() {
         // 1. 전체 카드 수 확인
         let totalCount = viewModel.getTotalCardsCount()
         self.totalCardsCount = totalCount
-        
+
         // 2. 이미 처리된 카드를 제외하고 남은 카드만 가져오기 (Draft Restoration)
         let remainingCards = viewModel.getRemainingCards()
         self.cards = remainingCards
-        
+
         // 3. 현재 페이지 번호 계산 (Computed property currentPage가 자동 처리)
         print("WriteView: Restoration - Total: \(totalCount), Remaining: \(remainingCards.count), Current: \(currentPage)")
-        
+
         // 남은 카드가 없으면 자동 닫기 (또는 완료 화면)
         if remainingCards.isEmpty {
             print("WriteView: All cards completed. Dismissing.")
             isPresented?.wrappedValue = false
             return
         }
-        
+
+        // ViewModel에서 캐시 복원 시도 (DB 복원 후 cachedInputs가 설정되었을 수 있음)
+        // restoreInputsFromAccumulation()이 호출되면 cachedInputs가 업데이트됨
+        viewModel.refreshCachedInputsIfNeeded()
+
         // cachedInputs 처리 (남은 카드에 대한 캐시만 적용)
-        // 주의: cachedInputs은 이전 세션의 '남은 카드들'의 input일 수 있음.
-        // viewModel.cachedInputs와 remainingCards의 개수가 다를 수 있음 (중간에 스키마 변경 등)
-        // 안전하게: cachedInputs 개수가 remainingCards 개수와 같을 때만 적용
-        if viewModel.cachedInputs.count == remainingCards.count {
+        if viewModel.cachedInputs.count == remainingCards.count && !viewModel.cachedInputs.isEmpty {
             self.cardInputs = viewModel.cachedInputs
             print("WriteView: Loaded cached inputs for \(remainingCards.count) cards")
         } else {
@@ -130,7 +160,7 @@ struct WriteView: View {
             viewModel.saveCachedInputs()
             print("WriteView: Initialized default inputs for \(remainingCards.count) cards")
         }
-        
+
         // 저장된 노트 복원
         self.textInputs = remainingCards.map { viewModel.getNotes(for: $0) }
     }

@@ -15,7 +15,7 @@ struct GemDetailView: View {
     
     // MARK: - State Properties
     @State private var radarDataSets: [RadarChartDataSet] = []
-    @State private var dailyNote: String?
+    @State private var categoryNotes: [String: String] = [:]  // 카테고리별 노트 저장 (mind, behavior, physical)
     @State private var isLoading = true
     @State private var errorMessage: String?
     @State private var selectedTab: Int = 0
@@ -138,15 +138,15 @@ struct GemDetailView: View {
                     Spacer()
                         .frame(height: CGFloat.PIPLayout.gemDetailIndicatorToJournalSpacing)
 
-                    // 하단: 저널 텍스트
-                    if let note = dailyNote, !note.isEmpty {
+                    // 하단: 저널 텍스트 (현재 탭에 해당하는 카테고리 노트 표시)
+                    if let currentNote = getCurrentTabNote(), !currentNote.isEmpty {
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Journal")
                                 .font(.pip.title2)
                                 .foregroundColor(.white)
-                            
+
                             ScrollView(.vertical, showsIndicators: true) {
-                                Text(note)
+                                Text(currentNote)
                                     .font(.pip.body)
                                     .foregroundColor(Color.gemDetail.journalTextColor)
                                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -192,8 +192,12 @@ struct GemDetailView: View {
         isLoading = true
         errorMessage = nil
 
+        // 날짜를 startOfDay로 정규화하여 시간대 문제 방지
+        let calendar = Calendar.current
+        let normalizedDate = calendar.startOfDay(for: gemRecord.date)
+
         // Radar Chart 데이터 로드
-        viewModel.createRadarChartDataSets(for: gemRecord.date) { result in
+        viewModel.createRadarChartDataSets(for: normalizedDate) { result in
             DispatchQueue.main.async {
                 self.isLoading = false
                 switch result {
@@ -205,19 +209,63 @@ struct GemDetailView: View {
             }
         }
 
-        // 저널 노트 로드 (TimeSeriesDataPoint에서)
-        viewModel.fetchDataPoints(for: gemRecord.date)
+        // 저널 노트 로드 (TimeSeriesDataPoint에서 카테고리별 노트 추출)
+        viewModel.fetchDataPoints(for: normalizedDate)
             .receive(on: DispatchQueue.main)
             .sink(
                 receiveCompletion: { _ in },
                 receiveValue: { dataPoints in
-                    self.dailyNote = dataPoints.first?.notes
+                    guard let dataPoint = dataPoints.first else { return }
+                    self.extractCategoryNotes(from: dataPoint)
                 }
             )
             .store(in: &viewModel.cancellables)
     }
 
     // MARK: - Helper Functions
+
+    /// 현재 선택된 탭에 해당하는 카테고리의 노트를 반환
+    private func getCurrentTabNote() -> String? {
+        guard selectedTab < radarDataSets.count else { return nil }
+        let dataSet = radarDataSets[selectedTab]
+
+        // RadarChartDataSet의 title을 기반으로 카테고리 키 결정
+        let categoryKey: String
+        switch dataSet.title.lowercased() {
+        case "mind": categoryKey = "mind"
+        case "behavior": categoryKey = "behavior"
+        case "physical": categoryKey = "physical"
+        default: categoryKey = dataSet.title.lowercased()
+        }
+
+        return categoryNotes[categoryKey]
+    }
+
+    /// DataPoint에서 카테고리별 노트를 추출하여 저장
+    private func extractCategoryNotes(from dataPoint: TimeSeriesDataPoint) {
+        var notes: [String: String] = [:]
+
+        // 카테고리별로 중첩된 구조에서 notes 추출
+        // 구조: { "mind": { "notes": "...", ... }, "behavior": { "notes": "...", ... } }
+        let categories = ["mind", "behavior", "physical"]
+
+        for category in categories {
+            if case .object(let categoryValues) = dataPoint.values[category],
+               case .string(let noteText) = categoryValues["notes"] {
+                notes[category] = noteText
+            }
+        }
+
+        // 레거시 호환: 전체 notes 필드가 있고 카테고리별 노트가 없는 경우
+        if notes.isEmpty, let legacyNotes = dataPoint.notes, !legacyNotes.isEmpty {
+            // 전체 노트를 첫 번째 탭에 표시
+            notes["mind"] = legacyNotes
+        }
+
+        self.categoryNotes = notes
+        print("📝 [GemDetailView] Extracted notes for categories: \(notes.keys.joined(separator: ", "))")
+    }
+
     private func formatDate(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "MMMM d, yyyy"
