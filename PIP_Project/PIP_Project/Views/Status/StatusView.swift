@@ -32,15 +32,15 @@ struct StatusView: View {
                         
                         // MARK: - Stats Cards Section
                         StatsCardsSection(viewModel: viewModel)
-                            .padding(.horizontal, 20)
-                            .padding(.bottom, 30)
+                            .padding(.horizontal, 16)
+                            .padding(.bottom, 20)
                         
                         // MARK: - Achievements Section
                         AchievementsSection(
                             achievements: viewModel.achievements,
                             selectedIndex: $selectedAchievementIndex
                         )
-                        .padding(.bottom, 30)
+                        .padding(.bottom, 20)
                         
                         // MARK: - Values Section
                         ValuesSection(valueAnalysis: viewModel.valueAnalysis)

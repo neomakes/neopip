@@ -48,7 +48,7 @@ struct StatsCard: View {
                 .foregroundColor(valueColor)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 18)
+        .padding(.vertical, 10)
         .background(Color.white.opacity(0.08))
         .cornerRadius(12)
     }

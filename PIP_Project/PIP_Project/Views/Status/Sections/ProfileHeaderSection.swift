@@ -16,15 +16,19 @@ struct ProfileHeaderSection: View {
                     Button(action: {
                         path.append(StatusRoute.settings)
                     }) {
-                        Image("icon_setting")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 24, height: 24)
+                        ZStack {
+                            Circle()
+                                .fill(Color.white.opacity(0.2))
+                                .frame(width: 32, height: 32)
+                            
+                            Image("icon_setting")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 20, height: 20)
+                        }
                     }
                     .padding(.trailing, 20)
                 }
-                .padding(.top, 16)
-                
                 // Greeting
                 Text("Hi \(viewModel.userProfile?.displayName ?? "NEO")!")
                     .font(.system(size: 28, weight: .semibold))
@@ -32,7 +36,7 @@ struct ProfileHeaderSection: View {
                 
                 Spacer()
             }
-            .frame(height: 150)
+            .frame(height: 130)
             .frame(maxWidth: .infinity)
             .background(
                 LinearGradient(
@@ -57,18 +61,18 @@ struct ProfileHeaderSection: View {
                         .overlay(Circle().stroke(Color.white.opacity(0.3), lineWidth: 2))
                 } else {
                     Circle()
-                        .fill(Color.white.opacity(0.1))
-                        .frame(width: 100, height: 100)
-                        .overlay(
-                            Image(systemName: "person.fill")
-                                .font(.system(size: 40))
-                                .foregroundColor(.white)
-                        )
+                    .fill(Color.white.opacity(0.1))
+                    .frame(width: 100, height: 100)
+                    .overlay(
+                        Image(systemName: "person.fill")
+                            .font(.system(size: 40))
+                            .foregroundColor(.white)
+                    )
                 }
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 20)
-            .padding(.top, -75)
+            .padding(.vertical, 10)
+            .padding(.top, -65)
         }
     }
     

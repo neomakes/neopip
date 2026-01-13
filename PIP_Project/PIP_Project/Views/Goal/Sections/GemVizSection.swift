@@ -187,16 +187,16 @@ struct GemVizSection: View {
                 }) {
                     ZStack {
                         Circle()
-                            .fill(Color.white.opacity(0.1))
-                            .frame(width: 28, height: 28)
+                            .fill(Color.white.opacity(0.2))
+                            .frame(width: 32, height: 32)
                         
                         Image(systemName: "questionmark")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(.white)
                     }
                 }
-                .padding(.trailing, 4)
-                .padding(.top, 0)
+                .padding(.trailing, 20)
+                .padding(.top, 8)
             }
             }
         }
