@@ -47,6 +47,7 @@ struct StatusView: View {
                         
                         Spacer(minLength: 100)
                     }
+                    .padding(.top, 16)
                 }
                 .navigationDestination(for: StatusRoute.self) { route in
                     switch route {

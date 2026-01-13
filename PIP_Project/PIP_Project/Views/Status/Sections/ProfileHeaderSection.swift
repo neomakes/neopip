@@ -29,12 +29,13 @@ struct ProfileHeaderSection: View {
                         }
                     }
                     .padding(.trailing, 20)
+                    .padding(.top, 8)
                 }
                 // Greeting
                 Text("Hi \(viewModel.userProfile?.displayName ?? "NEO")!")
                     .font(.system(size: 28, weight: .semibold))
                     .foregroundColor(.white)
-                
+                    .padding(.top, 0)
                 Spacer()
             }
             .frame(height: 130)
@@ -60,20 +61,20 @@ struct ProfileHeaderSection: View {
                         switch phase {
                         case .empty:
                             ProgressView()
-                                .frame(width: 100, height: 100)
+                                .frame(width: 75, height: 75)
                         case .success(let image):
                             image
                                 .resizable()
                                 .scaledToFill()
-                                .frame(width: 100, height: 100)
+                                .frame(width: 75, height: 75)
                                 .clipShape(Circle())
                                 .overlay(Circle().stroke(Color.white.opacity(0.3), lineWidth: 2))
                         case .failure:
                             Image(systemName: "person.fill") // Fallback on failure
                                 .resizable()
                                 .scaledToFit()
-                                .padding(20)
-                                .frame(width: 100, height: 100)
+                                .padding(15)
+                                .frame(width: 75, height: 75)
                                 .background(Circle().fill(Color.white.opacity(0.1)))
                                 .overlay(Circle().stroke(Color.white.opacity(0.3), lineWidth: 2))
                         @unknown default:
@@ -84,10 +85,10 @@ struct ProfileHeaderSection: View {
                     // Default Placeholder
                     Circle()
                         .fill(Color.white.opacity(0.1))
-                        .frame(width: 100, height: 100)
+                        .frame(width: 75, height: 75)
                         .overlay(
                             Image(systemName: "person.fill")
-                                .font(.system(size: 40))
+                                .font(.system(size: 30))
                                 .foregroundColor(.white)
                         )
                         .overlay(Circle().stroke(Color.white.opacity(0.3), lineWidth: 2))
@@ -95,7 +96,7 @@ struct ProfileHeaderSection: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 10)
-            .padding(.top, -65)
+            .padding(.top, -50)
         }
     }
     
