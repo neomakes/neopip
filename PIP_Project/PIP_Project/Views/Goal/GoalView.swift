@@ -13,7 +13,7 @@ struct GoalView: View {
                     // MARK: - Gem Visualization Section
                     GemVizSection(viewModel: viewModel)
                         .padding(.horizontal, 0)
-                        .padding(.bottom, 10)
+                        .padding(.bottom, 30)
                     
                     // MARK: - Progress Section
                     ProgressSection(viewModel: viewModel)

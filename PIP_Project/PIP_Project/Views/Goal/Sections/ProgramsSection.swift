@@ -45,6 +45,7 @@ struct ProgramsSection: View {
                 Spacer()
             }
             .padding(.horizontal, 16)
+            .padding(.bottom, 16)
             
             // MARK: - Programs Carousel with Navigation
             if viewModel.availablePrograms.isEmpty {
