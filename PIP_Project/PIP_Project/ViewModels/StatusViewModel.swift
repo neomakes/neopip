@@ -8,6 +8,7 @@
 import Foundation
 import Combine
 import SwiftUI
+import PhotosUI
 
 @MainActor
 class StatusViewModel: ObservableObject {
@@ -21,7 +22,17 @@ class StatusViewModel: ObservableObject {
     
     // MARK: - Dependencies
     private let dataService: DataServiceProtocol
+    private let storageService = FirebaseStorageService.shared
     private var cancellables = Set<AnyCancellable>()
+    
+    // MARK: - Image Selection
+    @Published var selectedImageItem: PhotosPickerItem? = nil {
+        didSet {
+            Task {
+                await updateProfileImage()
+            }
+        }
+    }
     
     // MARK: - Initialization
     init(dataService: DataServiceProtocol? = nil) {
@@ -41,7 +52,42 @@ class StatusViewModel: ObservableObject {
             .store(in: &cancellables)
     }
     
-    // MARK: - Public Methods
+    // MARK: - Private Methods
+    
+    /// Update profile image when selection changes
+    func updateProfileImage() async {
+        guard let item = selectedImageItem else { return }
+        guard let userProfile = userProfile else { return }
+        
+        isLoading = true
+        defer { isLoading = false }
+        
+        do {
+            guard let data = try? await item.loadTransferable(type: Data.self),
+                  let uiImage = UIImage(data: data) else {
+                print("⚠️ [StatusViewModel] Failed to load image data")
+                return
+            }
+            
+            // Upload to Storage
+            let url = try await storageService.uploadProfileImage(uiImage, userId: userProfile.accountId)
+            print("✅ [StatusViewModel] Uploaded new profile image: \(url)")
+            
+            // Update Firestore Profile
+            var updatedProfile = userProfile
+            updatedProfile.profileImageURL = url
+            
+            _ = try await dataService.updateUserProfile(updatedProfile).async()
+            
+            await MainActor.run {
+                self.userProfile = updatedProfile
+            }
+            
+        } catch {
+            print("❌ [StatusViewModel] Failed to update profile image: \(error)")
+            errorMessage = "Failed to update profile image. Please try again."
+        }
+    }
     
     /// 초기 데이터 로드
     func loadInitialData() {
@@ -116,5 +162,28 @@ class StatusViewModel: ObservableObject {
                 }
             )
             .store(in: &cancellables)
+    }
+}
+
+// MARK: - Combine Async Extension
+extension AnyPublisher {
+    func async() async throws -> Output {
+        try await withCheckedThrowingContinuation { continuation in
+            var cancellable: AnyCancellable?
+            cancellable = self.sink(
+                receiveCompletion: { completion in
+                    switch completion {
+                    case .finished:
+                        break
+                    case .failure(let error):
+                        continuation.resume(throwing: error)
+                    }
+                    cancellable?.cancel()
+                },
+                receiveValue: { value in
+                    continuation.resume(returning: value)
+                }
+            )
+        }
     }
 }

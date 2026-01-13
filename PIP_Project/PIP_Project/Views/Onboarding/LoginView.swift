@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import PhotosUI
 
 struct LoginView: View {
     @StateObject private var viewModel = LoginViewModel()
@@ -52,6 +53,48 @@ struct LoginView: View {
 
                     // Input fields
                     VStack(spacing: 16) {
+                        // Profile Image Picker (Sign Up only)
+                        /* FEATURE DISABLED: Storage Billing Issue
+                        if viewModel.isSignUpMode {
+                            PhotosPicker(selection: $viewModel.selectedImageItem, matching: .images) {
+                                ZStack {
+                                    if let selectedImage = viewModel.selectedUIImage {
+                                        Image(uiImage: selectedImage)
+                                            .resizable()
+                                            .scaledToFill()
+                                            .frame(width: 80, height: 80)
+                                            .clipShape(Circle())
+                                            .overlay(Circle().stroke(Color.pip.home.buttonAddGrad1, lineWidth: 2))
+                                    } else {
+                                        Circle()
+                                            .fill(Color.white.opacity(0.1))
+                                            .frame(width: 80, height: 80)
+                                            .overlay(
+                                                Image(systemName: "camera.fill")
+                                                    .foregroundColor(.gray)
+                                            )
+                                            .overlay(Circle().stroke(Color.white.opacity(0.3), lineWidth: 1))
+                                    }
+                                    
+                                    // Edit badge
+                                    VStack {
+                                        Spacer()
+                                        HStack {
+                                            Spacer()
+                                            Image(systemName: "pencil.circle.fill")
+                                                .foregroundColor(.white)
+                                                .background(Circle().fill(Color.pip.home.buttonAddGrad1))
+                                                .font(.system(size: 24))
+                                        }
+                                    }
+                                    .frame(width: 80, height: 80)
+                                    .offset(x: 4, y: 4)
+                                }
+                            }
+                            .padding(.bottom, 8)
+                        }
+                         */
+
                         // Display Name (Sign Up only)
                         if viewModel.isSignUpMode {
                             CustomTextField(

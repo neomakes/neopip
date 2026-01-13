@@ -1,5 +1,6 @@
 // PIP_Project/PIP_Project/Views/Status/Sections/ProfileHeaderSection.swift
 import SwiftUI
+import PhotosUI
 
 // MARK: - Profile Header Section
 struct ProfileHeaderSection: View {
@@ -51,23 +52,45 @@ struct ProfileHeaderSection: View {
             .ignoresSafeArea(edges: .horizontal)
             
             // Profile image
+            // PhotosPicker Disabled: Storage Billing Issue
             VStack(spacing: 0) {
-                if let profileImageName = viewModel.userProfile?.profileImageURL {
-                    Image(profileImageName)
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: 100, height: 100)
-                        .clipShape(Circle())
-                        .overlay(Circle().stroke(Color.white.opacity(0.3), lineWidth: 2))
+                if let profileURLString = viewModel.userProfile?.profileImageURL,
+                   let url = URL(string: profileURLString) {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .empty:
+                            ProgressView()
+                                .frame(width: 100, height: 100)
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 100, height: 100)
+                                .clipShape(Circle())
+                                .overlay(Circle().stroke(Color.white.opacity(0.3), lineWidth: 2))
+                        case .failure:
+                            Image(systemName: "person.fill") // Fallback on failure
+                                .resizable()
+                                .scaledToFit()
+                                .padding(20)
+                                .frame(width: 100, height: 100)
+                                .background(Circle().fill(Color.white.opacity(0.1)))
+                                .overlay(Circle().stroke(Color.white.opacity(0.3), lineWidth: 2))
+                        @unknown default:
+                            EmptyView()
+                        }
+                    }
                 } else {
+                    // Default Placeholder
                     Circle()
-                    .fill(Color.white.opacity(0.1))
-                    .frame(width: 100, height: 100)
-                    .overlay(
-                        Image(systemName: "person.fill")
-                            .font(.system(size: 40))
-                            .foregroundColor(.white)
-                    )
+                        .fill(Color.white.opacity(0.1))
+                        .frame(width: 100, height: 100)
+                        .overlay(
+                            Image(systemName: "person.fill")
+                                .font(.system(size: 40))
+                                .foregroundColor(.white)
+                        )
+                        .overlay(Circle().stroke(Color.white.opacity(0.3), lineWidth: 2))
                 }
             }
             .frame(maxWidth: .infinity)

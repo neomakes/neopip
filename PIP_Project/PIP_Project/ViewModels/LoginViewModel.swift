@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftUI
+import PhotosUI
 import Combine
 import FirebaseAuth
 
@@ -24,6 +25,18 @@ class LoginViewModel: ObservableObject {
 
     // MARK: - Dependencies
     private let authService = AuthService.shared
+    private let storageService = FirebaseStorageService.shared
+
+    // MARK: - Image Selection
+    @Published var selectedImageItem: PhotosPickerItem? = nil {
+        didSet {
+            Task {
+                await loadSelectedImage()
+            }
+        }
+    }
+    @Published var selectedUIImage: UIImage? = nil
+
 
     // MARK: - Validation
 
@@ -101,6 +114,7 @@ class LoginViewModel: ObservableObject {
                 email: email,
                 password: password,
                 displayName: displayName
+                // profileImage: selectedUIImage // FEATURE DISABLED: Storage Billing Issue
             )
             // Navigation will be handled by AuthStateManager
         } catch let error as NSError {
@@ -144,6 +158,16 @@ class LoginViewModel: ObservableObject {
     }
 
     // MARK: - Private Methods
+    
+    private func loadSelectedImage() async {
+        guard let item = selectedImageItem else { return }
+        if let data = try? await item.loadTransferable(type: Data.self),
+           let uiImage = UIImage(data: data) {
+            await MainActor.run {
+                self.selectedUIImage = uiImage
+            }
+        }
+    }
 
     /// Map Firebase Auth errors to user-friendly messages for sign in
     private func mapAuthErrorToMessage(_ errorCode: AuthErrorCode) -> String {

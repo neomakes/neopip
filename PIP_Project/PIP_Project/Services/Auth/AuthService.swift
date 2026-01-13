@@ -66,7 +66,7 @@ class AuthService: ObservableObject {
     // MARK: - Email Authentication
 
     /// Sign up with email and password
-    func signUpWithEmail(email: String, password: String, displayName: String?) async throws -> User {
+    func signUpWithEmail(email: String, password: String, displayName: String?, profileImage: UIImage? = nil) async throws -> User {
         isLoading = true
         errorMessage = nil
 
@@ -92,11 +92,32 @@ class AuthService: ObservableObject {
                 try await changeRequest.commitChanges()
                 print("✅ [AuthService] Display name updated")
             }
+            
+            // Upload Profile Image if provided
+            var profileImageURL: String? = nil
+            if let image = profileImage {
+                print("📸 [AuthService] Uploading profile image...")
+                do {
+                    profileImageURL = try await FirebaseStorageService.shared.uploadProfileImage(image, userId: user.uid)
+                    print("✅ [AuthService] Profile image uploaded: \(profileImageURL ?? "nil")")
+                    
+                    // Also update Auth profile (photoURL)
+                    let changeRequest = user.createProfileChangeRequest()
+                    changeRequest.photoURL = URL(string: profileImageURL!)
+                    try await changeRequest.commitChanges()
+                } catch {
+                    print("❌ [AuthService] Failed to upload profile image: \(error)")
+                    // Rollback on upload failure
+                    print("🔄 [AuthService] Rolling back - deleting Auth user due to upload failure")
+                    try? await user.delete()
+                    throw error
+                }
+            }
 
             // Create user account and profile in Firestore
             do {
                 print("📝 [AuthService] Creating Firestore user documents...")
-                try await createUserAccount(user: user, displayName: displayName)
+                try await createUserAccount(user: user, displayName: displayName, profileImageURL: profileImageURL)
                 print("✅ [AuthService] Firestore user documents created")
             } catch let firestoreError as NSError {
                 // Rollback: Delete Auth user if Firestore creation fails
@@ -220,7 +241,7 @@ class AuthService: ObservableObject {
     // MARK: - Private Methods
 
     /// Create user account and profile in Firestore
-    private func createUserAccount(user: User, displayName: String?) async throws {
+    private func createUserAccount(user: User, displayName: String?, profileImageURL: String? = nil) async throws {
         // Use Firebase Auth UID directly as String
         let accountId = user.uid
 
@@ -250,7 +271,7 @@ class AuthService: ObservableObject {
             accountId: accountId,
             displayName: displayName,
             email: user.email,
-            profileImageURL: nil,
+            profileImageURL: profileImageURL,
             backgroundImageURL: nil,
             createdAt: Date(),
             lastActiveAt: Date(),
