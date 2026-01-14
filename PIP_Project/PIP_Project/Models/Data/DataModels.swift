@@ -8,6 +8,11 @@
 
 import Foundation
 
+// MARK: - Notifications
+extension Notification.Name {
+    static let didSaveCardData = Notification.Name("didSaveCardData")
+}
+
 // MARK: - Daily Gem
 /// 일일 Gem 데이터 (시각화용)
 /// Firestore의 users/{accountId}/daily_gems/{gemId}에 저장

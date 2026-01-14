@@ -4,13 +4,15 @@
 //
 //  Interactive time-slot curve chart for Write cards
 //  Allows users to input values for specific time ranges (e.g., excluding sleep hours)
+//  Updated to 7 points with persisted control times.
 //
 
 import SwiftUI
 
 // MARK: - Time Slot Curve Chart View
 struct TimeSlotCurveChart: View {
-    @Binding var values: [Double]  // 5 control points
+    @Binding var values: [Double]  // 7 control points (Start ... End)
+    @Binding var times: [Double]   // 7 control times (Hours 0-24)
     let range: ClosedRange<Double>
     let label: String
 
@@ -19,38 +21,33 @@ struct TimeSlotCurveChart: View {
     @State private var dragStartValue: Double? = nil
     @State private var dragStartHour: Double? = nil
 
-    // Control point hours - first/last points are now movable to exclude sleep time etc.
-    // Default: 7am to 11pm (awake hours)
-    @State private var controlHours: [Double] = [7, 10, 14, 18, 22]
-
-    init(values: Binding<[Double]>, range: ClosedRange<Double> = 0...100, label: String = "Value") {
+    // Default: 7am to 11pm (awake hours) spread over 7 points
+    // [7, 9.6, 12.3, 15, 17.6, 20.3, 23] approximately
+    
+    init(values: Binding<[Double]>, times: Binding<[Double]>, range: ClosedRange<Double> = 0...100, label: String = "Value") {
         self._values = values
+        self._times = times
         self.range = range
         self.label = label
-
-        // Ensure we have 5 control points
-        if values.wrappedValue.count != 5 {
-            values.wrappedValue = Array(repeating: (range.lowerBound + range.upperBound) / 2, count: 5)
-        }
     }
 
     // Get the active time range (from first to last control point)
     private var activeStartHour: Double {
-        controlHours.min() ?? 0
+        times.min() ?? 7
     }
 
     private var activeEndHour: Double {
-        controlHours.max() ?? 23
+        times.max() ?? 23
     }
 
     // Interpolate control points within active range using Catmull-Rom spline
     // Returns (hour, value) pairs only for the active time range
     private func interpolatedPoints() -> [(hour: Double, value: Double)] {
-        guard values.count == 5 else { return [] }
+        guard values.count >= 2, values.count == times.count else { return [] }
 
         // Sort control points by hour
-        let sortedIndices = controlHours.indices.sorted { controlHours[$0] < controlHours[$1] }
-        let sortedHours = sortedIndices.map { controlHours[$0] }
+        let sortedIndices = times.indices.sorted { times[$0] < times[$1] }
+        let sortedHours = sortedIndices.map { times[$0] }
         let sortedValues = sortedIndices.map { values[$0] }
 
         let startHour = sortedHours.first ?? 0
@@ -101,7 +98,7 @@ struct TimeSlotCurveChart: View {
             interpolatedValue = max(range.lowerBound, min(range.upperBound, interpolatedValue))
             result.append((hour: h, value: interpolatedValue))
 
-            h += 0.5
+            h += 0.2 // Finer resolution for 7 points
         }
 
         return result
@@ -117,16 +114,23 @@ struct TimeSlotCurveChart: View {
 
                 Spacer()
 
-                if let controlIndex = selectedControlIndex {
-                    let hour = Int(controlHours[controlIndex])
-                    Text("\(hour):00 - \(Int(values[controlIndex]))")
+                if let controlIndex = selectedControlIndex, controlIndex < times.count, controlIndex < values.count {
+                    let hourVal = times[controlIndex]
+                    let hour = Int(hourVal)
+                    let min = Int(round((hourVal - Double(hour)) * 60)) // Fix floating point truncation (e.g. 9.999 -> 10)
+                    let timeStr = String(format: "%02d:%02d", hour, min)
+                    
+                    Text("\(timeStr) - \(Int(values[controlIndex]))")
                         .font(.pip.title2)
                         .foregroundColor(.pip.home.numRecords)
                 } else {
                     // Show active time range
-                    let startHour = Int(activeStartHour)
-                    let endHour = Int(activeEndHour)
-                    Text("\(startHour):00 ~ \(endHour):00")
+                    let startH = Int(activeStartHour)
+                    let startM = Int(round((activeStartHour - Double(startH)) * 60))
+                    let endH = Int(activeEndHour)
+                    let endM = Int(round((activeEndHour - Double(endH)) * 60))
+                    
+                    Text(String(format: "%02d:%02d ~ %02d:%02d", startH, startM, endH, endM))
                         .font(.pip.caption)
                         .foregroundColor(.white.opacity(0.5))
                 }
@@ -135,8 +139,8 @@ struct TimeSlotCurveChart: View {
             // Curve chart
             GeometryReader { geometry in
                 let width = geometry.size.width
-                let height: CGFloat = 100
-                let stepX = width / 23  // Always map to 24-hour scale
+                let height: CGFloat = 120 // Slightly taller
+                let stepX = width / 24  // Map to 24-hour scale (0-24)
 
                 ZStack {
                     // Grid lines (horizontal)
@@ -150,6 +154,25 @@ struct TimeSlotCurveChart: View {
                             .background(Color.white.opacity(0.1))
                     }
                     .frame(height: height)
+                    
+                    // Vertical Grid Lines (every 3 hours)
+                    HStack(spacing: 0) {
+                        ForEach(0..<9) { i in
+                            Divider()
+                                .background(Color.white.opacity(0.05))
+                            if i < 8 { Spacer() }
+                        }
+                    }
+                    .frame(height: height)
+
+                    // Zero Line (for ranges crossing 0, e.g., -100 to 100)
+                    if range.contains(0) {
+                        let zeroY = height - (CGFloat(0 - range.lowerBound) / (range.upperBound - range.lowerBound) * height)
+                        Rectangle()
+                            .fill(Color.white.opacity(0.3)) // Stronger visual than grid
+                            .frame(height: 1)
+                            .position(x: width / 2, y: zeroY)
+                    }
 
                     // Inactive zones (sleep/excluded time) - shown as dimmed areas
                     // Left inactive zone (before first control point)
@@ -161,8 +184,8 @@ struct TimeSlotCurveChart: View {
                     }
 
                     // Right inactive zone (after last control point)
-                    if activeEndHour < 23 {
-                        let inactiveWidth = CGFloat(23 - activeEndHour) * stepX
+                    if activeEndHour < 24 {
+                        let inactiveWidth = CGFloat(24 - activeEndHour) * stepX
                         Rectangle()
                             .fill(Color.white.opacity(0.03))
                             .frame(width: inactiveWidth, height: height)
@@ -203,7 +226,14 @@ struct TimeSlotCurveChart: View {
                         }
                         path.addLine(to: points.last!)
                     }
-                    .stroke(Color.pip.home.buttonAddGrad1, lineWidth: 3)
+                    .stroke(
+                        LinearGradient(
+                            gradient: Gradient(colors: [Color.pip.home.buttonAddGrad1, Color.pip.home.buttonAddGrad2]),
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        ),
+                        style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round)
+                    )
                     .shadow(color: Color.pip.home.buttonAddGrad1.opacity(0.5), radius: 4, x: 0, y: 0)
 
                     // Fill under curve - only within active range
@@ -246,45 +276,52 @@ struct TimeSlotCurveChart: View {
                         path.addLine(to: CGPoint(x: endX, y: height))
                         path.closeSubpath()
                     }
-                    .fill(Color.pip.home.buttonAddGrad1.opacity(0.2))
+                    .fill(
+                        LinearGradient(
+                            gradient: Gradient(colors: [Color.pip.home.buttonAddGrad1.opacity(0.3), Color.pip.home.buttonAddGrad2.opacity(0.0)]),
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
 
                     // Draggable control points
-                    ForEach(0..<5) { controlIndex in
+                    ForEach(0..<times.count, id: \.self) { controlIndex in
                         controlPointView(for: controlIndex, width: width, height: height)
                     }
                 }
                 .frame(height: height)
-            }
-            .frame(height: 100)
-            .padding(.vertical, 8)
-
-            // Time labels
-            HStack(spacing: 0) {
-                ForEach(0..<7) { i in
-                    let hour = i * 4
-                    Text("\(hour):00")
+                
+                // Labels (Using GeometryReader to position exactly)
+                ForEach(0..<9) { i in
+                    let hour = i * 3
+                    let xPos = CGFloat(hour) * stepX
+                    Text("\(hour)")
                         .font(.system(size: 10))
                         .foregroundColor(.white.opacity(0.6))
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .position(x: xPos, y: height + 10) // 10px below chart
                 }
             }
+            .frame(height: 120 + 20) // Add padding for labels
+            .padding(.vertical, 8)
         }
         .padding(.vertical, 8)
     }
 
     // MARK: - Control Point View
     private func controlPointView(for controlIndex: Int, width: CGFloat, height: CGFloat) -> some View {
+        guard controlIndex < values.count, controlIndex < times.count else { return AnyView(EmptyView()) }
+        
         let value = values[controlIndex]
-        let hour = controlHours[controlIndex]
+        let hour = times[controlIndex]
         let isSelected = selectedControlIndex == controlIndex
-        let isEndpoint = controlIndex == 0 || controlIndex == 4  // First or last point
+        let isEndpoint = controlIndex == 0 || controlIndex == times.count - 1
 
-        let stepX = width / 23
+        let stepX = width / 24
         let x = CGFloat(hour) * stepX
         let normalizedValue = (value - range.lowerBound) / (range.upperBound - range.lowerBound)
         let y = height - (CGFloat(normalizedValue) * height)
 
-        return ZStack {
+        return AnyView(ZStack {
             // Endpoint indicator (vertical line to show it can move horizontally)
             if isEndpoint && isSelected {
                 Rectangle()
@@ -308,7 +345,7 @@ struct TimeSlotCurveChart: View {
                     // Store initial values on drag start
                     if dragStartValue == nil {
                         dragStartValue = self.values[controlIndex]
-                        dragStartHour = self.controlHours[controlIndex]
+                        dragStartHour = self.times[controlIndex]
                     }
 
                     // Calculate new value (Y-axis)
@@ -320,32 +357,35 @@ struct TimeSlotCurveChart: View {
 
                     // Calculate new hour (X-axis) - ALL points can now move horizontally
                     let hourDelta = gesture.translation.width / stepX
-                    var newHour = (dragStartHour ?? self.controlHours[controlIndex]) + Double(hourDelta)
+                    var newHour = (dragStartHour ?? self.times[controlIndex]) + Double(hourDelta)
+                    
+                    // Snap to roughly 10 mins (0.166 hour)
+                    let snapInterval = 10.0 / 60.0
+                    newHour = round(newHour / snapInterval) * snapInterval
 
                     // Get sorted control hours to find neighbors
-                    let sortedWithIndex = controlHours.enumerated().sorted { $0.element < $1.element }
-                    let currentSortedIndex = sortedWithIndex.firstIndex { $0.offset == controlIndex } ?? 0
-
-                    // Determine constraints based on position in sorted order
+                    // In our case, index IS sorted order because we initialized it that way and enforce constraints
+                    // But if users drag freely, we must respect index order
+                    
                     let minHour: Double
                     let maxHour: Double
 
-                    if currentSortedIndex == 0 {
-                        // First point (leftmost) - can go from 0 to just before next point
+                    if controlIndex == 0 {
+                        // First point
                         minHour = 0
-                        maxHour = sortedWithIndex.count > 1 ? sortedWithIndex[1].element - 1 : 23
-                    } else if currentSortedIndex == sortedWithIndex.count - 1 {
-                        // Last point (rightmost) - can go from just after previous point to 23
-                        minHour = sortedWithIndex[currentSortedIndex - 1].element + 1
-                        maxHour = 23
+                        maxHour = self.times.count > 1 ? self.times[1] - 0.5 : 24
+                    } else if controlIndex == self.times.count - 1 {
+                        // Last point
+                        minHour = self.times[controlIndex - 1] + 0.5
+                        maxHour = 24
                     } else {
-                        // Middle points - constrained by neighbors
-                        minHour = sortedWithIndex[currentSortedIndex - 1].element + 1
-                        maxHour = sortedWithIndex[currentSortedIndex + 1].element - 1
+                        // Middle points
+                        minHour = self.times[controlIndex - 1] + 0.5
+                        maxHour = self.times[controlIndex + 1] - 0.5
                     }
 
                     newHour = max(minHour, min(maxHour, newHour))
-                    self.controlHours[controlIndex] = newHour
+                    self.times[controlIndex] = newHour
                 }
                 .onEnded { _ in
                     isDragging = false
@@ -358,35 +398,26 @@ struct TimeSlotCurveChart: View {
                         }
                     }
                 }
-        )
+        ))
     }
 }
 
 // MARK: - Preview
 #Preview {
     struct PreviewWrapper: View {
-        @State private var values: [Double] = [40, 60, 80, 50, 30]
+        @State private var values: [Double] = [0, 20, 40, 60, 40, 20, 0]
+        @State private var times: [Double] = [7, 9.5, 12, 14.5, 17, 19.5, 22]
 
         var body: some View {
             ZStack {
                 Color.black.ignoresSafeArea()
 
-                VStack(spacing: 20) {
-                    TimeSlotCurveChart(values: $values, range: 0...100, label: "Mood Throughout Day")
+                VStack(spacing: 40) {
+                    TimeSlotCurveChart(values: $values, times: $times, range: -100...100, label: "Mood")
                         .padding(.horizontal, 24)
 
-                    Spacer()
-
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Values: \(values.map { Int($0) }.description)")
-                            .font(.caption)
-                            .foregroundColor(.white.opacity(0.7))
-
-                        Text("Tip: Drag endpoints left/right to set awake hours")
-                            .font(.caption)
-                            .foregroundColor(.white.opacity(0.5))
-                    }
-                    .padding()
+                    TimeSlotCurveChart(values: $values, times: $times, range: 0...100, label: "Energy")
+                        .padding(.horizontal, 24)
                 }
             }
         }

@@ -3,6 +3,7 @@
 //  PIP_Project
 //
 //  HomeView's ViewModel: Data management and business logic
+//  Refactored for Human World Model Schema ($P(O, o, s, a, w)$)
 //
 
 import Foundation
@@ -24,33 +25,27 @@ class HomeViewModel: ObservableObject {
     private var hasFetchedGems = false
 
     // MARK: - Computed stats (derived from `dailyGems`)
-    /// Total number of unique days with gems (derived from `dailyGems`). Use set of startOfDay to avoid duplicates.
+    /// Total number of unique days with gems
     var totalGemsCreated: Int {
         let calendar = Calendar.current
         let days = Set(dailyGems.map { calendar.startOfDay(for: $0.date) })
         return days.count
     }
 
-    /// Current streak calculated from dailyGems (Local Source of Truth for immediate UI update)
-    /// UserStats.streakDays is used as fallback; local calculation takes precedence for responsiveness
+    /// Current streak calculated from dailyGems
     var currentStreak: Int {
-        // dailyGems가 있으면 로컬에서 직접 계산 (즉시 반영)
         if !dailyGems.isEmpty {
             return calculateStreakFromGems()
         }
-        // fallback: UserStats에서 가져오기
         return userStats?.streakDays ?? 0
     }
 
-    /// dailyGems 배열에서 오늘부터 역순으로 연속 streak 계산
+    /// Calculate Streak locally
     private func calculateStreakFromGems() -> Int {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
-
-        // dailyGems의 날짜들을 Set으로 변환 (빠른 조회)
         let gemDates = Set(dailyGems.map { calendar.startOfDay(for: $0.date) })
 
-        // 오늘부터 역순으로 연속 날짜 카운트
         var streak = 0
         var checkDate = today
 
@@ -59,9 +54,9 @@ class HomeViewModel: ObservableObject {
             guard let prev = calendar.date(byAdding: .day, value: -1, to: checkDate) else { break }
             checkDate = prev
         }
-
         return streak
-    }    
+    }
+    
     // MARK: - Dependencies
     let dataService: DataServiceProtocol
     var cancellables = Set<AnyCancellable>()
@@ -75,23 +70,18 @@ class HomeViewModel: ObservableObject {
 
     // MARK: - Initialization
     init(dataService: DataServiceProtocol? = nil) {
-        // Use injected service if provided, otherwise use currently active service from DataServiceManager
         self.dataService = dataService ?? DataServiceManager.shared.currentService
- 
-        // default name is nil until we fetch profile
         self.userName = nil
         
-        // Load data immediately (best effort)
         Task {
             await MainActor.run { [weak self] in
                 self?.loadInitialData()
             }
         }
  
-        // Setup robust date change detection
         setupDateChangeObservers()
  
-        // Listen for card save notifications to refresh today's gem
+        // Notification Name is now in DataModels.swift extension
         NotificationCenter.default.publisher(for: .didSaveCardData)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
@@ -100,7 +90,6 @@ class HomeViewModel: ObservableObject {
             }
             .store(in: &cancellables)
             
-        // Listen for Auth changes to reload data (Crucial for app restarts/reinstalls)
         authListenerHandle = Auth.auth().addStateDidChangeListener { [weak self] (auth: Auth, user: User?) in
             if let user = user {
                 print("👤 [HomeViewModel] User authenticated: \(user.uid). Reloading data.")
@@ -122,52 +111,51 @@ class HomeViewModel: ObservableObject {
     
     // MARK: - Public Methods
     
-    /// Setup observers for app lifecycle and time changes
     private func setupDateChangeObservers() {
-        // 1. App enters foreground
         NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
-                print("📱 [HomeViewModel] App entered foreground, checking day change...")
+                print("📱 [HomeViewModel] App entered foreground...")
                 self?.checkDayChange()
             }
             .store(in: &cancellables)
             
-        // 2. Significant time change (e.g. midnight, time zone change)
         NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
-                print("⏰ [HomeViewModel] Significant time change detected, checking day change...")
+                print("⏰ [HomeViewModel] Significant time change...")
                 self?.checkDayChange()
             }
             .store(in: &cancellables)
             
-        // 3. Periodic timer (every 60s) to catch midnight while app is active
-        // invalidate existing timer if any
         dayCheckTimer?.invalidate()
         dayCheckTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
             self?.checkDayChange()
         }
     }
     
-    /// Check if the day has changed since the last refresh.
-    /// If so, reloads the data.
+    /// Check if day changed
     private func checkDayChange() {
-        let calendar = Calendar.current
-        let now = Date()
+        // Since this method touches @Published props or calls MainActor methods, it must be on MainActor.
+        // It is called from Timer/Notification which might not be main, but `sink` handles main dispatch.
+        // For Timer, we need to be careful. But strictly, checkDayChange is just logic.
+        // `loadInitialData` is MainActor.
         
-        if !calendar.isDate(now, inSameDayAs: lastRefreshedDate) {
-            print("📆 [HomeViewModel] Day changed from \(lastRefreshedDate) to \(now). Reloading data.")
-            loadInitialData(showLoading: false) // Don't show full loading screen for seamless update
+        // Ensure isolation
+        Task { @MainActor [weak self] in
+            guard let self = self else { return }
+            let calendar = Calendar.current
+            let now = Date()
+            
+            if !calendar.isDate(now, inSameDayAs: self.lastRefreshedDate) {
+                print("📆 [HomeViewModel] Day changed. Reloading.")
+                self.loadInitialData(showLoading: false)
+            }
         }
     }
     
-    /// 초기 데이터 로드 (최근 30일)
     func loadInitialData(showLoading: Bool = true) {
-        print("📥 [HomeViewModel] loadInitialData(showLoading: \(showLoading)) called")
-        if showLoading {
-            isLoading = true
-        }
+        if showLoading { isLoading = true }
         errorMessage = nil
         
         let calendar = Calendar.current
@@ -177,28 +165,19 @@ class HomeViewModel: ObservableObject {
             return
         }
         
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        print("📥 [HomeViewModel] Fetching daily gems from \(formatter.string(from: startDate)) to \(formatter.string(from: endDate))")
-        
-        // Update lastRefreshedDate to now
         self.lastRefreshedDate = Date()
         
-        // DailyGems 로드
+        // Fetch Gems
         dataService.fetchDailyGems(from: startDate, to: endDate)
             .receive(on: DispatchQueue.main)
             .sink(
                 receiveCompletion: { [weak self] completion in
-                    if showLoading {
-                        self?.isLoading = false
-                    }
+                    if showLoading { self?.isLoading = false }
                     if case .failure(let error) = completion {
                         self?.errorMessage = error.localizedDescription
-                        print("❌ [HomeViewModel] Error fetching gems: \(error.localizedDescription)")
                     }
                 },
                 receiveValue: { [weak self] gems in
-                    print("✅ [HomeViewModel] Received \(gems.count) daily gems")
                     self?.dailyGems = gems
                     self?.hasFetchedGems = true
                     self?.updateLast7Days()
@@ -207,7 +186,7 @@ class HomeViewModel: ObservableObject {
             )
             .store(in: &cancellables)
         
-        // UserStats 로드
+        // Fetch UserStats
         dataService.fetchUserStats()
             .receive(on: DispatchQueue.main)
             .sink(
@@ -218,87 +197,55 @@ class HomeViewModel: ObservableObject {
                 },
                 receiveValue: { [weak self] stats in
                     self?.userStats = stats
-                    // Stats 로드 후, 현재 Gems 기반으로 동기화 필요 여부 확인
-                    if let self = self {
-                        self.syncStatsWithServer()
-                    }
+                    self?.syncStatsWithServer()
                 }
             )
             .store(in: &cancellables)
 
-        // UserProfile 로드 (displayName를 헤더에 사용)
+        // Fetch Profile
         dataService.fetchUserProfile()
             .receive(on: DispatchQueue.main)
             .sink(
-                receiveCompletion: { [weak self] completion in
-                    if case .failure(let error) = completion {
-                        print("❌ [HomeViewModel] Failed to fetch user profile: \(error.localizedDescription)")
-                    }
-                },
+                receiveCompletion: { _ in },
                 receiveValue: { [weak self] profile in
-                    // prefer explicit displayName, fallback to existing userName or 'User'
                     let name = profile.displayName ?? self?.userName ?? "User"
                     self?.userName = name
-                    print("✅ [HomeViewModel] Fetched user profile, displayName: \(name)")
                 }
             )
             .store(in: &cancellables)
     }
     
-    /// 서버와 로컬 통계 동기화
-    /// dailyGems(로컬 계산)와 fetch된 UserStats가 다르면 업데이트
     private func syncStatsWithServer() {
-        guard let currentStats = userStats else { return }
-        guard hasFetchedGems else {
-            print("⏳ [HomeViewModel] Skipping stats sync: Gems not yet fetched")
-            return
-        }
+        guard let currentStats = userStats, hasFetchedGems else { return }
         
         let calculatedStreak = calculateStreakFromGems()
-        let calculatedTotalGems = totalGemsCreated // Computed property usage
+        let calculatedTotalGems = totalGemsCreated
         
-        // 변경 사항이 있는지 확인
         if currentStats.streakDays != calculatedStreak || currentStats.totalGems != calculatedTotalGems {
-            print("🔄 [HomeViewModel] Syncing stats with server...")
-            print("   L Streak: \(currentStats.streakDays) -> \(calculatedStreak)")
-            print("   L Total: \(currentStats.totalGems) -> \(calculatedTotalGems)")
-            
             var newStats = currentStats
             newStats.streakDays = calculatedStreak
             newStats.totalGems = calculatedTotalGems
-            newStats.lastRecordedAt = Date() // 업데이트 시점 갱신
-            // updated_at은 DataService나 서버에서 처리하는게 좋지만, 여기서 명시적으로 변경 가능
-             newStats.updatedAt = Date()
+            newStats.lastRecordedAt = Date()
+            newStats.updatedAt = Date()
             
-            // Optimistic update
             self.userStats = newStats
             
             dataService.updateUserStats(newStats)
                 .receive(on: DispatchQueue.main)
                 .sink(
-                    receiveCompletion: { completion in
-                        if case .failure(let error) = completion {
-                            print("❌ [HomeViewModel] Failed to sync stats: \(error)")
-                            // 실패 시 롤백 로직이 필요할 수 있으나, 다음 fetch에서 보정되므로 생략
-                        }
-                    },
-                    receiveValue: { updatedStats in
-                        print("✅ [HomeViewModel] Stats synced successfully")
+                    receiveCompletion: { _ in },
+                    receiveValue: { _ in
                         NotificationCenter.default.post(name: .didSaveCardData, object: nil)
                     }
                 )
                 .store(in: &cancellables)
-        } else {
-            print("✅ [HomeViewModel] Stats are in sync")
         }
     }
     
-    /// 특정 날짜의 데이터 포인트 로드
     func loadDataPoints(for date: Date) -> AnyPublisher<[TimeSeriesDataPoint], Error> {
         return dataService.fetchDataPoints(for: date)
     }
     
-    /// 새 데이터 포인트 저장
     func saveDataPoint(_ dataPoint: TimeSeriesDataPoint) {
         dataService.saveDataPoint(dataPoint)
             .receive(on: DispatchQueue.main)
@@ -307,7 +254,6 @@ class HomeViewModel: ObservableObject {
                     if case .failure(let error) = completion {
                         self?.errorMessage = error.localizedDescription
                     } else {
-                        // 저장 성공 시 데이터 새로고침 및 노티피케이션 발송
                         self?.loadInitialData()
                         NotificationCenter.default.post(name: .didSaveCardData, object: nil)
                     }
@@ -317,43 +263,23 @@ class HomeViewModel: ObservableObject {
             .store(in: &cancellables)
     }
     
-    /// 오늘의 Gem 가져오기
     func getTodayGem() -> DailyGem? {
         let today = Calendar.current.startOfDay(for: Date())
-        return dailyGems.first { gem in
-            Calendar.current.isDate(gem.date, inSameDayAs: today)
-        }
+        return dailyGems.first { Calendar.current.isDate($0.date, inSameDayAs: today) }
     }
     
-    /// last7Days 업데이트 (과거 6일 + 오늘 = 7개)
     private func updateLast7Days() {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
         
         var gemRecords: [GemRecord] = []
         
-        print("📅 [HomeViewModel.updateLast7Days] Processing dailyGems: \(dailyGems.count) total gems")
-        print("📅 [HomeViewModel.updateLast7Days] Today's date: \(today)")
-        
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        
-        // 과거 6일 + 오늘 = 7일
-        for i in (0...6).reversed() {
+        for i in (0...6).reversed() { // 6 days ago ... today
             let date = calendar.date(byAdding: .day, value: -i, to: today) ?? Date()
+            let dailyGem = dailyGems.first { calendar.isDate($0.date, inSameDayAs: date) }
+            let gemIndex = 7 - i
             
-            // dailyGems에서 해당 날짜의 gem을 찾기
-            let dailyGem = dailyGems.first { gem in
-                calendar.isDate(gem.date, inSameDayAs: date)
-            }
-            
-            let dateStr = formatter.string(from: date)
-            let gemIndex = 7 - i  // 오늘: 7, 1일전: 6, 2일전: 5, ..., 6일전: 1 ✨
-            
-            // 오늘(i=0)은 데이터 유무 상관없이 항상 생성
-            // 과거(i>0)는 데이터가 있을 때만 생성
-            if i == 0 {
-                // 오늘: 무조건 생성 (데이터 유무에 따라 isCompleted 결정)
+            if i == 0 { // Today
                 let isCompleted = dailyGem != nil
                 let gemRecord = GemRecord(
                     id: UUID(),
@@ -363,9 +289,7 @@ class HomeViewModel: ObservableObject {
                     dataPointIds: dailyGem?.dataPointIds ?? []
                 )
                 gemRecords.append(gemRecord)
-                print("📅 [HomeViewModel.updateLast7Days] \(dateStr): Today's gem created (isCompleted=\(isCompleted))")
             } else if let dailyGem = dailyGem {
-                // 과거: 데이터가 있을 때만 생성
                 let gemRecord = GemRecord(
                     id: UUID(),
                     date: date,
@@ -374,71 +298,29 @@ class HomeViewModel: ObservableObject {
                     dataPointIds: dailyGem.dataPointIds
                 )
                 gemRecords.append(gemRecord)
-                print("📅 [HomeViewModel.updateLast7Days] \(dateStr): Created gem with \(dailyGem.dataPointIds.count) dataPoints")
-            } else {
-                print("📅 [HomeViewModel.updateLast7Days] \(dateStr): No data, skipping")
             }
         }
-        
         self.last7Days = gemRecords
-        print("✅ [HomeViewModel.updateLast7Days] Updated last7Days: \(gemRecords.count) records")
-        print("🔥 [HomeViewModel] Current streak: \(currentStreak)")
     }
 
-
-    
-    /// 특정 날짜의 데이터 포인트 가져오기
     func fetchDataPoints(for date: Date) -> AnyPublisher<[TimeSeriesDataPoint], Error> {
         return dataService.fetchDataPoints(for: date)
     }
 
-    
     // MARK: - Icon Name Mapping
-    
-    /// 데이터 항목명에 해당하는 아이콘 이름을 반환합니다.
-    /// Assets에 있는 아이콘 이름과 자동으로 매핑합니다.
     private func iconNameFor(_ schemaName: String) -> String {
-        let lowerName = schemaName.lowercased()
-        
-        // Assets에 실제 존재하는 아이콘 매핑 (02_Insight/00_Insights_icons/)
-        let mappings: [String: String] = [
+        // Simple mapping based on known keys
+        let mapping: [String: String] = [
             "mood": "Icon_mood",
-            "stress": "Icon_stress",
             "energy": "Icon_energy",
             "focus": "Icon_focus",
-            "productivity": "Icon_productivity",
-            "social": "Icon_social_activity",
-            "socialactivity": "Icon_social_activity",
-            "distraction": "Icon_digital_distraction",
-            "digitaldistraction": "Icon_digital_distraction",
-            "exploration": "Icon_exploration",
-            "sleep": "Icon_sleep",
-            "sleepscore": "Icon_sleep",
-            "fatigue": "Icon_fatigue",
-            "activity": "Icon_activity",
-            "activitylevel": "Icon_activity",
-            "nutrition": "Icon_nutrition"
+            "fulfillment": "Icon_activity" // Fallback/Close match
         ]
-        
-        // First look in mapping table
-        if let mapped = mappings[lowerName] {
-            return mapped
-        }
-        
-        // 공백 제거 후 다시 시도
-        let normalizedName = schemaName.replacingOccurrences(of: " ", with: "").lowercased()
-        if let mapped = mappings[normalizedName] {
-            return mapped
-        }
-        
-        // Default: Try Icon_${name} format
-        return "Icon_\(lowerName.replacingOccurrences(of: " ", with: "_").capitalized)"
+        return mapping[schemaName] ?? "Icon_activity"
     }
 
-    // MARK: - Chart Data Generation
-
+    // MARK: - Chart Data Generation (Updated for Human World Model)
     func createRadarChartDataSets(for date: Date, completion: @escaping (Result<[RadarChartDataSet], Error>) -> Void) {
-        // 1. Fetch the data points for the day
         dataService.fetchDataPoints(for: date)
             .sink(
                 receiveCompletion: { result in
@@ -447,84 +329,56 @@ class HomeViewModel: ObservableObject {
                     }
                 },
                 receiveValue: { dataPoints in
-                    guard let dataPoint = dataPoints.first else {
-                        let error = NSError(domain: "HomeViewModel", code: 404, userInfo: [NSLocalizedDescriptionKey: "No data point found for the selected date."])
+                    // Aggregation Strategy: Average the values for the day
+                    guard !dataPoints.isEmpty else {
+                        let error = NSError(domain: "HomeViewModel", code: 404, userInfo: [NSLocalizedDescriptionKey: "No data."])
                         completion(.failure(error))
                         return
                     }
-
-                    print("📊 [HomeViewModel] Processing dataPoint: \(dataPoint.id)")
-                    print("   → Category: \(dataPoint.category?.rawValue ?? "nil")")
-                    print("   → Values keys: \(dataPoint.values.keys.joined(separator: ", "))")
-
-                    var dataSets: [RadarChartDataSet] = []
-                    let categories: [(category: DataCategory, categoryKey: String, color: Color)] = [
-                        (.mind, "mind", .red),
-                        (.behavior, "behavior", .blue),
-                        (.physical, "physical", .orange)
-                    ]
-
-                    // 2. Process data for each category
-                    // 데이터 구조: { "mind": { "stress": 50, ... }, "behavior": { ... } }
-                    for (category, categoryKey, color) in categories {
-                        let schemas = self.dataService.getSchemas(for: category)
-                        var chartDataItems: [RadarChartDataItem] = []
-
-                        // 카테고리별 중첩 데이터 추출
-                        var categoryValues: [String: DataValue] = [:]
-
-                        // Case 1: 중첩 구조 (dailyLog 형식)
-                        if case .object(let nestedValues) = dataPoint.values[categoryKey] {
-                            categoryValues = nestedValues
-                            print("   → Found nested \(categoryKey) with \(nestedValues.count) values")
-                        }
-                        // Case 2: 평탄화 구조 (레거시 또는 단일 카테고리)
-                        else {
-                            categoryValues = dataPoint.values
-                        }
-
-                        for schema in schemas {
-                            guard let dataValue = categoryValues[schema.name] else { continue }
-
-                            let rawValue: Double
-                            switch dataValue {
-                            case .double(let v): rawValue = v
-                            case .integer(let v): rawValue = Double(v)
-                            default: continue
-                            }
-
-                            // Normalize the value (assuming max is 100)
-                            let maxValue = schema.range?.max ?? 100.0
-                            let normalizedValue = rawValue / maxValue
-
-                            let displayValue = String(format: "%.0f", rawValue)
-                            let iconName = self.iconNameFor(schema.name)
-                            chartDataItems.append(
-                                RadarChartDataItem(iconName: iconName, value: normalizedValue, displayValue: displayValue)
-                            )
-                        }
-
-                        if !chartDataItems.isEmpty {
-                            let title: String
-                            switch category {
-                            case .mind: title = "Mind"
-                            case .behavior: title = "Behavior"
-                            case .physical: title = "Physical"
-                            default: title = "Data"
-                            }
-                            dataSets.append(
-                                RadarChartDataSet(title: title, data: chartDataItems, dataColor: color)
-                            )
-                            print("   ✅ Created \(title) chart with \(chartDataItems.count) items")
-                        }
+                    
+                    // Separate State (Mind/Energy) & Outcome (Focus/Fulfillment)
+                    var totalMood: Double = 0
+                    var totalEnergy: Double = 0
+                    var totalFocus: Double = 0
+                    var totalFulfillment: Double = 0
+                    let count = Double(dataPoints.count)
+                    
+                    for dp in dataPoints {
+                        // Normalize Mood (-100~100) -> 0~100 for Radar? Or keep strict mapping
+                        // Let's map Mood (-100~100) -> 0~100 (Valence + 100 / 2)
+                        let normalizedMood = (dp.state.mood + 100) / 2
+                        totalMood += normalizedMood
+                        totalEnergy += dp.state.energy
+                        
+                        totalFocus += dp.outcome.focusLevel
+                        // Fulfillment (1-5) -> 0~100
+                        totalFulfillment += Double(dp.optimality.fulfillment) * 20.0
                     }
-
-                    print("📊 [HomeViewModel] Total dataSets created: \(dataSets.count)")
-                    completion(.success(dataSets))
+                    
+                    // Averages
+                    let avgMood = totalMood / count
+                    let avgEnergy = totalEnergy / count
+                    let avgFocus = totalFocus / count
+                    let avgFulfillment = totalFulfillment / count
+                    
+                    // Create DataSets
+                    // 1. Mind Set (Mood, Energy)
+                    let mindItems = [
+                        RadarChartDataItem(iconName: "Icon_mood", value: avgMood, displayValue: String(format: "%.0f", avgMood)),
+                        RadarChartDataItem(iconName: "Icon_energy", value: avgEnergy, displayValue: String(format: "%.0f", avgEnergy))
+                    ]
+                    let mindSet = RadarChartDataSet(title: "Mind", data: mindItems, dataColor: .red) // Red/Pink
+                    
+                    // 2. Outcome Set (Focus, Fulfillment)
+                    let outcomeItems = [
+                        RadarChartDataItem(iconName: "Icon_focus", value: avgFocus, displayValue: String(format: "%.0f", avgFocus)),
+                        RadarChartDataItem(iconName: "Icon_activity", value: avgFulfillment, displayValue: String(format: "%.0f", avgFulfillment))
+                    ]
+                    let outcomeSet = RadarChartDataSet(title: "Outcome", data: outcomeItems, dataColor: .blue) // Blue/Teal
+                    
+                    completion(.success([mindSet, outcomeSet]))
                 }
             )
             .store(in: &self.cancellables)
     }
-
 }
-

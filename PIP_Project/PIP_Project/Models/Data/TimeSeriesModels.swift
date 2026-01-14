@@ -3,41 +3,142 @@
 //  PIP_Project
 //
 //  Time Series Data Models: 고차원 시계열 데이터 구조
-//  ML/AI 모델 입력으로 사용
+//  Human World Model (Active Inference Agent) Schema
 //
 
 import Foundation
 
+// MARK: - Enums & Nested Structures (Human World Model)
+
+// 1. World Context (w)
+// 1. World Context (w)
+struct WorldContext: Codable {
+    let weather: WeatherCondition
+    let location: LocationCategory
+    
+    // Time Context (Merged)
+    let dayPhase: DayPhase
+    let weekday: Int // 1=Sunday, 2=Monday, ...
+    let isHoliday: Bool
+    let timeZoneIdentifier: String
+}
+
+enum WeatherCondition: String, Codable {
+    case clear
+    case cloud
+    case rain
+    case snow
+    case atmosphere // fog, mist, etc.
+    case unknown
+}
+
+enum LocationCategory: String, Codable {
+    case home
+    case work
+    case thirdPlace // cafe, library
+    case transit
+    case outdoors
+    case unknown
+}
+
+enum DayPhase: String, Codable {
+    case deepNight // 00-05
+    case morning   // 05-12
+    case afternoon // 12-18
+    case night     // 18-24
+}
+
+// 2. Action / Intervention (a)
+// Using 'Identifiable' to support Lists in UI
+struct Intervention: Codable, Identifiable {
+    var id: UUID = UUID()
+    var type: ActivityType
+    var customLabel: String? // For "Other" type or custom overrides
+    var amount: Double // Intensity (0-100) or specific metric
+    var mindset: Mindset
+    
+    // CodingKeys to exclude 'id' if we don't want to persist it, or keep it.
+    // Usually convenient to keep it.
+}
+
+enum ActivityType: String, Codable, CaseIterable {
+    case work
+    case exercise
+    case rest
+    case sleep
+    case social
+    case hobby
+    case chore
+    case transit
+    case eat
+    case other
+}
+
+enum Mindset: String, Codable, CaseIterable {
+    case flow       // 몰입
+    case duty       // 의무/억지
+    case challenge  // 도전
+    case relax      // 이완/휴식
+    case passive    // 수동적/멍때림
+    case anxiety    // 불안/초조
+    case other      // 기타
+}
+
+// 3. Internal State (s)
+struct InternalState: Codable {
+    let mood: Double   // Valence: -100 (Negative) ~ 100 (Positive) (Average)
+    let energy: Double // Arousal: 0 (Low) ~ 100 (High) (Average)
+    
+    // Richer Data (7-point curve)
+    // Optional for backward compatibility, but ideally required for new format
+    let moodValues: [Double]?
+    let energyValues: [Double]?
+    
+    // Persisted Curve Control Times (Hours, e.g. [7.0, 9.5, ...])
+    // Shared for both mood and energy ideally, but stored here to persist configuration
+    let curveControlHours: [Double]?
+}
+
+// 4. Outcome (o)
+struct Outcome: Codable {
+    let focusLevel: Double    // 0 ~ 100
+    let detectedMotion: MotionType?
+}
+
+enum MotionType: String, Codable, CaseIterable {
+    case stationary
+    case walking
+    case running
+    case automotive
+    case cycling
+    case unknown
+}
+
+// 5. Optimality (O)
+struct Optimality: Codable {
+    let fulfillment: Double // 1.0 ~ 5.0 (Float precision)
+}
+
 // MARK: - Time Series Data Point
-/// 시계열 데이터 포인트 (익명화된 ID 사용)
+/// Human World Model 기반의 시계열 데이터 포인트
 /// Firestore의 anonymous_users/{anonymousUserId}/data_points/{dataPointId}에 저장
 struct TimeSeriesDataPoint: Identifiable, Codable {
     let id: UUID
-    var anonymousUserId: UUID         // ✅ 익명화된 ID만 사용
+    var anonymousUserId: UUID
     
     // 시계열 메타데이터
-    var timestamp: Date               // 정확한 시각
-    var date: Date                    // 날짜 (일자 기준)
+    var timestamp: Date
+    var date: Date // 날짜 (일자 기준)
     
-    // 데이터 값 (동적 구조)
-    var values: [String: DataValue]   // "mood": 75, "sleep_score": 80 등
+    // Causal Structure
+    var world: WorldContext
+    var actions: [Intervention]
+    var state: InternalState
+    var outcome: Outcome
+    var optimality: Optimality
     
-    // 데이터 소스 및 품질
-    var source: DataSource
-    var confidence: Double            // 0.0 ~ 1.0 (데이터 신뢰도)
-    var completeness: Double          // 0.0 ~ 1.0 (해당 시점의 데이터 완성도)
-    
-    // 메타데이터 (PII 제거된)
-    var notes: String?                // 사용자 메모 (PII 제거 로직 적용)
-    var tags: [String]                // 일반 태그만
-    var context: [String: String]?    // PII 없는 컨텍스트
-    var category: DataCategory?       // 데이터 카테고리 (메모 분류용)
-    
-    // ML/AI 관련
-    var features: [String: Double]?   // ML 모델용 추출된 특징값
-    var predictions: [String: Double]? // 예측값
-    var anomalies: [String]?          // 이상 징후
-    
+    // Meta & Utils
+    var notes: String?
     var createdAt: Date
     var updatedAt: Date
     
@@ -49,38 +150,31 @@ struct TimeSeriesDataPoint: Identifiable, Codable {
         id.uuidString
     }
     
-    // MARK: - Convenience Initializer
+    // Convenience Initializer
     init(
         id: UUID = UUID(),
-        timestamp: Date,
-        category: DataCategory? = nil,
-        values: [String: DataValue] = [:],
-        source: DataSource = .manual,
-        confidence: Double = 1.0,
-        completeness: Double = 1.0,
         anonymousUserId: UUID? = nil,
-        notes: String? = nil,
-        tags: [String] = [],
-        context: [String: String]? = nil
+        timestamp: Date = Date(),
+        world: WorldContext,
+        actions: [Intervention],
+        state: InternalState,
+        outcome: Outcome,
+        optimality: Optimality,
+        notes: String? = nil
     ) {
         let now = Date()
-        let calendar = Calendar.current
-        
         self.id = id
         self.anonymousUserId = anonymousUserId ?? UUID()
         self.timestamp = timestamp
-        self.date = calendar.startOfDay(for: timestamp)
-        self.values = values
-        self.source = source
-        self.confidence = confidence
-        self.completeness = completeness
+        self.date = Calendar.current.startOfDay(for: timestamp)
+        
+        self.world = world
+        self.actions = actions
+        self.state = state
+        self.outcome = outcome
+        self.optimality = optimality
+        
         self.notes = notes
-        self.tags = tags
-        self.context = context
-        self.category = category
-        self.features = nil
-        self.predictions = nil
-        self.anomalies = nil
         self.createdAt = now
         self.updatedAt = now
     }

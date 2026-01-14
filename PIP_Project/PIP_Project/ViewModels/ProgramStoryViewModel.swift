@@ -128,7 +128,7 @@ class ProgramStoryViewModel: ObservableObject {
 
         storyTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
             Task { @MainActor in
-                await self?.updateProgress()
+                self?.updateProgress()
             }
         }
     }

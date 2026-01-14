@@ -163,10 +163,10 @@ class FirebaseDataService: DataServiceProtocol {
             throw error
         }
 
-        // Create a new data point with the anonymous user ID and category
+        // Create a new data point with the anonymous user ID
         var updatedDataPoint = dataPoint
         updatedDataPoint.anonymousUserId = anonymousUserId
-        updatedDataPoint.category = category
+        // Category is no longer used in the new schema
 
         print("   → Saving document: \(updatedDataPoint.id)")
 

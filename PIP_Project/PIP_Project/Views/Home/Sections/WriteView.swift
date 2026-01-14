@@ -86,6 +86,9 @@ struct WriteView: View {
     
     // MARK: - Helpers
     private func setupCards() {
+        // DB에서 오늘 데이터가 있는지 확인하고 로드 (Draft가 없으면)
+        viewModel.checkAndLoadTodayData()
+
         // 로컬 캐시 존재 여부: accumulatedValues에 실제 데이터가 있는지 확인
         // cachedInputs는 기본값으로 채워질 수 있으므로, accumulatedValues를 기준으로 판단
         let hasRealData = viewModel.hasAccumulatedData()
@@ -150,19 +153,27 @@ struct WriteView: View {
                     case .slider(let key, _, _, let defaultValue): dict[key] = defaultValue
                     case .toggle(let key, _, let defaultValue): dict[key] = defaultValue
                     case .picker(let key, _, _, let selectedIndex): dict[key] = selectedIndex
-                    case .timeSlotChart(let key, _, _, let defaultValues): dict[key] = defaultValues
+                    case .timeSlotChart(let key, _, _, let defaultValues, let defaultTimes): 
+                        dict[key] = defaultValues
+                        dict["\(key)_times"] = defaultTimes
+                    case .activityList(let key, _, _): dict[key] = []
                     }
                 }
                 return dict
             }
             // 캐시 초기화
             viewModel.cachedInputs = self.cardInputs
-            viewModel.saveCachedInputs()
+            // viewModel.saveCachedInputs() // REMOVED: Prevent poisoning cache with defaults
             print("WriteView: Initialized default inputs for \(remainingCards.count) cards")
         }
 
         // 저장된 노트 복원
-        self.textInputs = remainingCards.map { viewModel.getNotes(for: $0) }
+        if viewModel.cachedTextInputs.count == remainingCards.count && !viewModel.cachedTextInputs.isEmpty {
+            self.textInputs = viewModel.cachedTextInputs
+            print("WriteView: Loaded cached text inputs")
+        } else {
+             self.textInputs = remainingCards.map { viewModel.getNotes(for: $0) }
+        }
     }
 
     private func bindingForInputs(at index: Int) -> Binding<[String: Any]> {
@@ -173,8 +184,64 @@ struct WriteView: View {
             },
             set: { new in
                 guard index < cardInputs.count else { return }
-                cardInputs[index] = new
-                viewModel.updateLocalCache(inputs: new, for: index)
+                
+                var finalInputs = new
+                let oldInputs = cardInputs[index]
+                
+                // Sync Logic for State Card (Mood & Energy Times)
+                if cards.indices.contains(index), cards[index].type == .state {
+                    let moodTimesKey = "mood_times"
+                    let energyTimesKey = "energy_times"
+                    
+                    let newMoodTimes = finalInputs[moodTimesKey] as? [Double]
+                    let oldMoodTimes = oldInputs[moodTimesKey] as? [Double]
+                    
+                    let newEnergyTimes = finalInputs[energyTimesKey] as? [Double]
+                    let oldEnergyTimes = oldInputs[energyTimesKey] as? [Double]
+                    
+                    // Sync Mood -> Energy (Start/End only)
+                    if let nm = newMoodTimes, let om = oldMoodTimes, var ne = newEnergyTimes, !nm.isEmpty, !om.isEmpty, !ne.isEmpty {
+                        var changed = false
+                        // Sync Start
+                        if nm.first != om.first {
+                            ne[0] = nm[0]
+                            changed = true
+                        }
+                        // Sync End
+                        if nm.last != om.last {
+                            ne[ne.count - 1] = nm[nm.count - 1]
+                            changed = true
+                        }
+                        
+                        if changed {
+                            finalInputs[energyTimesKey] = ne
+                            print("WriteView: Synced Energy start/end times to Mood")
+                        }
+                    }
+                    
+                    // Sync Energy -> Mood (Start/End only)
+                    if let ne = newEnergyTimes, let oe = oldEnergyTimes, var nm = newMoodTimes, !ne.isEmpty, !oe.isEmpty, !nm.isEmpty {
+                        var changed = false
+                        // Sync Start
+                        if ne.first != oe.first {
+                            nm[0] = ne[0]
+                            changed = true
+                        }
+                        // Sync End
+                        if ne.last != oe.last {
+                            nm[nm.count - 1] = ne[ne.count - 1]
+                            changed = true
+                        }
+                        
+                        if changed {
+                            finalInputs[moodTimesKey] = nm
+                            print("WriteView: Synced Mood start/end times to Energy")
+                        }
+                    }
+                }
+                
+                cardInputs[index] = finalInputs
+                viewModel.updateLocalCache(inputs: finalInputs, for: index)
                 print("WriteView: Updated inputs for card \(index)")
             }
         )
@@ -183,7 +250,11 @@ struct WriteView: View {
     private func bindingForText(at index: Int) -> Binding<String> {
         Binding(
             get: { guard index < textInputs.count else { return "" }; return textInputs[index] },
-            set: { new in guard index < textInputs.count else { return }; textInputs[index] = new }
+            set: { new in 
+                guard index < textInputs.count else { return }
+                textInputs[index] = new 
+                viewModel.updateLocalTextCache(text: new, for: index)
+            }
         )
     }
 
@@ -194,7 +265,10 @@ struct WriteView: View {
             case .slider(let key, _, _, let defaultValue): dict[key] = defaultValue
             case .toggle(let key, _, let defaultValue): dict[key] = defaultValue
             case .picker(let key, _, _, let selectedIndex): dict[key] = selectedIndex
-            case .timeSlotChart(let key, _, _, let defaultValues): dict[key] = defaultValues
+            case .timeSlotChart(let key, _, _, let defaultValues, let defaultTimes): 
+                dict[key] = defaultValues
+                dict["\(key)_times"] = defaultTimes
+            case .activityList(let key, _, _): dict[key] = []
             }
         }
         return dict

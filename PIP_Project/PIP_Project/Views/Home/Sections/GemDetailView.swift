@@ -245,25 +245,16 @@ struct GemDetailView: View {
     private func extractCategoryNotes(from dataPoint: TimeSeriesDataPoint) {
         var notes: [String: String] = [:]
 
-        // 카테고리별로 중첩된 구조에서 notes 추출
-        // 구조: { "mind": { "notes": "...", ... }, "behavior": { "notes": "...", ... } }
-        let categories = ["mind", "behavior", "physical"]
-
-        for category in categories {
-            if case .object(let categoryValues) = dataPoint.values[category],
-               case .string(let noteText) = categoryValues["notes"] {
-                notes[category] = noteText
-            }
-        }
-
-        // 레거시 호환: 전체 notes 필드가 있고 카테고리별 노트가 없는 경우
-        if notes.isEmpty, let legacyNotes = dataPoint.notes, !legacyNotes.isEmpty {
-            // 전체 노트를 첫 번째 탭에 표시
-            notes["mind"] = legacyNotes
+        // New Schema: Unified notes field
+        if let unifiedNotes = dataPoint.notes, !unifiedNotes.isEmpty {
+            // Assign unified notes to "Mind" tab as primary, or handle as general
+            notes["mind"] = unifiedNotes
+            // Alternatively, if we wanted to support multiple notes, we'd need a richer schema
+            // For now, this ensures the notes are visible.
         }
 
         self.categoryNotes = notes
-        print("📝 [GemDetailView] Extracted notes for categories: \(notes.keys.joined(separator: ", "))")
+        print("📝 [GemDetailView] Extracted notes: \(notes.keys.joined(separator: ", "))")
     }
 
     private func formatDate(_ date: Date) -> String {
