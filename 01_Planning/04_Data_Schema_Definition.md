@@ -17,12 +17,12 @@ graph LR
     subgraph T["Time t"]
         direction TB
         s_t["State s_t<br>(Mood/Energy)"]
+        a_t["Action a_t<br>(Intervention)"]
     end
     
     subgraph T1["Time t+1"]
         direction TB
         w_t1["World w_t+1<br>(Weather/Time)"]
-        a_t["Action a_t<br>(Intervention)"]
         s_t1["State s_t+1"]
         o_t1["Observation o_t+1<br>(Focus/Motion)"]
         O_t1["Optimality O_t+1<br>(Fulfillment)"]
