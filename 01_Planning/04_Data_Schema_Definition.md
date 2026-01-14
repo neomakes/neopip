@@ -15,14 +15,14 @@
 ```mermaid
 graph TD
     %% Nodes
-    w_t[World Context w_t<br>(Weather/Time)] --> s_t[State s_t<br>(Mood/Energy)]
-    w_t --> s_t1[State s_t+1]
+    w_t["World Context w_t<br>(Weather/Time)"] --> s_t["State s_t<br>(Mood/Energy)"]
+    w_t --> s_t1["State s_t+1"]
     
     s_t --> s_t1
     
-    a_t[Action a_t<br>(Intervention)] --> s_t1
-    a_t --> o_t1[Observation o_t+1<br>(Focus/Motion)]
-    a_t --> O_t1[Optimality O_t+1<br>(Fulfillment)]
+    a_t["Action a_t<br>(Intervention)"] --> s_t1
+    a_t --> o_t1["Observation o_t+1<br>(Focus/Motion)"]
+    a_t --> O_t1["Optimality O_t+1<br>(Fulfillment)"]
 
     s_t1 --> o_t1
     s_t1 --> O_t1
