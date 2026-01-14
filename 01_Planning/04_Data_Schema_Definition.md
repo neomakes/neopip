@@ -75,7 +75,7 @@ graph LR
 사용자의 시계열 궤적 $\tau = (s_{0:T}, a_{0:T}, o_{0:T}, O_{0:T}, w_{0:T})$에 대한 결합 확률 (Factorization):
 
 $$
-P(\tau) = \underbrace{P(s_0)}_{\text{Prior}} \prod_{t=0}^{T} \left[ 
+P(\tau) = \underbrace{P(s_0 | w_0)}_{\text{Prior}} \prod_{t=0}^{T} \left[ 
 \underbrace{P(w_t)}_{\text{Exogenous}} \cdot
 \underbrace{P(a_t | s_t, w_t)}_{\text{Policy}} \cdot
 \underbrace{P(o_t | s_t, a_t)}_{\text{Emission}} \cdot
