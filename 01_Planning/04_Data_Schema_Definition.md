@@ -13,23 +13,28 @@
 ### 1.1. Causal Graph (DAG)
 
 graph LR
-    subgraph T["Time t"]
+    subgraph T["Time t (Today)"]
         direction TB
         w_t("World w_t")
-        s_t("State s_t<br>(Mood/Energy)")
-        a_t("Action a_t<br>(Intervention)")
+        s_t("State s_t<br>(Start)")
+        a_t("Action a_t<br>(Process)")
+        o_t("Observation o_t<br>(Result)")
+        O_t("Optimality O_t<br>(Review)")
         
-        %% Policy Dependency inside Time t
+        %% Intra-slice Dependencies
         w_t --> a_t
         s_t --> a_t
+        a_t --> o_t
+        s_t --> o_t
+        a_t --> O_t
+        s_t --> O_t
+        o_t --> O_t
     end
     
-    subgraph T1["Time t+1"]
+    subgraph T1["Time t+1 (Tomorrow)"]
         direction TB
         w_t1("World w_t+1")
         s_t1("State s_t+1")
-        o_t1("Observation o_t+1<br>(Focus/Motion)")
-        O_t1("Optimality O_t+1<br>(Fulfillment)")
     end
 
     %% Time Transition
@@ -37,53 +42,45 @@ graph LR
     a_t --> s_t1
     w_t1 --> s_t1
 
-    %% Emission & Evaluation at t+1
-    s_t1 --> o_t1
-    a_t --> o_t1
-
-    s_t1 --> O_t1
-    o_t1 --> O_t1
-    a_t --> O_t1
-
     %% Styling
     classDef observable fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
     classDef latent fill:#fff3e0,stroke:#ff6f00,stroke-width:2px;
     classDef optimality fill:#fce4ec,stroke:#880e4f,stroke-width:2px;
 
-    class w_t,w_t1,a_t,o_t1 observable;
+    class w_t,w_t1,a_t,o_t observable;
     class s_t,s_t1 latent;
-    class O_t1 optimality;
+    class O_t optimality;
 
 ### 1.2. Generative Distribution
-모델은 다음 네 가지 핵심 확률 과정을 학습합니다.
+모델은 다음 네 가지 핵심 확률 과정을 학습합니다. (Daily Log Model)
 
-1.  **Policy (행동 선택 - Active Inference)**: 현재 상태와 환경에 따른 최적 행동의 선택
+1.  **Policy (행동 선택)**: 오늘 상태와 환경에 따른 행동 선택
     $$P(a_t | s_t, w_t)$$
-    > *"피곤한($s$) 밤($w$)에는 휴식($a$)을 취하는 것이 최적이다."*
+    > *"피곤한($s_t$) 밤($w_t$)에는 휴식($a_t$)을 취한다."*
 
-2.  **State Transition (상태 전이)**: 외부 환경과 행동에 따른 내적 상태의 변화
+2.  **Observation Emission (하루 결과)**: 시작 상태와 행동에 따른 오늘 결과
+    $$P(o_t | s_t, a_t)$$
+    > *"에너지가 적었지만($s_t$) 노력해서($a_t$) 성과($o_t$)를 냈다."*
+
+3.  **Value Judgment (가치 평가)**: 오늘의 경험에 대한 최종 만족도
+    $$P(O_t | s_t, o_t, a_t)$$
+    > *"힘들었지만($s_t$) 성과($o_t$)가 좋아 보람찼다($O_t$)."*
+
+4.  **State Transition (내일 상태)**: 오늘 활동이 내일 상태에 미치는 영향
     $$P(s_{t+1} | s_t, a_t, w_{t+1})$$
-    > *"비 오는 날($w$), 밤샘 업무($a$)를 하면 내일 에너지가 고갈($s$)된다."*
-
-3.  **Observation Emission (관측 생성)**: 상태와 행동에 따른 결과 관측
-    $$P(o_{t+1} | s_{t+1}, a_t)$$
-    > *"에너지가 낮아도($s$), 도전적 태도($a$)라면 몰입($o$)할 수 있다."*
-
-4.  **Value Judgment (가치 평가)**: 상태와 결과에 대한 최종 가치 판단
-    $$P(O_{t+1} | s_{t+1}, o_{t+1}, a_t)$$
-    > *"몸은 힘들었지만($s$), 성과가 좋아서($o$) 보람찼다($O$)."*
+    > *"오늘 무리했더니($a_t$) 내일은($t+1$) 방전됐다($s_{t+1}$)."*
 
 ### 1.3. Joint Probability of a Trajectory
 
-사용자의 시계열 궤적 $\tau = (s_{0:T}, a_{0:T-1}, o_{1:T}, O_{1:T}, w_{0:T})$에 대한 결합 확률은 다음과 같이 인수분해됩니다. 이는 모델이 최소화해야 할 **Free Energy**의 기초가 됩니다.
+사용자의 시계열 궤적 $\tau = (s_{0:T}, a_{0:T}, o_{0:T}, O_{0:T}, w_{0:T})$에 대한 결합 확률 (Factorization):
 
 $$
-P(\tau) = \underbrace{P(s_0)}_{\text{Prior}} \prod_{t=0}^{T-1} \left[ 
-\underbrace{P(w_{t+1})}_{\text{Exogenous}} \cdot
+P(\tau) = \underbrace{P(s_0)}_{\text{Prior}} \prod_{t=0}^{T} \left[ 
+\underbrace{P(w_t)}_{\text{Exogenous}} \cdot
 \underbrace{P(a_t | s_t, w_t)}_{\text{Policy}} \cdot
-\underbrace{P(s_{t+1} | s_t, a_t, w_{t+1})}_{\text{Transition}} \cdot
-\underbrace{P(o_{t+1} | s_{t+1}, a_t)}_{\text{Emission}} \cdot
-\underbrace{P(O_{t+1} | s_{t+1}, o_{t+1}, a_t)}_{\text{Evaluation}}
+\underbrace{P(o_t | s_t, a_t)}_{\text{Emission}} \cdot
+\underbrace{P(O_t | s_t, o_t, a_t)}_{\text{Evaluation}} \cdot
+\underbrace{P(s_{t+1} | s_t, a_t, w_{t+1})}_{\text{Transition}}
 \right]
 $$
 
