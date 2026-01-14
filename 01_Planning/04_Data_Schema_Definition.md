@@ -13,40 +13,34 @@
 ### 1.1. Causal Graph (DAG)
 
 graph LR
-    %% Nodes
     subgraph T["Time t"]
         direction TB
-        w_t["World w_t"]
-        s_t["State s_t<br>(Mood/Energy)"]
-        a_t["Action a_t<br>(Intervention)"]
+        w_t("World w_t")
+        s_t("State s_t<br>(Mood/Energy)")
+        a_t("Action a_t<br>(Intervention)")
         
-        %% Policy: P(a_t | s_t, w_t)
+        %% Policy Dependency inside Time t
         w_t --> a_t
         s_t --> a_t
     end
     
     subgraph T1["Time t+1"]
         direction TB
-        w_t1["World w_t+1<br>(Weather/Time)"]
-        s_t1["State s_t+1"]
-        o_t1["Observation o_t+1<br>(Focus/Motion)"]
-        O_t1["Optimality O_t+1<br>(Fulfillment)"]
+        w_t1("World w_t+1")
+        s_t1("State s_t+1")
+        o_t1("Observation o_t+1<br>(Focus/Motion)")
+        O_t1("Optimality O_t+1<br>(Fulfillment)")
     end
 
-    %% Policy: P(a_t | s_t, w_t)
-    w_t --> a_t
-    s_t --> a_t
-
-    %% Transition Dynamics: P(s_t+1 | s_t, a_t, w_t+1)
+    %% Time Transition
     s_t --> s_t1
     a_t --> s_t1
     w_t1 --> s_t1
 
-    %% Emission: P(o_t+1 | s_t+1, a_t)
+    %% Emission & Evaluation at t+1
     s_t1 --> o_t1
     a_t --> o_t1
 
-    %% Evaluation: P(O_t+1 | s_t+1, o_t+1, a_t)
     s_t1 --> O_t1
     o_t1 --> O_t1
     a_t --> O_t1
