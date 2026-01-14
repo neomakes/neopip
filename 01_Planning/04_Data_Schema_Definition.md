@@ -12,32 +12,44 @@
 
 ### 1.1. Causal Graph (DAG)
 
-```mermaid
-graph TD
+graph LR
     %% Nodes
-    w_t["World Context w_t<br>(Weather/Time)"] --> s_t["State s_t<br>(Mood/Energy)"]
-    w_t --> s_t1["State s_t+1"]
+    subgraph T["Time t"]
+        direction TB
+        s_t["State s_t<br>(Mood/Energy)"]
+    end
     
-    s_t --> s_t1
-    
-    a_t["Action a_t<br>(Intervention)"] --> s_t1
-    a_t --> o_t1["Observation o_t+1<br>(Focus/Motion)"]
-    a_t --> O_t1["Optimality O_t+1<br>(Fulfillment)"]
+    subgraph T1["Time t+1"]
+        direction TB
+        w_t1["World w_t+1<br>(Weather/Time)"]
+        a_t["Action a_t<br>(Intervention)"]
+        s_t1["State s_t+1"]
+        o_t1["Observation o_t+1<br>(Focus/Motion)"]
+        O_t1["Optimality O_t+1<br>(Fulfillment)"]
+    end
 
+    %% Transition Dynamics: P(s_t+1 | s_t, a_t, w_t+1)
+    s_t --> s_t1
+    a_t --> s_t1
+    w_t1 --> s_t1
+
+    %% Emission: P(o_t+1 | s_t+1, a_t)
     s_t1 --> o_t1
+    a_t --> o_t1
+
+    %% Evaluation: P(O_t+1 | s_t+1, o_t+1, a_t)
     s_t1 --> O_t1
-    
     o_t1 --> O_t1
+    a_t --> O_t1
 
     %% Styling
     classDef observable fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
     classDef latent fill:#fff3e0,stroke:#ff6f00,stroke-width:2px;
     classDef optimality fill:#fce4ec,stroke:#880e4f,stroke-width:2px;
 
-    class w_t,a_t,o_t1 observable;
+    class w_t1,a_t,o_t1 observable;
     class s_t,s_t1 latent;
     class O_t1 optimality;
-```
 
 ### 1.2. Generative Distribution
 모델은 다음 세 가지 핵심 확률 과정을 학습합니다.
