@@ -129,6 +129,7 @@ PIP 앱은 **MVVM (Model-View-ViewModel)** 패턴을 따릅니다.
 -   [**`02_Static_Architecture.md`**](./02_Static_Architecture.md): DB 모델, 온보딩 플로우, View/ViewModel 설계 및 구현 현황 (v1.1)
 -   [**`03_Dynamic_Implementation.md`**](./03_Dynamic_Implementation.md): Firebase 연동 진행 상황, 마일스톤, 다음 작업 우선순위 (v1.2)
 -   [**`DATABASE_SCHEMA_DBDIAGRAM.sql`**](./DATABASE_SCHEMA_DBDIAGRAM.sql): 전체 데이터베이스 스키마 (21 테이블, Firestore 구조)
+-   [**`05_Analytics_Strategy.md`**](./05_Analytics_Strategy.md): 핵심 분석 지표(North Star Metrics) 및 로그 설계 (v1.0)
 
 ---
 

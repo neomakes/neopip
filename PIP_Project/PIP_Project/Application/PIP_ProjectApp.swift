@@ -56,6 +56,7 @@ struct PIP_ProjectApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
 
     // MARK: - State Management
+    @Environment(\.scenePhase) private var scenePhase
     @StateObject private var authStateManager = AuthStateManager.shared
     @StateObject private var authService = AuthService.shared
 
@@ -79,6 +80,15 @@ struct PIP_ProjectApp: App {
                 .environmentObject(dataServiceManager)
                 .environmentObject(authStateManager)
                 .environmentObject(authService)
+                .onChange(of: scenePhase) { oldPhase, newPhase in
+                    if newPhase == .background {
+                        print("📱 [App] Entered background. Flushing analytics...")
+                        AnalyticsService.shared.endNavigationSession()
+                    } else if newPhase == .active {
+                        print("📱 [App] Entered active state. Starting navigation session...")
+                        AnalyticsService.shared.startNavigationSession()
+                    }
+                }
         }
     }
 }

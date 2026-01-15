@@ -94,6 +94,20 @@ class WriteViewModel: ObservableObject {
     
     /// WriteView에서 카드 넘길 때 호출
     func accumulate(card: CardData, inputs: [String: Any], textInput: String) {
+        // Analytics: Track Step Duration
+        if let startTime = currentCardStartTime {
+             let duration = Date().timeIntervalSince(startTime)
+             AnalyticsService.shared.trackSessionStep(stepData: [
+                 "card_type": card.type.rawValue,
+                 "duration_s": duration,
+                 "timestamp": Date().timeIntervalSince1970
+             ])
+        }
+        // Reset timer for next card
+        currentCardStartTime = Date()
+        
+        // Legacy Event Log (Optional, keep for simple counts)
+        AnalyticsService.shared.logEvent(name: "card_swiped", params: ["card_type": card.type.rawValue])
         
         switch card.type {
         case .state:
@@ -160,8 +174,30 @@ class WriteViewModel: ObservableObject {
     
     // MARK: - Commit (Save)
     
+    // MARK: - Commit (Save)
+    
+    // Analytics Helper
+    private var currentCardStartTime: Date?
+
+    func startWriteSession() {
+        AnalyticsService.shared.startSession(name: "write_view_daily")
+        currentCardStartTime = Date()
+    }
+    
+    func cancelWriteSession() {
+        AnalyticsService.shared.endSession(status: "aborted")
+        currentCardStartTime = nil
+    }
+
     func commitSession() async throws {
         print("💾 Committing Session...")
+        
+        // Analytics: Successful completion
+        AnalyticsService.shared.endSession(status: "completed", additionalMetrics: [
+            "total_cards": getTotalCardsCount()
+        ])
+        currentCardStartTime = nil
+
         
         // 1. Validation
         guard let state = draftSession.state,
@@ -606,204 +642,10 @@ struct Helper {
 
 // MARK: - Analytics Models & Service
 
-struct UserBehaviorLog: Codable {
-    let id: String         // UUID string
-    let userId: String     // User ID or Anonymous ID
-    let sessionType: String // e.g., "write_flow_morning"
-    let startTime: Date
-    var endTime: Date?
-    var status: String     // "completed", "aborted", "unknown"
-    var metrics: [String: AnyCodable] // Flattened metrics for flexibility
-    
-    enum CodingKeys: String, CodingKey {
-        case id, userId, sessionType, startTime, endTime, status, metrics
-    }
-}
+
 
 
 
 // MARK: - Service
 
-class AnalyticsService: ObservableObject {
-    static let shared = AnalyticsService()
-    
-    private var currentSessionLog: UserBehaviorLog?
-    private var eventLogs: [String] = [] // Temporary simple event log for debugging/analysis
-    private let db = Firestore.firestore()
-    
-    private init() {}
-    
-    // MARK: - Session Management
-    
-    func startSession(name: String) {
-        guard let user = Auth.auth().currentUser else { return }
-        
-        let logId = UUID().uuidString
-        currentSessionLog = UserBehaviorLog(
-            id: logId,
-            userId: user.uid,
-            sessionType: name,
-            startTime: Date(),
-            endTime: nil,
-            status: "active",
-            metrics: [:]
-        )
-        eventLogs = []
-        print("📊 [Analytics] Session started: \(name) (\(logId))")
-    }
-    
-    func logEvent(name: String, params: [String: Any] = [:]) {
-        guard currentSessionLog != nil else { return }
-        
-        // In "Occam's Razor" spirit, we might not save every single event to DB.
-        // But for calculation, we can track them in memory.
-        print("📊 [Analytics] Event: \(name) - \(params)")
-        
-        // Example: Update metrics based on events
-        // Real-world: You might want to aggregate counts here
-        if let currentCount = currentSessionLog?.metrics["\(name)_count"]?.value as? Int {
-             currentSessionLog?.metrics["\(name)_count"] = AnyCodable(currentCount + 1)
-        } else {
-             currentSessionLog?.metrics["\(name)_count"] = AnyCodable(1)
-        }
-    }
-    
-    func endSession(status: String, additionalMetrics: [String: Any] = [:]) {
-        guard var log = currentSessionLog else { return }
-        
-        log.endTime = Date()
-        log.status = status
-        
-        // Merge additional metrics
-        for (key, value) in additionalMetrics {
-            log.metrics[key] = AnyCodable(value)
-        }
-        
-        // Calculate duration
-        let duration = log.endTime!.timeIntervalSince(log.startTime)
-        log.metrics["total_duration"] = AnyCodable(duration)
-        
-        print("📊 [Analytics] Session ended: \(log.sessionType) - Status: \(status), Duration: \(duration)s")
-        
-        // Upload to Firestore
-        saveLogToFirestore(log)
-        
-        // Clear current session
-        currentSessionLog = nil
-        eventLogs = []
-    }
-    
-    // MARK: - Navigation Session (Batched)
-    
-    private var navigationSessionLog: UserBehaviorLog?
-    private var navigationEvents: [[String: Any]] = []
-    
-    /// Starts a loose navigation session when the app is active
-    func startNavigationSession() {
-        guard navigationSessionLog == nil else { 
-            print("📊 [Analytics] Navigation session already active")
-            return 
-        }
-        
-        let userId = Auth.auth().currentUser?.uid ?? "anonymous"
-        let logId = UUID().uuidString
-        
-        navigationSessionLog = UserBehaviorLog(
-            id: logId,
-            userId: userId,
-            sessionType: "navigation_session",
-            startTime: Date(),
-            endTime: nil,
-            status: "active",
-            metrics: [:]
-        )
-        navigationEvents = []
-        print("📊 [Analytics] Navigation session started (\(logId))")
-    }
-    
-    /// Buffers a single navigation event (Tab Switch)
-    func trackNavigationStep(toTab: String, duration: TimeInterval) {
-        let stepInfo: [String: Any] = [
-            "to_tab": toTab,
-            "duration_s": duration,
-            "timestamp": Date().timeIntervalSince1970
-        ]
-        navigationEvents.append(stepInfo)
-        print("📊 [Analytics] Buffered navigation step: \(toTab) (\(String(format: "%.1f", duration))s)")
-    }
-    
-    /// Flushes the navigation buffer to Firestore (Called on App Background)
-    func endNavigationSession() {
-        guard var log = navigationSessionLog else { return }
-        guard !navigationEvents.isEmpty else {
-            print("📊 [Analytics] Navigation session ended with no events. Skipping upload.")
-            navigationSessionLog = nil
-            return
-        }
-        
-        log.endTime = Date()
-        log.status = "completed"
-        
-        // Save the list of steps
-        // Convert [String: Any] -> AnyCodable for the generic metrics map
-        // Note: Firestore might need special handling for arrays of maps if not using AnyCodable wrapper logic properly,
-        // but here we are mapping [String: Any] to AnyCodable.
-        // Wait, AnyCodable expects a single value usually.
-        // Let's store it as specific "steps" key.
-        log.metrics["steps"] = AnyCodable(navigationEvents)
-        
-        let duration = log.endTime!.timeIntervalSince(log.startTime)
-        log.metrics["total_duration"] = AnyCodable(duration)
-        
-        print("📊 [Analytics] Navigation session flushed. Count: \(navigationEvents.count), Duration: \(duration)s")
-        saveLogToFirestore(log)
-        
-        navigationSessionLog = nil
-        navigationEvents = []
-    }
-    
-    // MARK: - Firestore
-    
-    private func saveLogToFirestore(_ log: UserBehaviorLog) {
-        // Determine category based on session type
-        let category: String
-        if log.sessionType == "onboarding" {
-            category = "onboarding"
-        } else if log.sessionType.starts(with: "write_view") {
-            category = "write_view"
-        } else if log.sessionType == "tab_switched" {
-             category = "navigation"
-        } else {
-            category = "general"
-        }
-        
-        // Path: users/{uid}/internal_logs/{category}/sessions/{logId}
-        let path = "users/\(log.userId)/internal_logs/\(category)/sessions"
-        
-        do {
-            // Convert to dictionary for Firestore
-            // Since AnyCodable wrapper is for Encodable, but Firestore needs [String: Any]
-            // We manually map metrics back to [String: Any]
-            var logData: [String: Any] = [
-                "id": log.id,
-                "userId": log.userId,
-                "sessionType": log.sessionType,
-                "startTime": Timestamp(date: log.startTime),
-                "status": log.status,
-                "metrics": log.metrics.mapValues { $0.value }
-            ]
-            
-            if let endTime = log.endTime {
-                logData["endTime"] = Timestamp(date: endTime)
-            }
-            
-            db.collection(path).document(log.id).setData(logData) { error in
-                if let error = error {
-                    print("❌ [Analytics] Failed to upload log: \(error)")
-                } else {
-                    print("✅ [Analytics] Log uploaded successfully")
-                }
-            }
-        } 
-    }
-}
+
