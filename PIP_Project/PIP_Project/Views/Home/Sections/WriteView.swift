@@ -10,6 +10,10 @@ struct WriteView: View {
     @State private var isSaving: Bool = false
     @State private var alertMessage: String?
     @State private var totalCardsCount: Int = 3
+
+    // Analytics State
+    @State private var cardStartTime: Date = Date()
+    @State private var stepDurations: [String: Double] = [:]
     
     // 현재 페이지 계산 (전체 - 남은카드 + 1). 카드가 없으면 0.
     private var currentPage: Int {
@@ -53,7 +57,24 @@ struct WriteView: View {
             // Top-left back button
             VStack {
                 HStack {
-                    Button(action: { isPresented?.wrappedValue = false }) {
+                    Button(action: { 
+                        // Analytics
+                        let exitIndex = totalCardsCount - cards.count
+                        let totalInput = textInputs.reduce(0) { $0 + $1.count }
+                        // Current card duration
+                        let duration = Date().timeIntervalSince(cardStartTime)
+                        var finalDurations = stepDurations
+                        finalDurations["\(exitIndex)"] = duration
+                        
+                        let metrics: [String: Any] = [
+                            "exit_index": exitIndex,
+                            "total_input_length": totalInput,
+                            "step_durations": finalDurations
+                        ]
+                        
+                        AnalyticsService.shared.endSession(status: "aborted_by_user", additionalMetrics: metrics)
+                        isPresented?.wrappedValue = false 
+                    }) {
                         Image(systemName: "chevron.left")
                             .font(.title2)
                             .foregroundColor(.white)
@@ -74,7 +95,10 @@ struct WriteView: View {
                     .progressViewStyle(CircularProgressViewStyle(tint: .white))
             }
         }
-        .onAppear(perform: setupCards)
+        .onAppear(perform: {
+            setupCards()
+            AnalyticsService.shared.startSession(name: "write_view_daily")
+        })
         .alert("Error", isPresented: Binding(get: { alertMessage != nil }, set: { if !$0 { alertMessage = nil } })) {
             Button("OK", role: .cancel) { alertMessage = nil }
         } message: {
@@ -324,6 +348,15 @@ struct WriteView: View {
 
     private func skipCard(at index: Int) {
         guard index < cards.count else { return }
+        
+        AnalyticsService.shared.logEvent(name: "card_skipped", params: ["index": index])
+
+        // Analytics: Dwell Time
+        let duration = Date().timeIntervalSince(cardStartTime)
+        let stepIndex = totalCardsCount - cards.count
+        stepDurations["\(stepIndex)"] = duration
+        cardStartTime = Date() // Reset for next
+        
         withAnimation {
             // move skipped card to back - KEEP the current inputs
             let movedCard = cards.remove(at: index)
@@ -350,6 +383,15 @@ struct WriteView: View {
         // 마지막 카드인지 확인 (남은 카드가 1개일 때)
         let isLast = (cards.count == 1)
         
+        // Analytics Loop
+        AnalyticsService.shared.logEvent(name: "card_completed", params: ["index": index, "card_id": card.id])
+        
+        // Analytics: Dwell Time
+        let duration = Date().timeIntervalSince(cardStartTime)
+        let stepIndex = totalCardsCount - cards.count
+        stepDurations["\(stepIndex)"] = duration
+        cardStartTime = Date() // Reset for next
+
         isSaving = true
         Task {
             do {
@@ -360,6 +402,21 @@ struct WriteView: View {
                         cardInputs.remove(at: index)
                         textInputs.remove(at: index)
                         if cards.isEmpty {
+                            // Analytics: Completion
+                            let totalInput = (viewModel.cachedTextInputs + [text]).reduce(0) { $0 + $1.count } // Approximate
+                            // Or better: use the text captured so far. Since `textInputs` are removed, we rely on `stepDurations` being full.
+                            // But `textInputs` are removed one by one. 
+                            // `total_input_length` needs to be calculated cumulatively or from `viewModel`'s preserved sessions if any.
+                            // Let's rely on `viewModel.cachedTextInputs` which is updated.
+                            let finalInputLen = viewModel.cachedTextInputs.reduce(0) { $0 + $1.count }
+                            
+                            let metrics: [String: Any] = [
+                                "exit_index": totalCardsCount, // Finished all
+                                "total_input_length": finalInputLen,
+                                "step_durations": stepDurations
+                            ]
+
+                            AnalyticsService.shared.endSession(status: "completed", additionalMetrics: metrics)
                             isPresented?.wrappedValue = false
                         }
                     }

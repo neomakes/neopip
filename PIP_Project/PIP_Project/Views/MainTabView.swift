@@ -5,6 +5,8 @@ struct MainTabView: View {
     
     @State private var selectedTab: Int = 0
     @State private var showWriteSheet: Bool = false
+    @State private var tabStartTime: Date = Date()
+    @Environment(\.scenePhase) private var scenePhase
     
     var body: some View {
         ZStack {
@@ -26,6 +28,50 @@ struct MainTabView: View {
                 })
             }
             .ignoresSafeArea(edges: .bottom)
+        }
+
+        .onAppear {
+             // Initialize timer & Start Session
+             tabStartTime = Date()
+             AnalyticsService.shared.startNavigationSession()
+        }
+        .onChange(of: scenePhase) { newPhase in
+            if newPhase == .active {
+                // Determine if we need to restart a session
+                AnalyticsService.shared.startNavigationSession()
+                // Reset tab timer to avoid huge duration from background time
+                tabStartTime = Date()
+            } else if newPhase == .background {
+                // Record the final tab dwell time before suspending
+                let tabName = getTabName(for: selectedTab)
+                let duration = Date().timeIntervalSince(tabStartTime)
+                AnalyticsService.shared.trackNavigationStep(toTab: tabName, duration: duration)
+                
+                // Flush to Firestore
+                AnalyticsService.shared.endNavigationSession()
+            }
+        }
+        .onChange(of: selectedTab) { newTab in
+            let tabName = getTabName(for: newTab)
+            
+            // Calculate dwell time
+            let duration = Date().timeIntervalSince(tabStartTime)
+            
+            AnalyticsService.shared.trackNavigationStep(toTab: tabName, duration: duration)
+            
+            // Reset timer
+            tabStartTime = Date()
+        }
+    }
+    
+    private func getTabName(for index: Int) -> String {
+        switch index {
+        case 0: return "home"
+        case 1: return "insight"
+        case 2: return "write_trigger"
+        case 3: return "goal"
+        case 4: return "status"
+        default: return "unknown_\(index)"
         }
     }
 }

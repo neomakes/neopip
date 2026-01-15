@@ -12,6 +12,10 @@ struct OnboardingView: View {
     @StateObject private var viewModel = OnboardingViewModel()
     @State private var showMainApp = false
 
+    @State private var stepStartTime = Date()
+    @State private var stepDurations: [String: Double] = [:]
+    @State private var lastStep: OnboardingViewModel.OnboardingStep = .welcome
+
     var body: some View {
         ZStack {
             // Background gradient
@@ -46,6 +50,15 @@ struct OnboardingView: View {
                 case .complete:
                     OnboardingCompleteView(
                         onStartJournaling: {
+                            // Record final step duration
+                            let duration = Date().timeIntervalSince(stepStartTime)
+                            stepDurations[lastStep.rawValue] = duration
+                            
+                            // Log all durations
+                            AnalyticsService.shared.endSession(status: "completed", additionalMetrics: [
+                                "step_durations": stepDurations
+                            ])
+                            
                             Task {
                                 await viewModel.completeOnboarding()
                                 showMainApp = true
@@ -57,6 +70,24 @@ struct OnboardingView: View {
         }
         .fullScreenCover(isPresented: $showMainApp) {
             MainTabView()
+        }
+        .onAppear {
+            AnalyticsService.shared.startSession(name: "onboarding")
+            AnalyticsService.shared.logEvent(name: "step_entered", params: ["step_name": viewModel.currentStep.rawValue])
+            // Initialize timing
+            stepStartTime = Date()
+            lastStep = viewModel.currentStep
+        }
+        .onChange(of: viewModel.currentStep) { newStep in
+            // Calculate duration for the step we just left
+            let duration = Date().timeIntervalSince(stepStartTime)
+            stepDurations[lastStep.rawValue] = duration
+            
+            // Reset for new step
+            stepStartTime = Date()
+            lastStep = newStep
+            
+            AnalyticsService.shared.logEvent(name: "step_entered", params: ["step_name": newStep.rawValue])
         }
     }
 }

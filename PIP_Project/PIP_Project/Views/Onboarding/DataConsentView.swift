@@ -12,34 +12,65 @@ struct DataConsentView: View {
     @ObservedObject var viewModel: OnboardingViewModel
 
     let dataTypes: [(id: String, name: String, icon: String, description: String, isRequired: Bool)] = [
-        ("mood", "Mood Tracking", "😊", "Track your daily emotional state", true),
-        ("stress", "Stress Level", "😰", "Monitor stress patterns", true),
-        ("energy", "Energy Level", "⚡️", "Track your energy throughout the day", true),
-        ("weather", "Weather Data", "🌤️", "Correlate mood with weather", false),
-        ("location", "Location", "📍", "Understand location-based patterns", false),
-        ("screenTime", "Screen Time", "📱", "Monitor digital habits", false),
-        ("steps", "Steps", "👟", "Track physical activity", false),
-        ("sleep", "Sleep Data", "😴", "Analyze sleep quality", false)
+        ("mood", "Mood Tracking", "😊", "Motivation & Valence state", true),
+        ("energy", "Energy Level", "⚡️", "Physical Resource & Arousal", true),
+        ("focus", "Focus Strength", "🎯", "Subjective Outcome", true),
+        ("weather", "Weather", "🌤️", "External Stressor", false),
+        ("location", "Location Context", "📍", "Spatial Context", false),
+        ("motion", "Motion Type", "🏃", "Objective Activity", false)
     ]
 
     var body: some View {
         VStack(spacing: 24) {
-            Spacer()
+             Spacer()
                 .frame(height: 40)
 
-            // Title
-            VStack(spacing: 12) {
-                Text("Privacy & Data")
-                    .font(.pip.hero)
-                    .foregroundColor(.white)
+            // Title section with added Privacy Assurance
+            VStack(spacing: 16) {
+                VStack(spacing: 8) {
+                    Text("Privacy & Data")
+                        .font(.pip.hero)
+                        .foregroundColor(.white)
+                    
+                    Text("Select data for your World Model")
+                        .font(.pip.body)
+                        .foregroundColor(.gray)
+                }
 
-                Text("Choose what data you'd like to track")
-                    .font(.pip.body)
-                    .foregroundColor(.gray)
+                // Privacy Assurance Card
+                HStack(alignment: .top, spacing: 12) {
+                    Image(systemName: "lock.shield.fill")
+                        .font(.system(size: 20))
+                        .foregroundColor(.green)
+                        .padding(.top, 2)
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Strong Security")
+                            .font(.pip.button.bold())
+                            .foregroundColor(.white)
+                        
+                        Text("All recorded data is stored separately from personally identifiable information (PII). Your identity remains anonymous to the analysis engine.")
+                            .font(.pip.caption)
+                            .foregroundColor(.gray)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .padding(16)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.white.opacity(0.08))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                        )
+                )
             }
             .padding(.horizontal, 32)
-
-            Spacer()
+            
+            // Spacer removed or reduced since we added content above
+            // Spacer() 
+            // We use standard spacing in VStack now or a small spacer
+            Spacer().frame(height: 10)
 
             // Data consent list
             ScrollView {
@@ -88,8 +119,15 @@ struct DataConsentView: View {
                 Button(action: {
                     viewModel.nextStep()
                 }) {
-                    Text("Continue")
-                        .font(.pip.title2)
+                    VStack(spacing: 4) {
+                        Text("Continue")
+                            .font(.pip.title2)
+                        if !viewModel.isConsentingToAllOptional() {
+                            Text("Skipping optional data reduces insight accuracy")
+                                .font(.caption2)
+                                .foregroundColor(.white.opacity(0.7))
+                        }
+                    }
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .frame(height: 56)

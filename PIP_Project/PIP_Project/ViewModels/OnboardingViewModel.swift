@@ -165,7 +165,10 @@ class OnboardingViewModel: ObservableObject {
         if selectedPrograms.contains(programId) {
             selectedPrograms.removeAll { $0 == programId }
         } else {
-            selectedPrograms.append(programId)
+            // Limit to 2 programs as per user request
+            if selectedPrograms.count < 2 {
+                selectedPrograms.append(programId)
+            }
         }
     }
 
@@ -193,12 +196,15 @@ class OnboardingViewModel: ObservableObject {
     /// Consent to all data types
     func consentToAll() {
         consentedDataTypes = [
-            "mood", "stress", "energy", "focus",
-            "weather", "location", "screenTime",
-            "heartRate", "steps", "sleep",
-            "productivity", "social", "distraction", "exploration",
-            "fatigue", "activity", "nutrition"
+            "mood", "energy", "focus",
+            "weather", "location", "motion"
         ]
+    }
+    
+    /// Check if user has consented to all optional data types
+    func isConsentingToAllOptional() -> Bool {
+        let optionalTypes = ["weather", "location", "motion"]
+        return optionalTypes.allSatisfy { consentedDataTypes.contains($0) }
     }
 
     // MARK: - Complete Onboarding

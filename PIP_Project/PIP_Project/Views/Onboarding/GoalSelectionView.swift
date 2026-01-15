@@ -34,6 +34,16 @@ struct GoalSelectionView: View {
                 Text("Select up to 3 goals that matter to you")
                     .font(.pip.body)
                     .foregroundColor(.gray)
+                
+                HStack(spacing: 6) {
+                    Image(systemName: "lock.shield.fill")
+                        .font(.caption)
+                        .foregroundColor(.green.opacity(0.8))
+                    Text("Data collected to personalize your AI insights")
+                        .font(.caption)
+                        .foregroundColor(.gray.opacity(0.8))
+                }
+                .padding(.top, 8)
             }
             .padding(.horizontal, 32)
 

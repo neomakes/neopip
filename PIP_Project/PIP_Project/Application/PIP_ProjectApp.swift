@@ -43,6 +43,11 @@ class AppDelegate: NSObject, UIApplicationDelegate {
             print("🔥 Firebase configured with default plist! Environment: \(environment.displayName)")
         }
     }
+    func applicationWillTerminate(_ application: UIApplication) {
+        // Ensure analytics are flushed on forced termination
+        print("⚠️ [AppDelegate] App terminating, flushing navigation session...")
+        AnalyticsService.shared.endNavigationSession()
+    }
 }
 
 @main

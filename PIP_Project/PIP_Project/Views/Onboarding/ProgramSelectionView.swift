@@ -25,7 +25,7 @@ struct ProgramSelectionView: View {
                     .font(.pip.hero)
                     .foregroundColor(.white)
 
-                Text("Select programs to help achieve your goals")
+                Text("Select up to 2 programs to help achieve your goals")
                     .font(.pip.body)
                     .foregroundColor(.gray)
             }
