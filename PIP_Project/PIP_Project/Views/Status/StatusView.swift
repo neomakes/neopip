@@ -53,8 +53,10 @@ struct StatusView: View {
                     switch route {
                     case .settings:
                         SettingsView(path: $path)
+                            .trackScreen(name: "SettingsView")
                     case .licenses:
                         LicenseView()
+                            .trackScreen(name: "LicenseView")
                     }
                 }
             }
@@ -73,4 +75,14 @@ struct StatusView: View {
 
 #Preview {
     StatusView(viewModel: StatusViewModel(dataService: MockDataService.shared))
+}
+
+extension View {
+    /// Tracks a screen view event when the view appears.
+    /// - Parameter name: The name of the screen to track (e.g., "SettingsView")
+    func trackScreen(name: String) -> some View {
+        self.onAppear {
+            AnalyticsService.shared.trackScreenView(screenName: name)
+        }
+    }
 }

@@ -102,17 +102,34 @@ struct DataConsentView: View {
                     Button(action: {
                         viewModel.consentToAll()
                     }) {
-                        Text("Allow All")
-                            .font(.pip.caption)
-                            .foregroundStyle(
-                                LinearGradient(
-                                    colors: [Color.pip.home.buttonAddGrad1, Color.pip.home.buttonAddGrad2],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
+                        HStack(spacing: 8) {
+                            Image(systemName: "checkmark.circle.fill")
+                            Text("Select All (Recommended)")
+                        }
+                        .font(.pip.button.bold())
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [Color.pip.home.buttonAddGrad1, Color.pip.home.buttonAddGrad2],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
                             )
+                        )
+                        .padding(.vertical, 12)
+                        .padding(.horizontal, 24)
+                        .background(
+                            Capsule()
+                                .stroke(
+                                    LinearGradient(
+                                        colors: [Color.pip.home.buttonAddGrad1.opacity(0.5), Color.pip.home.buttonAddGrad2.opacity(0.5)],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ),
+                                    lineWidth: 1
+                                )
+                                .background(Color.white.opacity(0.05).clipShape(Capsule()))
+                        )
                     }
-                    .padding(.bottom, 8)
+                    .padding(.bottom, 12)
                 }
 
                 // Continue button

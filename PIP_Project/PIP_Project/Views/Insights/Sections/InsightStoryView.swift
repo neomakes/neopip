@@ -112,6 +112,9 @@ struct InsightStoryView: View {
                 }
             }
             .onDisappear(perform: viewModel.stopStoryTimer)
+            .onAppear {
+                AnalyticsService.shared.trackScreenView(screenName: "InsightStoryView", contentId: viewModel.cardId)
+            }
         }
     }
     

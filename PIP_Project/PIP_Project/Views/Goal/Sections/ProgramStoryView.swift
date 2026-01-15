@@ -183,6 +183,7 @@ struct ProgramStoryView: View {
         }
         .onAppear {
             viewModel.loadStory()
+            AnalyticsService.shared.trackScreenView(screenName: "ProgramStoryView", contentId: program.id.uuidString)
         }
     }
 

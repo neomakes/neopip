@@ -42,6 +42,8 @@ Pods/
 GoogleService-Info.plist
 *.env
 *.secret
+serviceAccountKey.json
+firestore.rules
 
 # ----------------------------------------------------------------------
 # 5. ML/Python 환경 파일 (ML/Python Environment)

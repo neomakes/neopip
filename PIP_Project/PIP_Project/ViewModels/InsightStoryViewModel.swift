@@ -13,7 +13,7 @@ class InsightStoryViewModel: ObservableObject {
     @Published var isLiked: Bool = false
 
     private let dataService: DataServiceProtocol
-    private let cardId: String
+    let cardId: String
     private var cancellables = Set<AnyCancellable>()
     private var storyTimer: Timer?
     private let storyDuration: TimeInterval = 5.0 // 한 페이지당 지속시간
