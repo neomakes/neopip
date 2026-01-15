@@ -449,6 +449,31 @@ Table value_analysis {
   Note: "PII 영역 - StatusView Values 월간 값 분석"
 }
 
+// ==================== 9. ANALYTICS LAYER (분석 로그) ====================
+
+Table analytic_logs {
+  id uuid [pk, note: "Firestore Doc ID"]
+  subject_id uuid [not null, note: "Anonymous User ID or Device ID"]
+  
+  category string [not null, note: "navigation|write_view|onboarding|general"]
+  session_type string [not null, note: "navigation_session|write_flow_..."]
+  
+  start_time timestamp [not null]
+  end_time timestamp [not null]
+  status string [not null, note: "completed|aborted"]
+  
+  metrics string [not null, note: "JSON: {total_duration, screen_view_count, steps: [...]}"]
+  
+  created_at timestamp [not null]
+  
+  Indexes {
+    (category, start_time) [type: composite]
+    (subject_id)
+  }
+  
+  Note: "분석 영역 (analytic_logs/*) - Session-based Batching Logs"
+}
+
 // ==================== 8. NOTES ====================
 
 // Minimal Schema (21 tables, -15 from v2.0)

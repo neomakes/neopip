@@ -9,6 +9,7 @@
 1.  [DB 모델 설계](#1-db-모델-설계) (`DB_MODEL_DESIGN.md`)
 2.  [온보딩 플로우 설계](#2-온보딩-플로우-설계) (`ONBOARDING_FLOW_DESIGN.md`)
 3.  [Views 및 ViewModels 구현 기획안](#3-views-및-viewmodels-구현-기획안) (`VIEWS_VIEWMODELS_IMPLEMENTATION_PLAN.md`)
+6.  [Analytics 아키텍처](#6-analytics-아키텍처) (`ANALYTICS_STRATEGY.md`)
 
 ---
 
@@ -1600,3 +1601,100 @@ struct SwipeableCardView: View {
 **버전**: 1.0  
 **상태**: 기획 완료  
 **다음 단계**: Phase 1 시작
+
+---
+
+## 4. Analytics 아키텍처
+(Source:  merged)
+
+## 4.1. 분석 전략: Session-Based Batching
+
+Firebase 비용 절감(Write 최소화)과 UX 저해 방지(Non-blocking)를 위해 **Session-Based Batching** 전략을 사용합니다.
+개별 이벤트마다 로그를 남기는 대신, 하나의 세션(예: 네비게이션, 글쓰기 등)이 끝날 때 묶어서 하나의 Document로 저장합니다.
+
+### 핵심 지표 (North Star Metrics)
+1.  **네비게이션 및 체류**: 화면별 체류 시간, 경로 이탈률 (Bounce Rate)
+2.  **퍼널 전환**: 온보딩 완료율, WriteView 저장 완료율
+3.  **리텐션**: 코호트 재방문율, Stickiness (DAU/MAU)
+4.  **인게이지먼트**: 세션당 유효 이벤트 수
+
+## 4.2. Log Document 구조 (`analytic_logs` collection)
+
+모든 로그는 `analytic_logs/{log_id}` 경로에 저장되며, `subject_id`로 익명화됩니다.
+
+```json
+{
+  "id": "UUID",
+  "subject_id": "UUID (IdentityMapping verified)",
+  "category": "navigation" | "write_view" | "onboarding" | "general",
+  "sessionType": "navigation_session" | "write_flow_morning" | ...,
+  "startTime": Timestamp,
+  "endTime": Timestamp,
+  "status": "completed" | "aborted",
+  "metrics": {
+    "total_duration": 120.5,
+    "screen_view_count": 5,
+    "steps": [ 
+        { "type": "screen_view", "screen_name": "home", "timestamp": ... },
+        { "to_tab": "insight", "duration": 5.2 }
+    ]
+  }
+}
+```
+
+## 4.3. 개인정보 보호 정책 (Privacy Compliance)
+
+iOS App Store 심사 지침을 준수하며, 개인정보와 분석 데이터를 철저히 분리합니다.
+
+1.  **IDFA 미사용**: 광고 추적을 하지 않으며 ATT 팝업 없음.  또는 자체  사용.
+2.  **데이터 최소화**: 이름, 이메일 등 PII는 에 저장하지 않음.
+3.  **HealthKit 분리**: 건강 데이터는 마케팅 목적으로 사용하지 않음.
+
+
+---
+
+## 4. Analytics 아키텍처
+(Source: `01_Planning/05_Analytics_Strategy.md` merged)
+
+## 4.1. 분석 전략: Session-Based Batching
+
+Firebase 비용 절감(Write 최소화)과 UX 저해 방지(Non-blocking)를 위해 **Session-Based Batching** 전략을 사용합니다.
+개별 이벤트마다 로그를 남기는 대신, 하나의 세션(예: 네비게이션, 글쓰기 등)이 끝날 때 묶어서 하나의 Document로 저장합니다.
+
+### 핵심 지표 (North Star Metrics)
+1.  **네비게이션 및 체류**: 화면별 체류 시간, 경로 이탈률 (Bounce Rate)
+2.  **퍼널 전환**: 온보딩 완료율, WriteView 저장 완료율
+3.  **리텐션**: 코호트 재방문율, Stickiness (DAU/MAU)
+4.  **인게이지먼트**: 세션당 유효 이벤트 수
+
+## 4.2. Log Document 구조 (`analytic_logs` collection)
+
+모든 로그는 `analytic_logs/{log_id}` 경로에 저장되며, `subject_id`로 익명화됩니다.
+
+```json
+{
+  "id": "UUID",
+  "subject_id": "UUID (IdentityMapping verified)",
+  "category": "navigation" | "write_view" | "onboarding" | "general",
+  "sessionType": "navigation_session" | "write_flow_morning" | ...,
+  "startTime": Timestamp,
+  "endTime": Timestamp,
+  "status": "completed" | "aborted",
+  "metrics": {
+    "total_duration": 120.5,
+    "screen_view_count": 5,
+    "steps": [ 
+        { "type": "screen_view", "screen_name": "home", "timestamp": ... },
+        { "to_tab": "insight", "duration": 5.2 }
+    ]
+  }
+}
+```
+
+## 4.3. 개인정보 보호 정책 (Privacy Compliance)
+
+iOS App Store 심사 지침을 준수하며, 개인정보와 분석 데이터를 철저히 분리합니다.
+
+1.  **IDFA 미사용**: 광고 추적을 하지 않으며 ATT 팝업 없음. `IDFV` 또는 자체 `UUID` 사용.
+2.  **데이터 최소화**: 이름, 이메일 등 PII는 `analytic_logs`에 저장하지 않음.
+3.  **HealthKit 분리**: 건강 데이터는 마케팅 목적으로 사용하지 않음.
