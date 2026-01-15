@@ -46,9 +46,19 @@ class HomeViewModel: ObservableObject {
         let today = calendar.startOfDay(for: Date())
         let gemDates = Set(dailyGems.map { calendar.startOfDay(for: $0.date) })
 
-        var streak = 0
         var checkDate = today
+        
+        // If today has no gem, check if yesterday has one to maintain the streak
+        if !gemDates.contains(today) {
+            guard let yesterday = calendar.date(byAdding: .day, value: -1, to: today) else { return 0 }
+            if gemDates.contains(yesterday) {
+                checkDate = yesterday
+            } else {
+                return 0
+            }
+        }
 
+        var streak = 0
         while gemDates.contains(checkDate) {
             streak += 1
             guard let prev = calendar.date(byAdding: .day, value: -1, to: checkDate) else { break }
