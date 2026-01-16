@@ -38,6 +38,7 @@ struct UserBehaviorLog: Codable {
 
 // MARK: - Service
 
+@MainActor
 class AnalyticsService: ObservableObject {
     static let shared = AnalyticsService()
     
@@ -45,34 +46,66 @@ class AnalyticsService: ObservableObject {
     private var eventLogs: [String] = [] // Temporary simple event log for debugging/analysis
     private let db = Firestore.firestore()
     
+    // Identity Cache
+    private var cachedSubjectId: String?
+    private var cancellables = Set<AnyCancellable>()
+    
     // Network Monitoring
     private let monitor = NWPathMonitor()
     private var currentNetworkType: String = "unknown"
     
     private init() {
         startNetworkMonitoring()
+        setupIdentityListener()
     }
     
     deinit {
         monitor.cancel()
     }
     
+    // MARK: - Identity Management
+    
+    private func setupIdentityListener() {
+        // Subscribe to IdentityMappingService to keep cachedSubjectId updated synchronously
+        IdentityMappingService.shared.$currentMapping
+            .sink { [weak self] mapping in
+                if let mapping = mapping {
+                    self?.cachedSubjectId = mapping.anonymousUserId.uuidString
+                    print("📊 [Analytics] Cached Subject ID refreshed: \(mapping.anonymousUserId)")
+                }
+            }
+            .store(in: &cancellables)
+            
+        // Trigger initial fetch if needed (though mapping service usually handles this)
+        Task {
+            do {
+                _ = try await IdentityMappingService.shared.getAnonymousUserId()
+            } catch {
+                print("⚠️ [Analytics] Failed to initial fetch anonymous ID: \(error)")
+            }
+        }
+    }
+    
     // MARK: - Network Monitoring
     
     private func startNetworkMonitoring() {
         monitor.pathUpdateHandler = { [weak self] path in
-            if path.status == .satisfied {
-                if path.usesInterfaceType(.wifi) {
-                    self?.currentNetworkType = "wifi"
-                } else if path.usesInterfaceType(.cellular) {
-                    self?.currentNetworkType = "cellular"
-                } else if path.usesInterfaceType(.wiredEthernet) {
-                    self?.currentNetworkType = "ethernet"
+            Task { @MainActor [weak self] in
+                guard let self = self else { return }
+                
+                if path.status == .satisfied {
+                    if path.usesInterfaceType(.wifi) {
+                        self.currentNetworkType = "wifi"
+                    } else if path.usesInterfaceType(.cellular) {
+                        self.currentNetworkType = "cellular"
+                    } else if path.usesInterfaceType(.wiredEthernet) {
+                        self.currentNetworkType = "ethernet"
+                    } else {
+                        self.currentNetworkType = "other"
+                    }
                 } else {
-                    self?.currentNetworkType = "other"
+                    self.currentNetworkType = "none"
                 }
-            } else {
-                self?.currentNetworkType = "none"
             }
         }
         let queue = DispatchQueue(label: "NetworkMonitor")
@@ -205,21 +238,43 @@ class AnalyticsService: ObservableObject {
         print("📊 [Analytics] Navigation session started (\(logId))")
     }
     
-    /// Buffers a single navigation event (Tab Switch)
-    func trackNavigationStep(toTab: String, duration: TimeInterval) {
+    /// Buffers a specific screen view event with duration (Dwell Time)
+    func trackScreenTime(screenName: String, duration: TimeInterval) {
         let stepInfo: [String: Any] = [
-            "to_tab": toTab,
+            "type": "screen_view",
+            "screen_name": screenName,
             "duration_s": duration,
             "timestamp": Date().timeIntervalSince1970
         ]
+        
         navigationEvents.append(stepInfo)
-        print("📊 [Analytics] Buffered navigation step: \(toTab) (\(String(format: "%.1f", duration))s)")
+        print("📊 [Analytics] Buffered screen time: \(screenName) (\(String(format: "%.1f", duration))s)")
     }
     
-    /// Buffers a specific screen view event (e.g. Insight Story)
+    /// Buffers a single navigation event (Tab Switch)
+    func trackNavigationStep(toTab: String, duration: TimeInterval) {
+         // Legacy wrapper or specific tab switch event
+         // User requested "From -> To". We can log a 'tab_switch' event.
+         // But waiting for implementation plan details.
+         // Let's repurpose this or add a new one.
+         // Plan said: Log `tab_switch`: `from: previousTabName`, `to: newTabName`.
+    }
+    
+    func trackTabSwitch(from: String, to: String) {
+        let stepInfo: [String: Any] = [
+            "type": "tab_switch",
+            "from_tab": from,
+            "to_tab": to,
+            "timestamp": Date().timeIntervalSince1970
+        ]
+        navigationEvents.append(stepInfo)
+        print("📊 [Analytics] Buffered tab switch: \(from) -> \(to)")
+    }
+
+    /// Buffers a specific screen view event (e.g. Insight Story) without duration (Entrance)
     func trackScreenView(screenName: String, contentId: String? = nil) {
         var stepInfo: [String: Any] = [
-            "type": "screen_view",
+            "type": "screen_view", // entrance
             "screen_name": screenName,
             "timestamp": Date().timeIntervalSince1970
         ]
@@ -275,74 +330,73 @@ class AnalyticsService: ObservableObject {
         return newId
     }
     
-    /// Resolves the unified subject_id (IdentityMapping > Local)
-    private func resolveSubjectId() async -> String {
-        // 1. If authenticated, try to get the IdentityMapping ID (Consistent across devices/installs for this user)
-        if Auth.auth().currentUser != nil {
-            do {
-                let uuid = try await IdentityMappingService.shared.getAnonymousUserId()
-                return uuid.uuidString
-            } catch {
-                print("⚠️ [Analytics] Failed to resolve IdentityMapping: \(error)")
-                // Fallthrough to local ID
-            }
+    /// Resolves the unified subject_id (IdentityMapping > Cache > Local)
+    private func resolveSubjectId() -> String {
+        // 1. Try Cached IdentityMapping (Fastest, set via Listener)
+        if let cachedId = cachedSubjectId {
+            return cachedId
         }
         
-        // 2. Fallback: Local Device ID (Unauthenticated or Identity Error)
+        // 2. Fallback: Local Device ID
+        print("⚠️ [Analytics] Subject ID cache miss. Using local fallback.")
         return getLocalAnonymousId()
     }
     
     private func saveLogToFirestore(_ log: UserBehaviorLog) {
-        Task {
-            // Determine category
-            let category: String
-            if log.sessionType == "onboarding" {
-                category = "onboarding"
-            } else if log.sessionType.starts(with: "write_view") {
-                category = "write_view"
-            } else if log.sessionType == "tab_switched" || log.sessionType == "navigation_session" {
-                category = "navigation"
+        // SYNCHRONOUS Firestore Write (Fire-and-forget)
+        // This ensures the write command enters the Firestore SDK queue immediately on the Main Thread.
+        // The SDK handles offline persistence and eventual syncing even if the app triggers background/suspend shortly after.
+        
+        // Determine category
+        let category: String
+        if log.sessionType == "onboarding" {
+            category = "onboarding"
+        } else if log.sessionType.starts(with: "write_view") {
+            category = "write_view"
+        } else if log.sessionType == "tab_switched" || log.sessionType == "navigation_session" {
+            category = "navigation"
+        } else {
+            category = "general"
+        }
+        
+        // Resolve Subject ID Synchronously
+        let subjectId = resolveSubjectId()
+        let path = "analytic_logs"
+        
+        // Capture current device/network state
+        let deviceModel = self.getDeviceModel()
+        let deviceRegion = self.getDeviceRegion()
+        let networkType = self.currentNetworkType
+        
+        // Convert to dictionary
+        var logData: [String: Any] = [
+            "id": log.id,
+            "subject_id": subjectId,
+            "category": category,
+            "sessionType": log.sessionType,
+            "startTime": Timestamp(date: log.startTime),
+            "status": log.status,
+            "metrics": log.metrics.mapValues { $0.value },
+            
+            // New Fields
+            "device_model": deviceModel,
+            "device_region": deviceRegion,
+            "network_type": networkType
+        ]
+        
+        if let endTime = log.endTime {
+            logData["endTime"] = Timestamp(date: endTime)
+        }
+        
+        // Write to Firestore (No 'await')
+        db.collection(path).document(log.id).setData(logData) { error in
+            if let error = error {
+                print("❌ [Analytics] Failed to save log (async callback): \(error)")
             } else {
-                category = "general"
-            }
-            
-            // Resolve Subject ID
-            let subjectId = await resolveSubjectId()
-            let path = "analytic_logs"
-            
-            // Capture current device/network state
-            // Note: This captures state at upload time, which is usually close enough to session end.
-            let deviceModel = self.getDeviceModel()
-            let deviceRegion = self.getDeviceRegion()
-            let networkType = self.currentNetworkType
-            
-            do {
-                // Convert to dictionary
-                var logData: [String: Any] = [
-                    "id": log.id,
-                    "subject_id": subjectId, // consistent ID
-                    "category": category,
-                    "sessionType": log.sessionType,
-                    "startTime": Timestamp(date: log.startTime),
-                    "status": log.status,
-                    "metrics": log.metrics.mapValues { $0.value },
-                    
-                    // New Fields
-                    "device_model": deviceModel,
-                    "device_region": deviceRegion,
-                    "network_type": networkType
-                ]
-                
-                if let endTime = log.endTime {
-                    logData["endTime"] = Timestamp(date: endTime)
-                }
-                
-                // Save
-                try await db.collection(path).document(log.id).setData(logData)
-                print("✅ [Analytics] Log saved: \(log.id) (subject: \(subjectId), device: \(deviceModel), net: \(networkType))")
-            } catch {
-                print("❌ [Analytics] Failed to save log: \(error)")
+                 print("✅ [Analytics] Log saved successfully (async callback). ID: \(log.id)")
             }
         }
+        
+        print("🚀 [Analytics] Log write dispatched: \(log.id) (subject: \(subjectId))")
     }
 }

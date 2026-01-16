@@ -97,7 +97,6 @@ struct WriteView: View {
         }
         .onAppear(perform: {
             setupCards()
-            AnalyticsService.shared.startSession(name: "write_view_daily")
         })
         .alert("Error", isPresented: Binding(get: { alertMessage != nil }, set: { if !$0 { alertMessage = nil } })) {
             Button("OK", role: .cancel) { alertMessage = nil }
@@ -152,6 +151,17 @@ struct WriteView: View {
 
         // 3. 현재 페이지 번호 계산 (Computed property currentPage가 자동 처리)
         print("WriteView: Restoration - Total: \(totalCount), Remaining: \(remainingCards.count), Current: \(currentPage)")
+
+        // Check if just starting (fresh session)
+        if remainingCards.count == totalCount {
+             print("WriteView: Starting new session. Initializing Analytics.")
+             viewModel.startWriteSession()
+             AnalyticsService.shared.logEvent(name: "step_started", params: ["index": 0, "card_type": remainingCards.first?.type.rawValue ?? "unknown"])
+        } else {
+             // Resuming
+             print("WriteView: Resuming existing session.")
+             AnalyticsService.shared.startSession(name: "write_view_daily")
+        }
 
         // 남은 카드가 없으면 자동 닫기 (또는 완료 화면)
         if remainingCards.isEmpty {
@@ -353,8 +363,16 @@ struct WriteView: View {
 
         // Analytics: Dwell Time
         let duration = Date().timeIntervalSince(cardStartTime)
-        let stepIndex = totalCardsCount - cards.count
-        stepDurations["\(stepIndex)"] = duration
+        // STRICT LOGIC: index is the array index (0 is top). 
+        // But `stepDurations` should use the visual/logical step index from start of flow (0, 1, 2)
+        // Since `cards` shrinks, strict index 0 is always the *current* step.
+        // We need to know which step this is in the sequence 0..totalCardsCount.
+        // `totalCardsCount` is fixed. `cards.count` decreases.
+        // e.g. Total 3. Start: 3 cards. Index 0 is Step 0.
+        // Next: 2 cards. Index 0 is Step 1.
+        let logicalStepIndx = totalCardsCount - cards.count
+        
+        stepDurations["\(logicalStepIndx)"] = duration
         cardStartTime = Date() // Reset for next
         
         withAnimation {
@@ -388,8 +406,11 @@ struct WriteView: View {
         
         // Analytics: Dwell Time
         let duration = Date().timeIntervalSince(cardStartTime)
-        let stepIndex = totalCardsCount - cards.count
-        stepDurations["\(stepIndex)"] = duration
+        
+        // Calculate Logical Index (0, 1, 2)
+        let logicalStepIndx = totalCardsCount - cards.count
+        stepDurations["\(logicalStepIndx)"] = duration
+        
         cardStartTime = Date() // Reset for next
 
         isSaving = true
@@ -403,21 +424,20 @@ struct WriteView: View {
                         textInputs.remove(at: index)
                         if cards.isEmpty {
                             // Analytics: Completion
-                            let totalInput = (viewModel.cachedTextInputs + [text]).reduce(0) { $0 + $1.count } // Approximate
-                            // Or better: use the text captured so far. Since `textInputs` are removed, we rely on `stepDurations` being full.
-                            // But `textInputs` are removed one by one. 
-                            // `total_input_length` needs to be calculated cumulatively or from `viewModel`'s preserved sessions if any.
-                            // Let's rely on `viewModel.cachedTextInputs` which is updated.
-                            let finalInputLen = viewModel.cachedTextInputs.reduce(0) { $0 + $1.count }
+                            // `textInputs` is empty now, but `viewModel.cachedTextInputs` has been updated via `saveCard` internal accumulation presumably?
+                            // Actually `saveCard` in VM accumulates.
                             
-                            let metrics: [String: Any] = [
-                                "exit_index": totalCardsCount, // Finished all
-                                "total_input_length": finalInputLen,
+                             let metrics: [String: Any] = [
+                                "total_steps": totalCardsCount,
                                 "step_durations": stepDurations
                             ]
 
                             AnalyticsService.shared.endSession(status: "completed", additionalMetrics: metrics)
                             isPresented?.wrappedValue = false
+                        } else {
+                            // Log start of next step (index 0 of remaining, which is logical step X+1)
+                             let nextStepIndex = totalCardsCount - cards.count
+                             AnalyticsService.shared.logEvent(name: "step_started", params: ["index": nextStepIndex, "card_type": cards.first?.type.rawValue ?? "unknown"])
                         }
                     }
                     print("WriteView: Saved cache on saveCard")

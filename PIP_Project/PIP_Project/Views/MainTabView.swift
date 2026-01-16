@@ -4,6 +4,7 @@ struct MainTabView: View {
     @EnvironmentObject var dataServiceManager: DataServiceManager
     
     @State private var selectedTab: Int = 0
+    @State private var previousTab: Int = 0 // Track previous for logging
     @State private var showWriteSheet: Bool = false
     @State private var tabStartTime: Date = Date()
     @Environment(\.scenePhase) private var scenePhase
@@ -33,6 +34,7 @@ struct MainTabView: View {
         .onAppear {
              // Initialize timer & Start Session
              tabStartTime = Date()
+             previousTab = selectedTab
              AnalyticsService.shared.startNavigationSession()
         }
         .onChange(of: scenePhase) { newPhase in
@@ -45,21 +47,24 @@ struct MainTabView: View {
                 // Record the final tab dwell time before suspending
                 let tabName = getTabName(for: selectedTab)
                 let duration = Date().timeIntervalSince(tabStartTime)
-                AnalyticsService.shared.trackNavigationStep(toTab: tabName, duration: duration)
+                AnalyticsService.shared.trackScreenTime(screenName: tabName, duration: duration)
                 
                 // Flush to Firestore
                 AnalyticsService.shared.endNavigationSession()
             }
         }
         .onChange(of: selectedTab) { newTab in
-            let tabName = getTabName(for: newTab)
-            
-            // Calculate dwell time
+            // 1. Log Time Spent on Previous Tab
+            let prevTabName = getTabName(for: previousTab)
             let duration = Date().timeIntervalSince(tabStartTime)
+            AnalyticsService.shared.trackScreenTime(screenName: prevTabName, duration: duration)
             
-            AnalyticsService.shared.trackNavigationStep(toTab: tabName, duration: duration)
+            // 2. Log Switch Event
+            let newTabName = getTabName(for: newTab)
+            AnalyticsService.shared.trackTabSwitch(from: prevTabName, to: newTabName)
             
-            // Reset timer
+            // 3. Reset
+            previousTab = newTab
             tabStartTime = Date()
         }
     }
