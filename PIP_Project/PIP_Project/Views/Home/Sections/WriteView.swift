@@ -398,6 +398,29 @@ struct WriteView: View {
         let inputs = cardInputs[index]
         let text = textInputs[index]
         
+        // Validations for "Others" input
+        if card.type == .action, let interventions = inputs["actions"] as? [Intervention] {
+            for intervention in interventions {
+                if intervention.type == .other {
+                    if let label = intervention.customLabel, !label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        // Valid
+                    } else {
+                        alertMessage = "Please specify the activity details."
+                        return
+                    }
+                }
+                
+                if intervention.mindset == .other {
+                    if let label = intervention.customMindsetLabel, !label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        // Valid
+                    } else {
+                        alertMessage = "Please specify the mindset details."
+                        return
+                    }
+                }
+            }
+        }
+        
         // 마지막 카드인지 확인 (남은 카드가 1개일 때)
         let isLast = (cards.count == 1)
         

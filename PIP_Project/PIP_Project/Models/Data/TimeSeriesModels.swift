@@ -53,7 +53,8 @@ enum DayPhase: String, Codable {
 struct Intervention: Codable, Identifiable {
     var id: UUID = UUID()
     var type: ActivityType
-    var customLabel: String? // For "Other" type or custom overrides
+    var customLabel: String? = nil // For "Other" type or custom overrides
+    var customMindsetLabel: String? = nil // For "Other" mindset
     var amount: Double // Intensity (0-100) or specific metric
     var mindset: Mindset
     

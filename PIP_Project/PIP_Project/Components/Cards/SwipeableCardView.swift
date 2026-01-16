@@ -486,6 +486,19 @@ struct ActivityRow: View {
                 .pickerStyle(.menu)
                 .tint(.pip.home.numRecords)
             }
+            
+            // Custom Label input if "Other" Mindset is selected
+            if intervention.mindset == .other {
+                TextField("Describe mindset...", text: Binding(
+                    get: { intervention.customMindsetLabel ?? "" },
+                    set: { intervention.customMindsetLabel = $0 }
+                ))
+                .font(.pip.caption)
+                .padding(8)
+                .background(Color.white.opacity(0.1))
+                .cornerRadius(8)
+                .foregroundColor(.white)
+            }
         }
         .padding(12)
         .background(Color.white.opacity(0.05))
