@@ -458,20 +458,25 @@ class WriteViewModel: ObservableObject {
         UserDefaults.standard.removeObject(forKey: kCachedEditingIdKey)
     }
 
-    func updateLocalCache(inputs: [String: Any], for index: Int) {
-        if index < cachedInputs.count {
-            cachedInputs[index] = inputs
+    // CHANGED: Added `globalIndex` logic clarification
+    // Since View only knows about relative index in `cards` array, but ViewModel knows everything.
+    // However, the View calls this. View must calculate the global index.
+    
+    func updateLocalCache(inputs: [String: Any], for globalIndex: Int) {
+        // Ensure index is within bounds of fixed cache
+        if globalIndex < cachedInputs.count {
+            cachedInputs[globalIndex] = inputs
             saveCachedInputs() 
         }
     }
     
-    func updateLocalTextCache(text: String, for index: Int) {
+    func updateLocalTextCache(text: String, for globalIndex: Int) {
         // Ensure cachedTextInputs is sized correctly
         if cachedTextInputs.count != getTotalCardsCount() {
             cachedTextInputs = Array(repeating: "", count: getTotalCardsCount())
         }
-        if index < cachedTextInputs.count {
-            cachedTextInputs[index] = text
+        if globalIndex < cachedTextInputs.count {
+            cachedTextInputs[globalIndex] = text
             saveCachedInputs()
         }
     }

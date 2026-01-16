@@ -275,8 +275,15 @@ struct WriteView: View {
                 }
                 
                 cardInputs[index] = finalInputs
-                viewModel.updateLocalCache(inputs: finalInputs, for: index)
-                print("WriteView: Updated inputs for card \(index)")
+                
+                // Calculate Global Index for Cache
+                // totalCardsCount (3) - cards.count (Remaining) = Offset
+                // + index (Current card's relative position in stack)
+                // e.g. Start: Offset=0. Card 0 -> Global 0.
+                // Complete 1: cards.count=2. Offset=1. Card 0 (Activity) -> Global 1.
+                let globalIndex = (totalCardsCount - cards.count) + index
+                viewModel.updateLocalCache(inputs: finalInputs, for: globalIndex)
+                print("WriteView: Updated inputs for card \(index) (Global: \(globalIndex))")
             }
         )
     }
@@ -287,7 +294,9 @@ struct WriteView: View {
             set: { new in 
                 guard index < textInputs.count else { return }
                 textInputs[index] = new 
-                viewModel.updateLocalTextCache(text: new, for: index)
+                
+                let globalIndex = (totalCardsCount - cards.count) + index
+                viewModel.updateLocalTextCache(text: new, for: globalIndex)
             }
         )
     }
@@ -321,7 +330,7 @@ struct WriteView: View {
             isTop: idx == 0,
             currentPage: idx == 0 ? currentPage : nil,
             totalPages: idx == 0 ? totalCardsCount : nil,
-            onSwipeLeft: { skipCard(at: idx) },
+            onSwipeLeft: { previousCard() },
             onSwipeRight: { saveCard(at: idx) },
             onCheck: { saveCard(at: idx) },
             onReturn: nil,
@@ -340,20 +349,96 @@ struct WriteView: View {
 
     // Move last card to front (previous)
     private func previousCard() {
-        guard let last = cards.popLast(), !cards.isEmpty || true else { return }
-        withAnimation {
-            cards.insert(last, at: 0)
-            // also rotate inputs/texts accordingly
-            let lastInputs = cardInputs.popLast() ?? defaultInputs(for: last)
-            let lastText = textInputs.popLast() ?? ""
-            cardInputs.insert(lastInputs, at: 0)
-            textInputs.insert(lastText, at: 0)
-            // move page back (wrap) - Computed property updates automatically
+        // 1. Identify the card that *should* be before the current one.
+        // `totalCardsCount` is usually 3.
+        // `cards.count` is remaining (e.g. 2 implies we are at index 1).
+        // Current Step Index = totalCardsCount - cards.count (e.g. 3 - 2 = 1).
+        // Previous Step Index = Current Step Index - 1.
+        
+        // If cards.count == totalCardsCount, we are at start (0). No previous.
+        if cards.count >= totalCardsCount {
+             return 
         }
+        
+        let currentStepIndex = totalCardsCount - cards.count
+        let prevStepIndex = currentStepIndex - 1
+        
+        guard prevStepIndex >= 0 else { return }
+        
+        // 2. Fetch the full list of cards to retrieve the specific card reference
+        let fullList = viewModel.generateCards()
+        guard prevStepIndex < fullList.count else { return }
+        let cardToRestore = fullList[prevStepIndex]
+        
+        // 3. Restore Input Data for this card
+        // We need to fetch from `viewModel.cachedInputs[prevStepIndex]`
+        // `cardInputs` currently only matches the *visible* `cards`.
+        // We need to prepend the inputs for the restored card.
+        
+        var restoredInputs: [String: Any] = [:]
+        if prevStepIndex < viewModel.cachedInputs.count {
+            restoredInputs = viewModel.cachedInputs[prevStepIndex]
+        } else {
+            restoredInputs = defaultInputs(for: cardToRestore)
+        }
+        
+        var restoredText = ""
+        if prevStepIndex < viewModel.cachedTextInputs.count {
+            restoredText = viewModel.cachedTextInputs[prevStepIndex]
+        }
+        
+        AnalyticsService.shared.logEvent(name: "card_previous", params: ["target_index": prevStepIndex])
+        
+        withAnimation {
+            // Prepend card and inputs
+            cards.insert(cardToRestore, at: 0)
+            cardInputs.insert(restoredInputs, at: 0)
+            textInputs.insert(restoredText, at: 0)
+        }
+        
         // Save to cache when card changes
-        viewModel.cachedInputs = self.cardInputs
-        viewModel.saveCachedInputs()
-        print("WriteView: Saved cache on previousCard")
+        // Note: cardInputs is now updated, so we save it back to sync
+        // Actually, `viewModel.cachedInputs` is the master. 
+        // We just mutated `cardInputs` (local view state).
+        // We should ensure VM cache is updated if we modified local.
+        // But here we just *loaded* from VM cache.
+        // Wait, if we edit 2nd card, `cardInputs` has 2 items.
+        // If we go back, `cardInputs` has 3 items.
+        // `viewModel.cachedInputs` always has 3 items (Fixed size).
+        // We need to map `cardInputs` back to `cachedInputs`?
+        // No, `viewModel.cachedInputs` is size 3. `cardInputs` is size 3.
+        // If we only have 2 cards, `cardInputs` size is 2. `cachedInputs` size is still 3?
+        // See `setupCards`: 
+        //   `self.cardInputs = remainingCards.map...`
+        //   `if viewModel.cachedInputs.count == remainingCards.count` -> This implies cachedInputs stored only remaining? 
+        //   Let's check `viewModel.updateLocalCache`:
+        //     `if index < cachedInputs.count { cachedInputs[index] = inputs }`
+        //   It seems `viewModel.cachedInputs` is resized or mapped?
+        //   In `WriteViewModel`: `cachedInputs = Array(repeating: [:], count: getTotalCardsCount())`. It is FIXED size 3.
+        
+        // Issue: `cardInputs` in View tracks `cards`. `cachedInputs` in VM tracks ALL steps.
+        // When we do `bindingForInputs(at: index)`, we access `cardInputs[index]`.
+        // And `updateLocalCache` calls `saveCachedInputs`.
+        
+        // Critical: `WriteViewModel.updateLocalCache` uses `index`. 
+        // If `cardInputs` has 2 items (indices 0, 1).
+        // View calls `updateLocalCache(..., for: 0)`.
+        // VM must know that "View Index 0" corresponds to "Step Index 1" (Activity).
+        // Let's check `updateLocalCache` in VM.
+        // It blindly uses `index`. 
+        // `func updateLocalCache(inputs: [String: Any], for index: Int) { if index < cachedInputs.count ... }`
+        
+        // BUG FOUND: `WriteViewModel` assumes `cachedInputs` is full size (3).
+        // But `WriteView` passes `index` from `cardInputs` (0..N).
+        // If we are on Step 2 (Activity), View Index 0 is Activity.
+        // But in VM, Activity is Index 1.
+        // So we are overwriting Index 0 (State) with Activity data!
+        
+        // Fix for `previousCard`:
+        // We are purely manipulating UI state here (`cards`, `cardInputs`).
+        // We don't need to save to cache yet, just restore UI state.
+        
+        print("WriteView: Restored previous card \(prevStepIndex) - \(cardToRestore.title)")
     }
 
     private func skipCard(at index: Int) {
