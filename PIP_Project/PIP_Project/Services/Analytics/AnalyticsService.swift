@@ -9,6 +9,8 @@ import Foundation
 import FirebaseFirestore
 import FirebaseAuth
 import Combine
+import Network
+import UIKit
 
 // MARK: - Analytics Models
 
@@ -21,8 +23,16 @@ struct UserBehaviorLog: Codable {
     var status: String     // "completed", "aborted", "unknown"
     var metrics: [String: AnyCodable] // Flattened metrics for flexibility
     
+    // New Fields for Global Performance Tracking
+    var deviceModel: String?
+    var deviceRegion: String?
+    var networkType: String?
+    
     enum CodingKeys: String, CodingKey {
         case id, userId, sessionType, startTime, endTime, status, metrics
+        case deviceModel = "device_model"
+        case deviceRegion = "device_region"
+        case networkType = "network_type"
     }
 }
 
@@ -35,7 +45,56 @@ class AnalyticsService: ObservableObject {
     private var eventLogs: [String] = [] // Temporary simple event log for debugging/analysis
     private let db = Firestore.firestore()
     
-    private init() {}
+    // Network Monitoring
+    private let monitor = NWPathMonitor()
+    private var currentNetworkType: String = "unknown"
+    
+    private init() {
+        startNetworkMonitoring()
+    }
+    
+    deinit {
+        monitor.cancel()
+    }
+    
+    // MARK: - Network Monitoring
+    
+    private func startNetworkMonitoring() {
+        monitor.pathUpdateHandler = { [weak self] path in
+            if path.status == .satisfied {
+                if path.usesInterfaceType(.wifi) {
+                    self?.currentNetworkType = "wifi"
+                } else if path.usesInterfaceType(.cellular) {
+                    self?.currentNetworkType = "cellular"
+                } else if path.usesInterfaceType(.wiredEthernet) {
+                    self?.currentNetworkType = "ethernet"
+                } else {
+                    self?.currentNetworkType = "other"
+                }
+            } else {
+                self?.currentNetworkType = "none"
+            }
+        }
+        let queue = DispatchQueue(label: "NetworkMonitor")
+        monitor.start(queue: queue)
+    }
+    
+    // MARK: - Device Info Helpers
+    
+    private func getDeviceModel() -> String {
+        var systemInfo = utsname()
+        uname(&systemInfo)
+        let machineMirror = Mirror(reflecting: systemInfo.machine)
+        let identifier = machineMirror.children.reduce("") { identifier, element in
+            guard let value = element.value as? Int8, value != 0 else { return identifier }
+            return identifier + String(UnicodeScalar(UInt8(value)))
+        }
+        return identifier
+    }
+    
+    private func getDeviceRegion() -> String {
+        return Locale.current.regionCode ?? "unknown"
+    }
     
     // MARK: - Session Management
     
@@ -176,8 +235,13 @@ class AnalyticsService: ObservableObject {
     /// Flushes the navigation buffer to Firestore (Called on App Background)
     func endNavigationSession() {
         guard var log = navigationSessionLog else { return }
-        guard !navigationEvents.isEmpty else {
-            print("📊 [Analytics] Navigation session ended with no events. Skipping upload.")
+        
+        // Check if there's anything to save (navigation steps OR other buffered metrics)
+        let hasMetrics = !log.metrics.isEmpty
+        let hasNavigationEvents = !navigationEvents.isEmpty
+        
+        guard hasNavigationEvents || hasMetrics else {
+            print("📊 [Analytics] Navigation session ended with no events or metrics. Skipping upload.")
             navigationSessionLog = nil
             return
         }
@@ -246,6 +310,12 @@ class AnalyticsService: ObservableObject {
             let subjectId = await resolveSubjectId()
             let path = "analytic_logs"
             
+            // Capture current device/network state
+            // Note: This captures state at upload time, which is usually close enough to session end.
+            let deviceModel = self.getDeviceModel()
+            let deviceRegion = self.getDeviceRegion()
+            let networkType = self.currentNetworkType
+            
             do {
                 // Convert to dictionary
                 var logData: [String: Any] = [
@@ -255,7 +325,12 @@ class AnalyticsService: ObservableObject {
                     "sessionType": log.sessionType,
                     "startTime": Timestamp(date: log.startTime),
                     "status": log.status,
-                    "metrics": log.metrics.mapValues { $0.value }
+                    "metrics": log.metrics.mapValues { $0.value },
+                    
+                    // New Fields
+                    "device_model": deviceModel,
+                    "device_region": deviceRegion,
+                    "network_type": networkType
                 ]
                 
                 if let endTime = log.endTime {
@@ -264,7 +339,7 @@ class AnalyticsService: ObservableObject {
                 
                 // Save
                 try await db.collection(path).document(log.id).setData(logData)
-                print("✅ [Analytics] Log saved: \(log.id) (subject: \(subjectId))")
+                print("✅ [Analytics] Log saved: \(log.id) (subject: \(subjectId), device: \(deviceModel), net: \(networkType))")
             } catch {
                 print("❌ [Analytics] Failed to save log: \(error)")
             }

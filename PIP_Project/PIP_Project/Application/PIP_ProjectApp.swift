@@ -46,6 +46,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     func applicationWillTerminate(_ application: UIApplication) {
         // Ensure analytics are flushed on forced termination
         print("⚠️ [AppDelegate] App terminating, flushing navigation session...")
+        // We still attempt to flush here just in case, but MainTabView should have handled it if it was active
         AnalyticsService.shared.endNavigationSession()
     }
 }
@@ -81,13 +82,8 @@ struct PIP_ProjectApp: App {
                 .environmentObject(authStateManager)
                 .environmentObject(authService)
                 .onChange(of: scenePhase) { oldPhase, newPhase in
-                    if newPhase == .background {
-                        print("📱 [App] Entered background. Flushing analytics...")
-                        AnalyticsService.shared.endNavigationSession()
-                    } else if newPhase == .active {
-                        print("📱 [App] Entered active state. Starting navigation session...")
-                        AnalyticsService.shared.startNavigationSession()
-                    }
+                    // Removed global analytics session management to avoid race conditions with MainTabView
+                    // MainTabView now handles its own session lifecycle
                 }
         }
     }
