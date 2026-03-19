@@ -1,6 +1,6 @@
-# 🚀 01. PIP 프로젝트 인덱스
+# 🚀 01. NeoPIP 프로젝트 인덱스
 
-이 문서는 PIP 프로젝트의 마스터 인덱스로, 모든 핵심 정보와 문서로 연결되는 단일 진실 공급원(Single Source of Truth)입니다.
+이 문서는 NeoPIP 프로젝트의 마스터 인덱스로, 모든 핵심 정보와 문서로 연결되는 단일 진실 공급원(Single Source of Truth)입니다.
 
 ---
 
@@ -20,7 +20,7 @@
 
 ### 1.1. 프로젝트 비전 및 목표
 
-**프로젝트명:** PIP (Personal Intelligence Platform)
+**프로젝트명:** NeoPIP (Personal Intelligence Platform)
 **슬로건:** "나를 이해하는 가장 스마트한 방법, PIP"
 
 **핵심 목표:**
@@ -120,7 +120,7 @@ PIP 앱은 **MVVM (Model-View-ViewModel)** 패턴을 따릅니다.
 -   `02_Design_Assets/`: 디자인 마스터 소스
 -   `03_Development/`: AI/ML 모델 개발
 -   `04_Distribution/`: 배포 및 심사 자료
--   `PIP_Project/`: iOS 앱 소스 코드
+-   `PIP_Project/`: iOS 앱 소스 코드 (Xcode 프로젝트)
 
 ---
 

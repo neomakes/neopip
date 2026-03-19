@@ -1,4 +1,4 @@
-# 🚀 RELEASE PLAN: PIP 프로젝트 출시 및 배포 전략
+# 🚀 RELEASE PLAN: NeoPIP 프로젝트 출시 및 배포 전략
 
 이 문서는 MVP(최소 기능 제품) 출시를 위한 목표 설정, 필수 체크리스트, 그리고 배포 단계를 관리합니다.
 
@@ -15,10 +15,10 @@
 
 ### 2.1. 필수 메타데이터 체크리스트
 
-* **앱 이름:** [PIP: Personal Intelligence Platform] (최종 확정)
+* **앱 이름:** [NeoPIP: Personal Intelligence Platform] (최종 확정)
 * **부제:** [심리, 행동, 신체 분석 기반의 AI 웰니스 코치]
 * **키워드:** (최대 100자) [Wellness, AI, Habit, Productivity, Journal, Mind, Sleep, Health]
-* **앱 설명 (Short Description):** [PIP Score로 나를 정확히 파악하고, AI 인사이트로 최적의 일상을 설계하세요.] (최대 170자)
+* **앱 설명 (Short Description):** [NeoPIP Score로 나를 정확히 파악하고, AI 인사이트로 최적의 일상을 설계하세요.] (최대 170자)
 * **앱 설명 (Long Description):** (`04/AppStore_Metadata/long_description.md` 파일 별도 작성)
 
 ### 2.2. 필수 에셋 (`04/Screenshots` 및 `02/App_Icons`)

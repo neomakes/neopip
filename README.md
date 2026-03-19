@@ -1,19 +1,28 @@
-# PIP Project
+<p align="center">
+  <img src="assets/banner.svg" alt="NeoPIP Banner" width="100%"/>
+</p>
 
-[![Swift](https://img.shields.io/badge/Swift-5.10+-orange.svg)](https://swift.org)
-[![SwiftUI](https://img.shields.io/badge/SwiftUI-5.0-blue.svg)](https://developer.apple.com/swiftui/)
-[![iOS](https://img.shields.io/badge/iOS-17.0+-blue.svg)](https://developer.apple.com/ios/)
-[![Firebase](https://img.shields.io/badge/Firebase-Backend-FFCA28.svg)](https://firebase.google.com)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Status](https://img.shields.io/badge/Status-On%20Hold-orange.svg)]()
+<p align="center">
+  <a href="https://swift.org"><img src="https://img.shields.io/badge/Swift-5.10+-F05138.svg?style=flat&logo=swift&logoColor=white" alt="Swift"></a>
+  <a href="https://developer.apple.com/swiftui/"><img src="https://img.shields.io/badge/SwiftUI-5.0-007AFF.svg?style=flat&logo=swift&logoColor=white" alt="SwiftUI"></a>
+  <a href="https://developer.apple.com/ios/"><img src="https://img.shields.io/badge/iOS-17.0+-000000.svg?style=flat&logo=apple&logoColor=white" alt="iOS"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-green.svg?style=flat" alt="License"></a>
+  <img src="https://img.shields.io/badge/Status-On%20Hold-orange.svg?style=flat" alt="Status">
+</p>
 
-Personal Intelligence Platform — an AI-powered wellness iOS app that integrates psychological, behavioral, and physical data to deliver personalized insights through a PIP Score.
+<p align="center">
+  <b>NeoPIP</b> — an AI-powered wellness iOS app that integrates psychological, behavioral, and physical data to deliver personalized insights through a PIP Score.
+</p>
+
+<p align="center">
+  <a href="README.ko.md">한국어</a>
+</p>
 
 ---
 
 ## Table of Contents
 
-- [Background \& Motivation](#background--motivation)
+- [Background & Motivation](#background--motivation)
 - [Key Features](#key-features)
 - [Architecture](#architecture)
 - [Installation](#installation)
@@ -29,9 +38,9 @@ Personal Intelligence Platform — an AI-powered wellness iOS app that integrate
 
 ## Background & Motivation
 
-Most wellness apps track a single dimension — steps, sleep, or mood — in isolation. PIP takes a holistic approach: it combines psychological state, behavioral patterns, and physical metrics into a single **PIP Score** that reflects overall well-being.
+Most wellness apps track a single dimension — steps, sleep, or mood — in isolation. NeoPIP takes a holistic approach: it combines psychological state, behavioral patterns, and physical metrics into a single **PIP Score** that reflects overall well-being.
 
-The platform is designed as the user-facing layer of the [neomakes](https://github.com/neomakes) agent ecosystem. Sensor data from [iphoneLogger](https://github.com/neomakes/iphonelogger) feeds into behavioral models from [humanWorldModel](https://github.com/neomakes/humanWorldModel), which in turn powers PIP's personalized wellness intelligence.
+The platform is designed as the user-facing layer of the [neomakes](https://github.com/neomakes) agent ecosystem. Sensor data from [iphoneLogger](https://github.com/neomakes/iphonelogger) feeds into behavioral models from [humanWorldModel](https://github.com/neomakes/humanWorldModel), which in turn powers NeoPIP's personalized wellness intelligence.
 
 ---
 
@@ -100,8 +109,8 @@ graph TD
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/neomakes/PIP_Project.git
-   cd PIP_Project
+   git clone https://github.com/neomakes/neopip.git
+   cd neopip
    ```
 
 2. Set up Firebase:
@@ -145,7 +154,7 @@ graph TD
 ## Project Structure
 
 ```
-PIP_Project/
+neopip/
 ├── 01_Planning/               # Product requirements, research, user stories
 │   ├── PRD/
 │   ├── Research/
@@ -159,7 +168,7 @@ PIP_Project/
 │   ├── AppStore_Metadata/
 │   ├── Release_Notes/
 │   └── Screenshots/
-├── PIP_Project/               # iOS app source code
+├── PIP_Project/               # iOS app source code (Xcode project)
 │   └── PIP_Project/
 │       ├── App/               # App entry point
 │       ├── Models/            # Data models
@@ -171,6 +180,7 @@ PIP_Project/
 │       │   └── Shared/
 │       ├── Services/          # Firebase and business logic services
 │       └── Resources/         # Assets, fonts
+├── assets/                    # Repository assets (banner, etc.)
 ├── LICENSE
 ├── CONTRIBUTING.md
 ├── CODE_OF_CONDUCT.md
@@ -181,8 +191,8 @@ PIP_Project/
 
 ## Related Projects
 
-- **[humanWorldModel](https://github.com/neomakes/humanWorldModel)** — VRAE-based behavior trajectory modeling. Serves as the ML backbone for PIP's wellness intelligence, generating personalized behavioral predictions.
-- **[iphoneLogger](https://github.com/neomakes/iphonelogger)** — Multi-modal sensor logging. Provides raw physical data that feeds into the PIP data pipeline.
+- **[humanWorldModel](https://github.com/neomakes/humanWorldModel)** — VRAE-based behavior trajectory modeling. Serves as the ML backbone for NeoPIP's wellness intelligence, generating personalized behavioral predictions.
+- **[iphoneLogger](https://github.com/neomakes/iphonelogger)** — Multi-modal sensor logging. Provides raw physical data that feeds into the NeoPIP data pipeline.
 - **[neocog](https://github.com/neomakes/neocog)** — On-device agentic inference kernel. Future integration point for local AI processing.
 
 ---
@@ -206,7 +216,7 @@ PIP_Project/
 
 ### Why Paused
 
-The wellness app market became increasingly crowded. Development focus shifted to the neocog agent kernel and NeoTOC platform, which represent a more differentiated technical contribution. PIP remains valuable as a demonstration of end-to-end iOS + AI + wellness domain capability.
+The wellness app market became increasingly crowded. Development focus shifted to the neocog agent kernel and NeoTOC platform, which represent a more differentiated technical contribution. NeoPIP remains valuable as a demonstration of end-to-end iOS + AI + wellness domain capability.
 
 ---
 

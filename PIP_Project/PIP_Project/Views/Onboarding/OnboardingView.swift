@@ -144,7 +144,7 @@ struct WelcomeStepView: View {
                     .font(.pip.hero)
                     .foregroundColor(.white)
 
-                Text("Your Personal Intelligence Platform")
+                Text("Your NeoPIP Experience")
                     .font(.pip.title1)
                     .foregroundColor(Color.pip.home.buttonAddGrad1)
 
