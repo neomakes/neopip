@@ -40,7 +40,7 @@
 
 대부분의 웰니스 앱은 걸음 수, 수면, 기분 등 단일 지표만 개별적으로 추적합니다. NeoPIP은 심리 상태, 행동 패턴, 신체 지표를 하나의 **PIP Score**로 통합하여 전반적인 웰빙 상태를 반영하는 총체적 접근 방식을 취합니다.
 
-이 플랫폼은 [neomakes](https://github.com/neomakes) 에이전트 생태계의 사용자 인터페이스 레이어로 설계되었습니다. [NeoSense](https://github.com/neomakes/neosense)의 센서 데이터가 [NeoMind](https://github.com/neomakes/neomind)의 행동 모델로 유입되고, 이를 기반으로 NeoPIP의 개인화된 웰니스 인텔리전스가 작동합니다.
+이 플랫폼은 [neomakes](https://github.com/neomakes) 에이전트 생태계의 사용자 인터페이스 레이어로 설계되었습니다. [NeoSense](https://github.com/neomakes/neosense)의 센서 데이터가 [human-wm](https://github.com/neomakes/human-wm)의 행동 모델로 유입되고, 이를 기반으로 NeoPIP의 개인화된 웰니스 인텔리전스가 작동합니다.
 
 ---
 
@@ -191,7 +191,7 @@ neopip/
 
 ## 관련 프로젝트
 
-- **[NeoMind](https://github.com/neomakes/neomind)** — VRAE 기반 행동 궤적 모델링. NeoPIP 웰니스 인텔리전스의 ML 백본으로, 개인화된 행동 예측을 생성합니다.
+- **[human-wm](https://github.com/neomakes/human-wm)** — VRAE 기반 인간 행동 월드 모델. NeoPIP 웰니스 인텔리전스의 ML 백본으로, 개인화된 행동 예측을 생성합니다.
 - **[NeoSense](https://github.com/neomakes/neosense)** — 멀티모달 센서 로깅. NeoPIP 데이터 파이프라인에 원시 물리 데이터를 제공합니다.
 - **[neocog](https://github.com/neomakes/neocog)** — 온디바이스 에이전틱 추론 커널. 로컬 AI 처리를 위한 향후 통합 지점입니다.
 
@@ -210,7 +210,7 @@ neopip/
 
 ### 미연동 항목
 
-- ML 연동: NeoMind가 연구 백엔드이나 아직 앱에 연결되지 않음
+- ML 연동: human-wm이 연구 백엔드이나 아직 앱에 연결되지 않음
 - PIP Score 계산: 설계는 완료되었으나 실제 ML 추론으로 완전 구현되지 않음
 - Cloud Functions: 계획되었으나 배포되지 않음
 
@@ -222,7 +222,7 @@ neopip/
 
 ## 로드맵
 
-- [ ] NeoMind 연결하여 실제 행동 예측 구현
+- [ ] human-wm 연결하여 실제 행동 예측 구현
 - [ ] ML 추론 기반 PIP Score 계산 구현
 - [ ] Firebase Cloud Functions 배포하여 백엔드 분석 구현
 - [ ] 나머지 UI 화면 완성 (~20%)

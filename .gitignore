@@ -14,6 +14,7 @@ DerivedData/
 
 # Xcode 작업 공간, 사용자 설정, 자동 생성된 파일
 *.xcodeproj/project.xcworkspace
+xcuserdata/
 *.xcodeproj/xcuserdata
 *.xcworkspace/xcuserdata
 *.xcuserdatad

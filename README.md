@@ -40,7 +40,7 @@
 
 Most wellness apps track a single dimension — steps, sleep, or mood — in isolation. NeoPIP takes a holistic approach: it combines psychological state, behavioral patterns, and physical metrics into a single **PIP Score** that reflects overall well-being.
 
-The platform is designed as the user-facing layer of the [neomakes](https://github.com/neomakes) agent ecosystem. Sensor data from [NeoSense](https://github.com/neomakes/neosense) feeds into behavioral models from [NeoMind](https://github.com/neomakes/neomind), which in turn powers NeoPIP's personalized wellness intelligence.
+The platform is designed as the user-facing layer of the [neomakes](https://github.com/neomakes) agent ecosystem. Sensor data from [NeoSense](https://github.com/neomakes/neosense) feeds into behavioral models from [human-wm](https://github.com/neomakes/human-wm), which in turn powers NeoPIP's personalized wellness intelligence.
 
 ---
 
@@ -191,7 +191,7 @@ neopip/
 
 ## Related Projects
 
-- **[NeoMind](https://github.com/neomakes/neomind)** — VRAE-based behavior trajectory modeling. Serves as the ML backbone for NeoPIP's wellness intelligence, generating personalized behavioral predictions.
+- **[human-wm](https://github.com/neomakes/human-wm)** — VRAE-based human behavior world model. Serves as the ML backbone for NeoPIP's wellness intelligence, generating personalized behavioral predictions.
 - **[NeoSense](https://github.com/neomakes/neosense)** — Multi-modal sensor logging. Provides raw physical data that feeds into the NeoPIP data pipeline.
 - **[neocog](https://github.com/neomakes/neocog)** — On-device agentic inference kernel. Future integration point for local AI processing.
 
@@ -210,7 +210,7 @@ neopip/
 
 ### What's Not Connected
 
-- ML integration: NeoMind is the research backend but is not yet wired to the app
+- ML integration: human-wm is the research backend but is not yet wired to the app
 - PIP Score calculation: designed but not fully implemented with real ML inference
 - Cloud Functions: planned but not deployed
 
@@ -222,7 +222,7 @@ The wellness app market became increasingly crowded. Development focus shifted t
 
 ## Roadmap
 
-- [ ] Connect NeoMind for real behavioral predictions
+- [ ] Connect human-wm for real behavioral predictions
 - [ ] Implement PIP Score calculation with ML inference
 - [ ] Deploy Firebase Cloud Functions for backend analysis
 - [ ] Complete remaining UI screens (~20%)
